@@ -126,12 +126,10 @@ class EditEntrepreneur extends EditRecord
             'education_level_id' => $data['education_level_id'],
             'population_id' => $data['population_id'],
             'state_id' => $data['state_id'] ?? null,
-            'manager_id' => $data['manager_id'] ?? null,
             'project_id' => $data['marsital_statusS'] ?? null, // Mapear correctamente
             'service' => $data['service'] ?? null,
             'admission_date' => $data['admission_date'] ?? null,
             'cohort_id' => $data['cohort_id'] ?? null,
-            'user_id' => $data['user_id'] ?? auth()->id(),
             'traffic_light' => $data['traffic_light'] ?? 1,
         ];
     }

@@ -171,7 +171,7 @@ class EntrepreneurshipStageResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
-                    ->tooltip('Editar tipo de documento')
+                    ->tooltip('Editar etapa de emprendimiento')
                     ->visible(fn($record) => !$record->trashed() && static::userCanEdit()),
 
                 Tables\Actions\DeleteAction::make()
@@ -185,7 +185,7 @@ class EntrepreneurshipStageResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
-                    ->tooltip('Restaurar tipo de documento')
+                    ->tooltip('Restaurar etapa de emprendimiento')
                     ->visible(fn($record) => $record->trashed() && static::userCanDelete()),
 
                 Tables\Actions\ForceDeleteAction::make()

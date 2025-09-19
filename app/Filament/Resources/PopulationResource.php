@@ -158,7 +158,7 @@ class PopulationResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
-                    ->tooltip('Editar género')
+                    ->tooltip('Editar población')
                     ->visible(fn($record) => !$record->trashed() && static::userCanEdit()),
 
                 Tables\Actions\DeleteAction::make()
@@ -172,7 +172,7 @@ class PopulationResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
-                    ->tooltip('Restaurar género')
+                    ->tooltip('Restaurar población')
                     ->visible(fn($record) => $record->trashed() && static::userCanDelete()),
 
                 Tables\Actions\ForceDeleteAction::make()

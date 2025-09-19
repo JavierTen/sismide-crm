@@ -159,7 +159,7 @@ class ProductiveLineResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
-                    ->tooltip('Editar nivel de educación')
+                    ->tooltip('Editar linea productiva')
                     ->visible(fn($record) => !$record->trashed() && static::userCanEdit()),
 
                 Tables\Actions\DeleteAction::make()
@@ -173,7 +173,7 @@ class ProductiveLineResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
-                    ->tooltip('Restaurar nivel de educación')
+                    ->tooltip('Restaurar linea productiva')
                     ->visible(fn($record) => $record->trashed() && static::userCanDelete()),
 
                 Tables\Actions\ForceDeleteAction::make()

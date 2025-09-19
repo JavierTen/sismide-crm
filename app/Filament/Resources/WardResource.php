@@ -209,7 +209,7 @@ class WardResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
-                    ->tooltip('Editar nivel de educación')
+                    ->tooltip('Editar corregimiento')
                     ->visible(fn($record) => !$record->trashed() && static::userCanEdit()),
 
                 Tables\Actions\DeleteAction::make()
@@ -223,7 +223,7 @@ class WardResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
-                    ->tooltip('Restaurar nivel de educación')
+                    ->tooltip('Restaurar corregimiento')
                     ->visible(fn($record) => $record->trashed() && static::userCanDelete()),
 
                 Tables\Actions\ForceDeleteAction::make()

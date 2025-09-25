@@ -113,7 +113,12 @@ class VisitResource extends Resource
                                     ->required()
                                     ->columnSpanFull()
                                     ->reactive()
-                                    ->helperText('Selecciona el emprendedor al que se le agendará la visita.'),
+                                    ->disabled(fn(string $operation): bool => $operation === 'edit')
+                                    ->helperText(fn(string $operation): string =>
+                                        $operation === 'edit'
+                                            ? 'El emprendedor no puede ser modificado después de crear la visita.'
+                                            : 'Selecciona el emprendedor al que se le agendará la visita.'
+                                    ),
 
                                 Forms\Components\Grid::make(3)
                                     ->schema([
@@ -362,5 +367,10 @@ class VisitResource extends Resource
             'create' => Pages\CreateVisit::route('/create'),
             'edit' => Pages\EditVisit::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

@@ -122,23 +122,29 @@ class UserResource extends Resource
                     ->collapsible()
                     ->persistCollapsed(),
 
-                Forms\Components\Section::make('Seguridad y Acceso')
+                    Forms\Components\Section::make('Seguridad y Acceso')
                     ->description('Configuración de contraseña y verificación')
                     ->icon('heroicon-o-shield-check')
                     ->schema([
                         Forms\Components\TextInput::make('password')
                             ->label('Contraseña')
                             ->password()
-                            ->hiddenOn('edit')
                             ->dehydrateStateUsing(fn($state) => filled($state) ? bcrypt($state) : null)
                             ->dehydrated(fn($state) => filled($state))
                             ->required(fn(string $context): bool => $context === 'create')
                             ->minLength(8)
-                            ->placeholder('Mínimo 8 caracteres')
-                            ->helperText('Debe contener al menos 8 caracteres'),
+                            ->placeholder(fn(string $context): string =>
+                                $context === 'edit'
+                                    ? 'Dejar vacío para mantener la contraseña actual'
+                                    : 'Mínimo 8 caracteres'
+                            )
+                            ->helperText(fn(string $context): string =>
+                                $context === 'edit'
+                                    ? 'Solo completar si desea cambiar la contraseña actual'
+                                    : 'Debe contener al menos 8 caracteres'
+                            ),
                     ])
                     ->collapsible()
-                    ->hiddenOn('edit')
                     ->persistCollapsed(),
 
                 Forms\Components\Section::make('Roles y Permisos')
@@ -267,5 +273,10 @@ class UserResource extends Resource
             'create' => Pages\CreateUser::route('/create'),
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

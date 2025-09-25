@@ -537,4 +537,9 @@ class EntrepreneurResource extends Resource
             'edit' => Pages\EditEntrepreneur::route('/{record}/edit'),
         ];
     }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
+    }
 }

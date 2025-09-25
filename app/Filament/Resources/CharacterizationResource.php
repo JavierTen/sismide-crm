@@ -111,7 +111,12 @@ class CharacterizationResource extends Resource
                             ->required()
                             ->live()
                             ->placeholder('Buscar emprendedor por nombre')
-                            ->helperText('Selecciona el emprendedor para autocompletar información relacionada')
+                            ->disabled(fn(string $operation): bool => $operation === 'edit')
+                            ->helperText(fn(string $operation): string =>
+                                $operation === 'edit'
+                                    ? 'El emprendedor asignado no puede ser modificado.'
+                                    : 'Selecciona el emprendedor para autocompletar información relacionada'
+                            )
                             ->unique(table: 'characterizations', column: 'entrepreneur_id', ignoreRecord: true),
 
                         Forms\Components\Grid::make(3)
@@ -412,7 +417,7 @@ class CharacterizationResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
-                    ->tooltip('Editar nivel de educación')
+                    ->tooltip('Editar caracterización')
                     ->visible(fn($record) => !$record->trashed() && static::userCanEdit()),
 
                 Tables\Actions\DeleteAction::make()
@@ -426,7 +431,7 @@ class CharacterizationResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
-                    ->tooltip('Restaurar nivel de educación')
+                    ->tooltip('Restaurar caracterización')
                     ->visible(fn($record) => $record->trashed() && static::userCanDelete()),
 
                 Tables\Actions\ForceDeleteAction::make()
@@ -471,5 +476,10 @@ class CharacterizationResource extends Resource
             'create' => Pages\CreateCharacterization::route('/create'),
             'edit' => Pages\EditCharacterization::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

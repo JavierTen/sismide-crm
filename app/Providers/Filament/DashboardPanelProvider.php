@@ -28,7 +28,7 @@ class DashboardPanelProvider extends PanelProvider
             ->default()
             ->id('dashboard')
             ->path('dashboard')
-            ->login()
+            ->login(\App\Filament\Pages\Auth\CustomLogin::class)
             ->colors([
                 'primary' => Color::Blue,
             ])
@@ -39,8 +39,8 @@ class DashboardPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                //Widgets\AccountWidget::class,
-                //Widgets\FilamentInfoWidget::class,
+                Widgets\AccountWidget::class,
+                Widgets\FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -67,6 +67,9 @@ class DashboardPanelProvider extends PanelProvider
                 NavigationGroup::make()
                     ->label('Gestión Tipos')
                     ->collapsible(),
+                NavigationGroup::make()
+                ->label('Roles y Permisos')
+                ->collapsible(),
                 NavigationGroup::make()
                     ->label('CRM')
                     ->icon('heroicon-o-building-office')

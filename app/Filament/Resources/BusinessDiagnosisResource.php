@@ -117,6 +117,12 @@ class BusinessDiagnosisResource extends Resource
                                                 ->required()
                                                 ->live()
                                                 ->placeholder('Buscar emprendedor')
+                                                ->disabled(fn(string $operation): bool => $operation === 'edit')
+                                                ->helperText(fn(string $operation): string =>
+                                                    $operation === 'edit'
+                                                        ? 'El emprendedor asignado no puede ser modificado.'
+                                                        : 'Selecciona el emprendedor para realizar el diagnóstico empresarial'
+                                                )
                                                 ->unique(table: 'business_diagnoses', column: 'entrepreneur_id', ignoreRecord: true),
 
                                             Forms\Components\DatePicker::make('diagnosis_date')
@@ -722,5 +728,10 @@ class BusinessDiagnosisResource extends Resource
             'create' => Pages\CreateBusinessDiagnosis::route('/create'),
             'edit' => Pages\EditBusinessDiagnosis::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

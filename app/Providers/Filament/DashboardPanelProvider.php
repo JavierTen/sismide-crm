@@ -28,7 +28,7 @@ class DashboardPanelProvider extends PanelProvider
             ->default()
             ->id('dashboard')
             ->path('dashboard')
-            ->login(\App\Filament\Pages\Auth\CustomLogin::class)
+            ->login()
             ->colors([
                 'primary' => Color::Blue,
             ])

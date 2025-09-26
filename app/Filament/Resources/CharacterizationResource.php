@@ -310,15 +310,32 @@ class CharacterizationResource extends Resource
                     ->collapsible()
                     ->persistCollapsed(),
 
-                Forms\Components\Section::make('Georreferenciación')
+                    Forms\Components\Section::make('Georreferenciación')
                     ->description('Ubicación exacta del emprendimiento')
                     ->icon('heroicon-o-map-pin')
                     ->schema([
-                        Forms\Components\TextInput::make('georeference')
-                            ->label('Coordenadas Geográficas')
-                            ->maxLength(255)
-                            ->placeholder('Latitud, Longitud (Ej: 7.1193, -73.1227)')
-                            ->helperText('Coordenadas GPS del emprendimiento')
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('latitude')
+                                    ->label('Latitud')
+                                    ->numeric()
+                                    ->step(0.00000001)
+                                    ->placeholder('Ej: 7.1193')
+                                    ->helperText('Coordenada de latitud GPS')
+                                    ->rules(['numeric', 'between:-90,90']),
+
+                                Forms\Components\TextInput::make('longitude')
+                                    ->label('Longitud')
+                                    ->numeric()
+                                    ->step(0.00000001)
+                                    ->placeholder('Ej: -73.1227')
+                                    ->helperText('Coordenada de longitud GPS')
+                                    ->rules(['numeric', 'between:-180,180']),
+                            ]),
+
+                        Forms\Components\Placeholder::make('coordinates_info')
+                            ->label('Información')
+                            ->content('Las coordenadas GPS deben ser obtenidas en el lugar exacto del emprendimiento. Use una aplicación GPS o Google Maps para obtener las coordenadas precisas.')
                             ->columnSpanFull(),
                     ])
                     ->collapsible()

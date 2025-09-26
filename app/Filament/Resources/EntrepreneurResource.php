@@ -373,7 +373,6 @@ class EntrepreneurResource extends Resource
 
                                                 Forms\Components\Select::make('ward_id')
                                                     ->label('Corregimiento')
-                                                    ->required()
                                                     ->columnSpanFull()
                                                     ->searchable()
                                                     ->visible(function ($get) {

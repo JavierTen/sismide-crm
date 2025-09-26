@@ -43,7 +43,7 @@ class BusinessDiagnosis extends Model
      */
     public function entrepreneur(): BelongsTo
     {
-        return $this->belongsTo(Entrepreneur::class);
+        return $this->belongsTo(Entrepreneur::class)->withTrashed();
     }
 
     /**

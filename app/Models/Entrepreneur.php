@@ -109,4 +109,28 @@ class Entrepreneur extends Model
     {
         return $this->belongsTo(User::class, 'manager_id');
     }
+
+    /**
+     * Relación con visitas
+     */
+    public function visits()
+    {
+        return $this->hasMany(\App\Models\Visit::class);
+    }
+
+    /**
+     * Relación con caracterizaciones
+     */
+    public function characterizations()
+    {
+        return $this->hasMany(\App\Models\Characterization::class);
+    }
+
+    /**
+     * Relación con diagnósticos empresariales
+     */
+    public function businessDiagnoses()
+    {
+        return $this->hasMany(\App\Models\BusinessDiagnosis::class);
+    }
 }

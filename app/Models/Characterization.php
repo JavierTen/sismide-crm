@@ -108,7 +108,7 @@ class Characterization extends Model
     // Relations
     public function entrepreneur()
     {
-        return $this->belongsTo(Entrepreneur::class, 'entrepreneur_id');
+        return $this->belongsTo(Entrepreneur::class, 'entrepreneur_id')->withTrashed();
     }
 
     public function economicActivity()

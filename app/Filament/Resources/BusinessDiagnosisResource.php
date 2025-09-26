@@ -118,7 +118,8 @@ class BusinessDiagnosisResource extends Resource
                                                 ->live()
                                                 ->placeholder('Buscar emprendedor')
                                                 ->disabled(fn(string $operation): bool => $operation === 'edit')
-                                                ->helperText(fn(string $operation): string =>
+                                                ->helperText(
+                                                    fn(string $operation): string =>
                                                     $operation === 'edit'
                                                         ? 'El emprendedor asignado no puede ser modificado.'
                                                         : 'Selecciona el emprendedor para realizar el diagnóstico empresarial'
@@ -632,18 +633,21 @@ class BusinessDiagnosisResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function ($query) {
+                return $query->withTrashed();
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('entrepreneur.full_name')
                     ->label('Emprendedor')
                     ->searchable()
                     ->sortable(),
 
-                    Tables\Columns\TextColumn::make('entrepreneur.business.business_name')
+                Tables\Columns\TextColumn::make('entrepreneur.business.business_name')
                     ->label('Emprendedor')
                     ->searchable()
                     ->sortable(),
 
-                    Tables\Columns\TextColumn::make('entrepreneur.city.name')
+                Tables\Columns\TextColumn::make('entrepreneur.city.name')
                     ->label('Municipio')
                     ->searchable()
                     ->sortable()

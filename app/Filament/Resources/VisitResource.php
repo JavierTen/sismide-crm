@@ -114,7 +114,8 @@ class VisitResource extends Resource
                                     ->columnSpanFull()
                                     ->reactive()
                                     ->disabled(fn(string $operation): bool => $operation === 'edit')
-                                    ->helperText(fn(string $operation): string =>
+                                    ->helperText(
+                                        fn(string $operation): string =>
                                         $operation === 'edit'
                                             ? 'El emprendedor no puede ser modificado después de crear la visita.'
                                             : 'Selecciona el emprendedor al que se le agendará la visita.'
@@ -265,6 +266,9 @@ class VisitResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function ($query) {
+                return $query->withTrashed();
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('entrepreneur.full_name')
                     ->label('Emprendedor')

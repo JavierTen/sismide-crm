@@ -32,7 +32,7 @@ class Visit extends Model
 
     public function entrepreneur()
     {
-        return $this->belongsTo(Entrepreneur::class, 'entrepreneur_id');
+        return $this->belongsTo(Entrepreneur::class, 'entrepreneur_id')->withTrashed();
     }
 
     public function scopeActive($query)
@@ -49,7 +49,4 @@ class Visit extends Model
     {
         return $this->hasMany(self::class, 'original_visit_id');
     }
-
-
-
 }

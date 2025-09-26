@@ -112,7 +112,8 @@ class CharacterizationResource extends Resource
                             ->live()
                             ->placeholder('Buscar emprendedor por nombre')
                             ->disabled(fn(string $operation): bool => $operation === 'edit')
-                            ->helperText(fn(string $operation): string =>
+                            ->helperText(
+                                fn(string $operation): string =>
                                 $operation === 'edit'
                                     ? 'El emprendedor asignado no puede ser modificado.'
                                     : 'Selecciona el emprendedor para autocompletar información relacionada'
@@ -152,12 +153,12 @@ class CharacterizationResource extends Resource
                                     }),
                             ]),
 
-                            Forms\Components\DatePicker::make('characterization_date')
-                                            ->label('Fecha de Caracterización')
-                                            ->required()
-                                            ->maxDate(now())
-                                            ->displayFormat('d/m/Y')
-                                            ->native(true),
+                        Forms\Components\DatePicker::make('characterization_date')
+                            ->label('Fecha de Caracterización')
+                            ->required()
+                            ->maxDate(now())
+                            ->displayFormat('d/m/Y')
+                            ->native(true),
                     ])
                     ->collapsible()
                     ->persistCollapsed(),
@@ -310,7 +311,7 @@ class CharacterizationResource extends Resource
                     ->collapsible()
                     ->persistCollapsed(),
 
-                    Forms\Components\Section::make('Georreferenciación')
+                Forms\Components\Section::make('Georreferenciación')
                     ->description('Ubicación exacta del emprendimiento')
                     ->icon('heroicon-o-map-pin')
                     ->schema([
@@ -396,24 +397,27 @@ class CharacterizationResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function ($query) {
+                return $query->withTrashed();
+            })
             ->columns([
                 Tables\Columns\TextColumn::make('entrepreneur.full_name')
                     ->label('Emprendedor')
                     ->searchable()
                     ->sortable(),
 
-                    Tables\Columns\TextColumn::make('entrepreneur.business.business_name')
+                Tables\Columns\TextColumn::make('entrepreneur.business.business_name')
                     ->label('Emprendedor')
                     ->searchable()
                     ->sortable(),
 
-                    Tables\Columns\TextColumn::make('entrepreneur.city.name')
+                Tables\Columns\TextColumn::make('entrepreneur.city.name')
                     ->label('Municipio')
                     ->searchable()
                     ->sortable()
                     ->placeholder('Sin ubicación'),
 
-                    Tables\Columns\TextColumn::make('characterization_date')
+                Tables\Columns\TextColumn::make('characterization_date')
                     ->label('Fecha Caracterización')
                     ->date('d/m/Y')
                     ->searchable()

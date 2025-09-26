@@ -248,7 +248,7 @@ class CharacterizationResource extends Resource
                                     ->label('Ventas Mensuales Promedio')
                                     ->options([
                                         'lt_500000' => 'Menos de $500.000',
-                                        '500k_1m'   => '$501.000 — $1.000.000',
+                                        '500k_1m'   => '$500.001 — $1.000.000',
                                         '1m_2m'     => '$1.001.000 — $2.000.000',
                                         '2m_5m'     => '$2.001.000 — $5.000.000',
                                         'gt_5m'     => 'Más de $5.001.000',

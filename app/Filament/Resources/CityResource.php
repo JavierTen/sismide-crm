@@ -20,8 +20,8 @@ class CityResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
     protected static ?string $navigationGroup = 'Gestión Tipos';
 
-    protected static ?string $modelLabel = 'Munucipio';
-    protected static ?string $pluralModelLabel = 'Munucipios';
+    protected static ?string $modelLabel = 'Municipio';
+    protected static ?string $pluralModelLabel = 'Municipios';
 
     protected static ?int $navigationSort = 13;
 

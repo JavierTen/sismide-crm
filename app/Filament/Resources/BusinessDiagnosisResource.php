@@ -175,8 +175,7 @@ class BusinessDiagnosisResource extends Resource
                                         ->live()
                                         ->onIcon('heroicon-m-check-circle')
                                         ->offIcon('heroicon-m-x-circle')
-                                        ->onColor('warning')
-                                        ->offColor('success'),
+                                        ->onColor('warning'),
 
                                     Forms\Components\Select::make('news_type')
                                         ->label('Tipo de Novedad')
@@ -623,7 +622,8 @@ class BusinessDiagnosisResource extends Resource
                                 ]),
                         ]),
                 ])
-                    ->skippable()
+                    ->skippable(false)
+                    ->startOnStep(1)
                     ->persistStepInQueryString()
             ])
             ->columns(1);

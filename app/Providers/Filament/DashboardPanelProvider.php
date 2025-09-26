@@ -29,6 +29,10 @@ class DashboardPanelProvider extends PanelProvider
             ->id('dashboard')
             ->path('dashboard')
             ->login()
+            ->brandName('Ruta D')
+            ->brandLogo(asset('img/logo.png'))
+            ->brandLogoHeight('100%')
+            ->favicon(asset('favicon.png'))
             ->colors([
                 'primary' => Color::Blue,
             ])

@@ -83,6 +83,7 @@ class CreateEntrepreneur extends CreateRecord
             'department_id' => $data['department_id'],
             'city_id' => $data['city_id'], // city_id del formulario mapea a municipality_id en business
             'ward_id' => $data['ward_id'] ?? null,
+            'village_id' => $data['village_id'] ?? null,
             'georeferencing' => $data['georeferencing'] ?? null,
             'ciiu_code_id' => $data['code_ciiu'],
             'entrepreneurship_stage_id' => $data['entrepreneurship_stage_id'],

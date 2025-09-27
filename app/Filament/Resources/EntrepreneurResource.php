@@ -327,7 +327,7 @@ class EntrepreneurResource extends Resource
                                     ->collapsible()
                                     ->persistCollapsed(),
 
-                                Forms\Components\Section::make('Ubicación y Contacto del Negocio')
+                                    Forms\Components\Section::make('Ubicación y Contacto del Negocio')
                                     ->description('Información de ubicación del emprendimiento')
                                     ->icon('heroicon-o-map-pin')
                                     ->schema([
@@ -348,6 +348,7 @@ class EntrepreneurResource extends Resource
                                                     ->afterStateUpdated(function ($state, callable $set) {
                                                         $set('city_id', null);
                                                         $set('ward_id', null);
+                                                        $set('village_id', null);
                                                     })
                                                     ->placeholder('Seleccione un departamento'),
 
@@ -368,13 +369,14 @@ class EntrepreneurResource extends Resource
                                                     })
                                                     ->afterStateUpdated(function ($state, callable $set) {
                                                         $set('ward_id', null);
+                                                        $set('village_id', null);
                                                     })
                                                     ->placeholder('Seleccione una ciudad'),
 
                                                 Forms\Components\Select::make('ward_id')
                                                     ->label('Corregimiento')
-                                                    ->columnSpanFull()
                                                     ->searchable()
+                                                    ->live()
                                                     ->visible(function ($get) {
                                                         // Solo mostrar si hay una ciudad seleccionada
                                                         $cityId = $get('city_id');
@@ -399,9 +401,44 @@ class EntrepreneurResource extends Resource
                                                             ->active()
                                                             ->pluck('name', 'id');
                                                     })
+                                                    ->afterStateUpdated(function ($state, callable $set) {
+                                                        $set('village_id', null);
+                                                    })
                                                     ->placeholder('Seleccione un corregimiento')
                                                     ->helperText('Solo se muestran si el municipio tiene corregimientos'),
+
+                                                Forms\Components\Select::make('village_id')
+                                                    ->label('Vereda')
+                                                    ->searchable()
+                                                    ->visible(function ($get) {
+                                                        // Solo mostrar si hay un corregimiento seleccionado
+                                                        $wardId = $get('ward_id');
+                                                        if (!$wardId) {
+                                                            return false;
+                                                        }
+
+                                                        // Verificar si el corregimiento tiene veredas
+                                                        $villagesCount = \App\Models\Village::where('ward_id', $wardId)
+                                                            ->active()
+                                                            ->count();
+
+                                                        return $villagesCount > 0;
+                                                    })
+                                                    ->options(function ($get) {
+                                                        $wardId = $get('ward_id');
+                                                        if (!$wardId) {
+                                                            return [];
+                                                        }
+
+                                                        return \App\Models\Village::where('ward_id', $wardId)
+                                                            ->active()
+                                                            ->orderBy('name')
+                                                            ->pluck('name', 'id');
+                                                    })
+                                                    ->placeholder('Seleccione una vereda')
+                                                    ->helperText('Solo se muestran si el corregimiento tiene veredas'),
                                             ]),
+
 
 
                                         Forms\Components\Textarea::make('business_address')

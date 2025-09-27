@@ -22,6 +22,7 @@ class Business extends Model
         'department_id',
         'city_id',
         'ward_id',
+        'village_id',
         'georeferencing',
         'ciiu_code_id',
         'entrepreneurship_stage_id',
@@ -36,6 +37,7 @@ class Business extends Model
     protected $casts = [
         'creation_date' => 'date',
         'deleted_at' => 'datetime',
+        'village_id' => 'integer',
     ];
 
     public function entrepreneur()
@@ -102,6 +104,11 @@ class Business extends Model
     public function economicActivity()
     {
         return $this->belongsTo(EconomicActivity::class);
+    }
+
+    public function village()
+    {
+        return $this->belongsTo(Village::class);
     }
 
 

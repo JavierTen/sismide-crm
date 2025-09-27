@@ -2,31 +2,30 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\WardResource\Pages;
-use App\Filament\Resources\WardResource\RelationManagers;
-use App\Models\Ward;
+use App\Filament\Resources\VillageResource\Pages;
+use App\Filament\Resources\VillageResource\RelationManagers;
+use App\Models\Village;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Forms\Set;
-use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Set;
+use Filament\Forms\Get;
 
-class WardResource extends Resource
+class VillageResource extends Resource
 {
-    protected static ?string $model = Ward::class;
+    protected static ?string $model = Village::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-sun';
+    protected static ?string $navigationIcon = 'heroicon-o-sparkles';
     protected static ?string $navigationGroup = 'Gestión Tipos';
 
-    protected static ?string $modelLabel = 'Corregimiento';
-    protected static ?string $pluralModelLabel = 'Corregimientos';
+    protected static ?string $modelLabel = 'Vereda';
+    protected static ?string $pluralModelLabel = 'Veredas';
 
-    protected static ?int $navigationSort = 14;
-
+    protected static ?int $navigationSort = 15;
 
     // Método helper para verificar permisos
 
@@ -35,7 +34,7 @@ class WardResource extends Resource
         $user = auth()->user();
         if (!$user) return false;
 
-        return $user->can('listWards');
+        return $user->can('listVillages');
     }
 
     private static function userCanCreate(): bool
@@ -43,7 +42,7 @@ class WardResource extends Resource
         $user = auth()->user();
         if (!$user) return false;
 
-        return $user->can('createWard');
+        return $user->can('createVillage');
     }
 
     private static function userCanEdit(): bool
@@ -51,7 +50,7 @@ class WardResource extends Resource
         $user = auth()->user();
         if (!$user) return false;
 
-        return $user->can('editWard');
+        return $user->can('editVillage');
     }
 
     private static function userCanDelete(): bool
@@ -59,7 +58,7 @@ class WardResource extends Resource
         $user = auth()->user();
         if (!$user) return false;
 
-        return $user->can('deleteWard');
+        return $user->can('deleteVillage');
     }
 
     public static function canViewAny(): bool
@@ -102,17 +101,16 @@ class WardResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Información del Corregimiento')
-                    ->description('Configuración básica del corregimiento')
-                    ->icon('heroicon-o-sun')
+                Forms\Components\Section::make('Información de la Vereda')
+                    ->description('Configuración básica de la vereda')
+                    ->icon('heroicon-o-building-office')
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
 
-
                                 Forms\Components\Select::make('department_id')
                                     ->label('Departamento')
-                                    ->relationship('city.department', 'name')
+                                    ->relationship('ward.city.department', 'name')
                                     ->searchable()
                                     ->preload()
                                     ->placeholder('Seleccionar departamento')
@@ -120,36 +118,59 @@ class WardResource extends Resource
                                     ->live()
                                     ->afterStateUpdated(function (Set $set) {
                                         $set('city_id', null); // Limpiar municipio cuando cambia departamento
+                                        $set('ward_id', null); // Limpiar corregimiento cuando cambia departamento
                                     })
                                     ->columnSpan(1),
 
                                 Forms\Components\Select::make('city_id')
                                     ->label('Municipio')
+                                    ->options(function (Get $get) {
+                                        if (!$get('department_id')) {
+                                            return [];
+                                        }
+                                        return \App\Models\City::where('department_id', $get('department_id'))
+                                            ->where('status', true)
+                                            ->orderBy('name')
+                                            ->pluck('name', 'id');
+                                    })
+                                    ->searchable()
+                                    ->placeholder('Primero selecciona un departamento')
+                                    ->helperText('Municipio al que pertenece la vereda')
+                                    ->disabled(fn(Get $get): bool => ! $get('department_id'))
+                                    ->live()
+                                    ->afterStateUpdated(function (Set $set) {
+                                        $set('ward_id', null); // Limpiar corregimiento cuando cambia municipio
+                                    })
+                                    ->columnSpan(1),
+
+                                Forms\Components\Select::make('ward_id')
+                                    ->label('Corregimiento')
                                     ->relationship(
-                                        name: 'city',
+                                        name: 'ward',
                                         titleAttribute: 'name',
                                         modifyQueryUsing: fn(Builder $query, Get $get): Builder =>
                                         $query->when(
-                                            $get('department_id'),
-                                            fn(Builder $query, $departmentId): Builder =>
-                                            $query->where('department_id', $departmentId)
+                                            $get('city_id'),
+                                            fn(Builder $query, $cityId): Builder =>
+                                            $query->where('city_id', $cityId)->where('status', true)
                                         )
                                     )
                                     ->required()
+                                    ->live()
+                                    ->preload()
                                     ->searchable()
-                                    ->preload() // No precargar hasta que se seleccione departamento
-                                    ->placeholder('Primero selecciona un departamento')
-                                    ->helperText('Municipio al que pertenece el corregimiento')
-                                    ->disabled(fn(Get $get): bool => ! $get('department_id'))
+                                    ->placeholder('Primero selecciona un municipio')
+                                    ->helperText('Corregimiento al que pertenece la vereda')
+                                    ->disabled(fn(Get $get): bool => ! $get('city_id'))
                                     ->columnSpan(1),
 
                                 Forms\Components\TextInput::make('name')
-                                    ->label('Nombre del Corregimiento')
+                                    ->label('Nombre de la Vereda')
                                     ->required()
                                     ->maxLength(255)
-                                    ->placeholder('Ej: El Cabrero, Santa Rosa, La Paz')
-                                    ->helperText('Nombre completo del corregimiento')
-                                    ->columnSpan(2),
+                                    ->placeholder('Ej: La Esperanza, El Diviso, San José')
+                                    ->helperText('Nombre completo de la vereda')
+                                    ->columnSpan(1),
 
                             ]),
                     ])
@@ -162,7 +183,7 @@ class WardResource extends Resource
                     ->schema([
                         Forms\Components\Toggle::make('status')
                             ->label('Estado Activo')
-                            ->helperText('Determina si este corregimiento está disponible para uso')
+                            ->helperText('Determina si esta vereda está disponible para uso')
                             ->default(true)
                             ->inline(false)
                             ->onIcon('heroicon-m-check')
@@ -181,13 +202,17 @@ class WardResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Corregimiento')
+                    ->label('Vereda')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('city.name')
+                Tables\Columns\TextColumn::make('ward.name')
+                    ->label('Corregimiento')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('ward.city.name')
                     ->label('Municipio')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('city.department.name')
+                Tables\Columns\TextColumn::make('ward.city.department.name')
                     ->label('Departamento')
                     ->searchable()
                     ->sortable(),
@@ -268,9 +293,9 @@ class WardResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListWards::route('/'),
-            'create' => Pages\CreateWard::route('/create'),
-            'edit' => Pages\EditWard::route('/{record}/edit'),
+            'index' => Pages\ListVillages::route('/'),
+            'create' => Pages\CreateVillage::route('/create'),
+            'edit' => Pages\EditVillage::route('/{record}/edit'),
         ];
     }
 }

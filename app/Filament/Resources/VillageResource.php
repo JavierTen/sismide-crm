@@ -235,12 +235,6 @@ class VillageResource extends Resource
                     ->tooltip('Ver detalles')
                     ->visible(fn() => static::userCanList()),
 
-                Tables\Actions\EditAction::make()
-                    ->label('')
-                    ->icon('heroicon-o-pencil-square')
-                    ->tooltip('Editar corregimiento')
-                    ->visible(fn($record) => !$record->trashed() && static::userCanEdit()),
-
                 Tables\Actions\DeleteAction::make()
                     ->label('')
                     ->icon('heroicon-o-archive-box-arrow-down')

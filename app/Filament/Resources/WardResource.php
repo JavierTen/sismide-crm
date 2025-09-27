@@ -188,7 +188,7 @@ class WardResource extends Resource
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('city.department.name')
-                    ->label('Departamento')
+                    ->label('Departament')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\ToggleColumn::make('status')
@@ -209,12 +209,6 @@ class WardResource extends Resource
                     ->icon('heroicon-o-eye')
                     ->tooltip('Ver detalles')
                     ->visible(fn() => static::userCanList()),
-
-                Tables\Actions\EditAction::make()
-                    ->label('')
-                    ->icon('heroicon-o-pencil-square')
-                    ->tooltip('Editar corregimiento')
-                    ->visible(fn($record) => !$record->trashed() && static::userCanEdit()),
 
                 Tables\Actions\DeleteAction::make()
                     ->label('')

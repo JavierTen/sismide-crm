@@ -188,7 +188,7 @@ class WardResource extends Resource
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('city.department.name')
-                    ->label('Departament')
+                    ->label('Departamento')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\ToggleColumn::make('status')

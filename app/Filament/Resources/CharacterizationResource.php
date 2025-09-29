@@ -355,11 +355,14 @@ class CharacterizationResource extends Resource
                                     ->image()
                                     ->imageEditor()
                                     ->multiple()
-                                    ->maxSize(2048)
+                                    ->maxSize(5120)
                                     ->maxFiles(1)
                                     ->downloadable()
                                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])
-                                    ->helperText('Fotografías del establecimiento o documento'),
+                                    ->helperText('Fotografías del establecimiento o documento (máximo 5MB)')
+                                    ->validationMessages([
+                                        'max' => 'El archivo no puede superar los 5MB.',
+                                    ]),
 
                                 Forms\Components\FileUpload::make('population_evidence_path')
                                     ->label('Evidencia de Población Vulnerable')
@@ -369,23 +372,28 @@ class CharacterizationResource extends Resource
                                     ->downloadable()
                                     ->imageEditor()
                                     ->multiple()
-                                    ->maxSize(2048)
+                                    ->maxSize(5120)
                                     ->maxFiles(1)
                                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])
-                                    ->helperText('Documentos que certifican la condición de población vulnerable'),
-
+                                    ->helperText('Documentos que certifican la condición de población vulnerable (máximo 5MB)')
+                                    ->validationMessages([
+                                        'max' => 'El archivo no puede superar los 5MB.',
+                                    ]),
                                 Forms\Components\FileUpload::make('photo_evidence_path')
                                     ->label('Fotografia Georeferenciación')
                                     ->directory('characterizations/georeference')
                                     ->disk('public')
                                     ->image()
                                     ->downloadable()
-                                    ->maxSize(2048)
+                                    ->maxSize(5120)
                                     ->imageEditor()
                                     ->multiple()
                                     ->maxFiles(1)
                                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
-                                    ->helperText('Foto de la ubicación exacta del emprendimiento'),
+                                    ->helperText('Foto de la ubicación exacta del emprendimiento (máximo 5MB)')
+                                    ->validationMessages([
+                                        'max' => 'El archivo no puede superar los 5MB.',
+                                    ]),
                             ]),
                     ])
                     ->collapsible()

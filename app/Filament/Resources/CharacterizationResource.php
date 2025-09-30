@@ -506,7 +506,7 @@ class CharacterizationResource extends Resource
         $query = parent::getEloquentQuery();
 
         // Ajusta según tu sistema de roles
-        if (auth()->user()->hasRole('Admin')) { // o hasRole('admin')
+        if (auth()->user()->hasRole(['Admin', 'Viewer'])) { // o hasRole('admin')
             return $query;
         }
 
@@ -534,7 +534,7 @@ class CharacterizationResource extends Resource
         $query = static::getModel()::query();
 
         // Si no es admin, filtrar solo sus registros
-        if (!auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }
 

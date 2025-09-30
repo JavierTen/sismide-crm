@@ -564,7 +564,7 @@ class EntrepreneurResource extends Resource
         $query = parent::getEloquentQuery();
 
 
-        if (auth()->user()->hasRole('Admin')) {
+        if (auth()->user()->hasRole(['Admin', 'Viewer'])) {
             return $query;
         }
 
@@ -592,7 +592,7 @@ class EntrepreneurResource extends Resource
         $query = static::getModel()::query();
 
         // Si no es admin, filtrar solo sus registros
-        if (!auth()->user()->hasRole('Admin')) {
+        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }
 

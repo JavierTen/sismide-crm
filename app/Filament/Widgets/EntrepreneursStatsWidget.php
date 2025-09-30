@@ -34,7 +34,7 @@ class EntrepreneursStatsWidget extends BaseWidget
     {
         $query = Entrepreneur::query();
 
-        if (!auth()->user()->hasRole('admin')) {
+        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }
 
@@ -46,7 +46,7 @@ class EntrepreneursStatsWidget extends BaseWidget
         $query = Entrepreneur::whereMonth('created_at', now()->month)
                             ->whereYear('created_at', now()->year);
 
-        if (!auth()->user()->hasRole('admin')) {
+        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }
 
@@ -57,7 +57,7 @@ class EntrepreneursStatsWidget extends BaseWidget
     {
         $query = Entrepreneur::whereNull('deleted_at');
 
-        if (!auth()->user()->hasRole('admin')) {
+        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }
 

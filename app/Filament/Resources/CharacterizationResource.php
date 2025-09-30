@@ -169,27 +169,29 @@ class CharacterizationResource extends Resource
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\Select::make('economic_activity_id')
+                                Forms\Components\Placeholder::make('economic_activity')
                                     ->label('Actividad Económica')
-                                    ->options(function () {
-                                        return \App\Models\EconomicActivity::active()
-                                            ->orderBy('name')
-                                            ->pluck('name', 'id');
-                                    })
-                                    ->searchable()
-                                    ->preload()
-                                    ->placeholder('Seleccione actividad económica'),
+                                    ->content(function ($get) {
+                                        $entrepreneurId = $get('entrepreneur_id');
+                                        if (!$entrepreneurId) return '----';
 
-                                Forms\Components\Select::make('population_id')
+                                        $entrepreneur = \App\Models\Entrepreneur::with('business.economicActivity')
+                                            ->find($entrepreneurId);
+
+                                        return $entrepreneur?->business?->economicActivity?->name ?? 'Sin actividad económica';
+                                    }),
+
+                                Forms\Components\Placeholder::make('vulnerable_population')
                                     ->label('Población Vulnerable')
-                                    ->options(function () {
-                                        return \App\Models\Population::active()
-                                            ->orderBy('name')
-                                            ->pluck('name', 'id');
-                                    })
-                                    ->searchable()
-                                    ->preload()
-                                    ->placeholder('Seleccione tipo de población'),
+                                    ->content(function ($get) {
+                                        $entrepreneurId = $get('entrepreneur_id');
+                                        if (!$entrepreneurId) return '----';
+
+                                        $entrepreneur = \App\Models\Entrepreneur::with('population')
+                                            ->find($entrepreneurId);
+
+                                        return $entrepreneur?->population?->name ?? 'Sin población asignada';
+                                    }),
                             ]),
                     ])
                     ->collapsible()

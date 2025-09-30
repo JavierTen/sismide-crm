@@ -111,7 +111,7 @@ class VisitResource extends Resource
                                         'entrepreneur',
                                         'full_name',
                                         fn($query) => $query->when(
-                                            !auth()->user()->hasRole('admin'),
+                                            !auth()->user()->hasRole('Admin'),
                                             fn($q) => $q->where('manager_id', auth()->id())
                                         )
                                     ) // ajusta el campo mostrable si usas otro

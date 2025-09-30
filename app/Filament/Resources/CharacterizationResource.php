@@ -105,7 +105,14 @@ class CharacterizationResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('entrepreneur_id')
                             ->label('Emprendedor')
-                            ->relationship('entrepreneur', 'full_name')
+                            ->relationship(
+                                'entrepreneur',
+                                'full_name',
+                                fn($query) => $query->when(
+                                    !auth()->user()->hasRole('Admin'),
+                                    fn($q) => $q->where('manager_id', auth()->id())
+                                )
+                            )
                             ->searchable()
                             ->preload()
                             ->required()
@@ -493,6 +500,18 @@ class CharacterizationResource extends Resource
             ]));
     }
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        // Ajusta según tu sistema de roles
+        if (auth()->user()->hasRole('Admin')) { // o hasRole('admin')
+            return $query;
+        }
+
+        return $query->where('manager_id', auth()->id());
+    }
+
     public static function getRelations(): array
     {
         return [
@@ -511,6 +530,13 @@ class CharacterizationResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        $query = static::getModel()::query();
+
+        // Si no es admin, filtrar solo sus registros
+        if (!auth()->user()->hasRole('Admin')) {
+            $query->where('manager_id', auth()->id());
+        }
+
+        return $query->count();
     }
 }

@@ -10,6 +10,12 @@ class CreateCharacterization extends CreateRecord
 {
     protected static string $resource = CharacterizationResource::class;
 
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['manager_id'] = auth()->id();
+        return $data;
+    }
+
     public function mount(): void
     {
         abort_unless(auth()->user()->can('createCharacterization'), 403);

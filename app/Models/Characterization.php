@@ -13,6 +13,7 @@ class Characterization extends Model
 
     protected $fillable = [
         'entrepreneur_id',
+        'manager_id',
         'economic_activity_id',
         'population_id',
         'business_type',
@@ -109,6 +110,11 @@ class Characterization extends Model
     public function entrepreneur()
     {
         return $this->belongsTo(Entrepreneur::class, 'entrepreneur_id')->withTrashed();
+    }
+
+    public function manager()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'manager_id');
     }
 
     public function economicActivity()

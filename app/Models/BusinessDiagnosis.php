@@ -13,6 +13,7 @@ class BusinessDiagnosis extends Model
 
     protected $fillable = [
         'entrepreneur_id',
+        'manager_id',
         'diagnosis_date',
         'has_news',
         'news_type',
@@ -44,6 +45,11 @@ class BusinessDiagnosis extends Model
     public function entrepreneur(): BelongsTo
     {
         return $this->belongsTo(Entrepreneur::class)->withTrashed();
+    }
+
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'manager_id');
     }
 
     /**

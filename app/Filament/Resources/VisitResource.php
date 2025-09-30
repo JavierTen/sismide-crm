@@ -276,6 +276,7 @@ class VisitResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->modifyQueryUsing(function ($query) {
                 return $query->withTrashed();
             })

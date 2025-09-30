@@ -107,7 +107,14 @@ class VisitResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('entrepreneur_id')
                                     ->label('Emprendedor')
-                                    ->relationship('entrepreneur', 'full_name') // ajusta el campo mostrable si usas otro
+                                    ->relationship(
+                                        'entrepreneur',
+                                        'full_name',
+                                        fn($query) => $query->when(
+                                            !auth()->user()->hasRole('admin'),
+                                            fn($q) => $q->where('manager_id', auth()->id())
+                                        )
+                                    ) // ajusta el campo mostrable si usas otro
                                     ->searchable()
                                     ->preload()
                                     ->required()
@@ -258,6 +265,9 @@ class VisitResource extends Resource
                     ->collapsible()
                     ->persistCollapsed(),
 
+                Forms\Components\Hidden::make('manager_id')
+                    ->default(auth()->id()),
+
 
             ])
             ->columns(1);
@@ -357,6 +367,18 @@ class VisitResource extends Resource
             ]));
     }
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        // Ajusta según tu sistema de roles
+        if (auth()->user()->hasRole('Admin')) { // o hasRole('admin')
+            return $query;
+        }
+
+        return $query->where('manager_id', auth()->id());
+    }
+
     public static function getRelations(): array
     {
         return [
@@ -375,6 +397,13 @@ class VisitResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        $query = static::getModel()::query();
+
+        // Si no es admin, filtrar solo sus registros
+        if (!auth()->user()->hasRole('Admin')) {
+            $query->where('manager_id', auth()->id());
+        }
+
+        return $query->count();
     }
 }

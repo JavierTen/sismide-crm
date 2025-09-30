@@ -22,6 +22,7 @@ class CreateVisit extends CreateRecord
             'strengthened'      => $data['strengthened'] ?? false,
             'rescheduled'       => $data['rescheduled'] ?? false,
             'reschedule_reason' => $data['reschedule_reason'] ?? null,
+            'manager_id'        => auth()->id(),
         ]);
 
         // Si se solicitó reagendar, crear la visita reagendada como histórico
@@ -35,6 +36,7 @@ class CreateVisit extends CreateRecord
                 'rescheduled'       => false,
                 'reschedule_reason' => null,
                 'original_visit_id' => $visit->id,
+                'manager_id'        => auth()->id(),
             ]);
 
             // Opcional: actualizar el status del original (por ejemplo 'no_show' o 'rescheduled')

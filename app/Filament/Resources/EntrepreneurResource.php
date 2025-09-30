@@ -327,7 +327,7 @@ class EntrepreneurResource extends Resource
                                     ->collapsible()
                                     ->persistCollapsed(),
 
-                                    Forms\Components\Section::make('Ubicación y Contacto del Negocio')
+                                Forms\Components\Section::make('Ubicación y Contacto del Negocio')
                                     ->description('Información de ubicación del emprendimiento')
                                     ->icon('heroicon-o-map-pin')
                                     ->schema([
@@ -492,7 +492,7 @@ class EntrepreneurResource extends Resource
                     ->sortable()
                     ->placeholder('Sin ubicación'),
 
-                    Tables\Columns\TextColumn::make('manager.name')
+                Tables\Columns\TextColumn::make('manager.name')
                     ->label('Gestor')
                     ->searchable()
                     ->sortable()
@@ -558,6 +558,18 @@ class EntrepreneurResource extends Resource
             ]));
     }
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = parent::getEloquentQuery();
+
+
+        if (auth()->user()->hasRole('Admin')) {
+            return $query;
+        }
+
+        return $query->where('manager_id', auth()->id());
+    }
+
     public static function getRelations(): array
     {
         return [
@@ -576,6 +588,13 @@ class EntrepreneurResource extends Resource
 
     public static function getNavigationBadge(): ?string
     {
-        return static::getModel()::count();
+        $query = static::getModel()::query();
+
+        // Si no es admin, filtrar solo sus registros
+        if (!auth()->user()->hasRole('Admin')) {
+            $query->where('manager_id', auth()->id());
+        }
+
+        return $query->count();
     }
 }

@@ -21,6 +21,7 @@ class EditVisit extends EditRecord
             'strengthened'      => $data['strengthened'] ?? $record->strengthened,
             'rescheduled'       => $data['rescheduled'] ?? $record->rescheduled,
             'reschedule_reason' => $data['reschedule_reason'] ?? $record->reschedule_reason,
+            'manager_id'        => auth()->id(),
         ]);
 
         // Si en edición se marca rescheduled y se proporcionan datos de new_visit, crear histórico
@@ -34,6 +35,7 @@ class EditVisit extends EditRecord
                 'rescheduled'       => false,
                 'reschedule_reason' => null,
                 'original_visit_id' => $record->id,
+                'manager_id'        => auth()->id(),
             ]);
 
             $record->update(['status' => 'no_show']);

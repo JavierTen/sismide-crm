@@ -14,6 +14,7 @@ class Visit extends Model
 
     protected $fillable = [
         'entrepreneur_id',
+        'manager_id',
         'visit_date',
         'visit_time',
         'visit_type',
@@ -33,6 +34,11 @@ class Visit extends Model
     public function entrepreneur()
     {
         return $this->belongsTo(Entrepreneur::class, 'entrepreneur_id')->withTrashed();
+    }
+
+    public function manager()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'manager_id');
     }
 
     public function scopeActive($query)

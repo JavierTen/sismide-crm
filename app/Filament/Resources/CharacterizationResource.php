@@ -361,14 +361,13 @@ class CharacterizationResource extends Resource
                                     ->label('Evidencia del Comercio')
                                     ->directory('characterizations/commerce')
                                     ->disk('public')
-                                    ->image()
-                                    ->imageEditor()
-                                    ->multiple()
                                     ->maxSize(5120)
-                                    ->maxFiles(1)
                                     ->downloadable()
                                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])
                                     ->helperText('Fotografías del establecimiento o documento (máximo 5MB)')
+                                    ->imageResizeMode('contain')
+                                    ->imageResizeTargetWidth('1920')
+                                    ->imageResizeTargetHeight('1080')
                                     ->validationMessages([
                                         'max' => 'El archivo no puede superar los 5MB.',
                                     ]),

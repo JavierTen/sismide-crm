@@ -372,33 +372,32 @@ class CharacterizationResource extends Resource
                                         'max' => 'El archivo no puede superar los 5MB.',
                                     ]),
 
-                                Forms\Components\FileUpload::make('population_evidence_path')
+                                    Forms\Components\FileUpload::make('population_evidence_path')
                                     ->label('Evidencia de Población Vulnerable')
                                     ->directory('characterizations/population')
                                     ->disk('public')
-                                    ->image()
-                                    ->downloadable()
-                                    ->imageEditor()
-                                    ->multiple()
                                     ->maxSize(5120)
-                                    ->maxFiles(1)
+                                    ->downloadable()
                                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])
                                     ->helperText('Documentos que certifican la condición de población vulnerable (máximo 5MB)')
+                                    ->imageResizeMode('contain')
+                                    ->imageResizeTargetWidth('1920')
+                                    ->imageResizeTargetHeight('1080')
                                     ->validationMessages([
                                         'max' => 'El archivo no puede superar los 5MB.',
                                     ]),
+
                                 Forms\Components\FileUpload::make('photo_evidence_path')
-                                    ->label('Fotografia Georeferenciación')
+                                    ->label('Fotografía Georeferenciación')
                                     ->directory('characterizations/georeference')
                                     ->disk('public')
-                                    ->image()
-                                    ->downloadable()
                                     ->maxSize(5120)
-                                    ->imageEditor()
-                                    ->multiple()
-                                    ->maxFiles(1)
+                                    ->downloadable()
                                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
                                     ->helperText('Foto de la ubicación exacta del emprendimiento (máximo 5MB)')
+                                    ->imageResizeMode('contain')
+                                    ->imageResizeTargetWidth('1920')
+                                    ->imageResizeTargetHeight('1080')
                                     ->validationMessages([
                                         'max' => 'El archivo no puede superar los 5MB.',
                                     ]),

@@ -688,11 +688,11 @@ class EntrepreneurResource extends Resource
                                 ]))
                                 ->withColumns([
                                     // === INFORMACIÓN PERSONAL ===
-                                    Column::make('document_type.code')->heading('Tipo Doc.'),
+                                    Column::make('documentType.code')->heading('Tipo Doc.'),
                                     Column::make('document_number')->heading('No. Documento'),
                                     Column::make('full_name')->heading('Nombre Completo'),
                                     Column::make('gender.name')->heading('Género'),
-                                    Column::make('marital_status.name')->heading('Estado Civil'),
+                                    Column::make('maritalStatus.name')->heading('Estado Civil'),
                                     Column::make('birth_date')->heading('Fecha Nacimiento')->formatStateUsing(function ($state) {
                                         if (!$state) return '';
                                         return $state instanceof \Carbon\Carbon ? $state->format('d/m/Y') : $state;
@@ -704,7 +704,7 @@ class EntrepreneurResource extends Resource
                                     Column::make('email')->heading('Email'),
 
                                     // === INFORMACIÓN ACADÉMICA ===
-                                    Column::make('education_level.name')->heading('Nivel Educativo'),
+                                    Column::make('educationLevel.name')->heading('Nivel Educativo'),
 
                                     // === ESTADO ===
                                     Column::make('status')->heading('Estado')->formatStateUsing(fn($state) => $state ? 'Activo' : 'Inactivo'),
@@ -716,10 +716,10 @@ class EntrepreneurResource extends Resource
                                         return $state instanceof \Carbon\Carbon ? $state->format('d/m/Y') : $state;
                                     }),
                                     Column::make('business.description')->heading('Descripción'),
-                                    Column::make('business.entrepreneurship_stage.name')->heading('Etapa Emprendimiento'),
-                                    Column::make('business.economic_activity.name')->heading('Actividad Económica'),
-                                    Column::make('business.productive_line.name')->heading('Línea Productiva'),
-                                    Column::make('business.ciiu_code.code')->heading('Código CIIU'),
+                                    Column::make('business.entrepreneurshipStage.name')->heading('Etapa Emprendimiento'),
+                                    Column::make('business.economicActivity.name')->heading('Actividad Económica'),
+                                    Column::make('business.productiveLine.name')->heading('Línea Productiva'),
+                                    Column::make('business.ciiuCode.code')->heading('Código CIIU'),
                                     Column::make('project.name')->heading('Proyecto'),
 
                                     // === UBICACIÓN EMPRENDIMIENTO ===

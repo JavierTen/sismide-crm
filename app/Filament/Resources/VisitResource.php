@@ -13,6 +13,12 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
+//Exportar en excel
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use pxlrbt\FilamentExcel\Columns\Column;
+
 class VisitResource extends Resource
 {
     protected static ?string $model = Visit::class;
@@ -324,10 +330,11 @@ class VisitResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
                     ->tooltip('Editar emprendedor')
-                    ->visible(fn($record) =>
+                    ->visible(
+                        fn($record) =>
                         !$record->trashed() &&
-                        static::userCanEdit() &&
-                        (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
+                            static::userCanEdit() &&
+                            (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
                     ),
 
                 Tables\Actions\DeleteAction::make()
@@ -359,8 +366,94 @@ class VisitResource extends Resource
                     ->modalDescription('Esta acción NO se puede deshacer.')
                     ->visible(fn() => auth()->user()->hasRole('Admin')),
             ])
+            ->headerActions([
+                ExportAction::make()
+                    ->label('Exportar Excel')
+                    ->exports([
+                        ExcelExport::make()
+                            ->withFilename(fn() => 'visitas-' . now()->format('Y-m-d-His'))
+                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                            ->modifyQueryUsing(fn($query) => $query->with([
+                                'entrepreneur.business',
+                                'entrepreneur.city',
+                                'manager',
+                                'originalVisit',
+                            ]))
+                            ->withColumns([
+                                // === AGENDAMIENTO DE VISITAS ===
+                                Column::make('entrepreneur.full_name')->heading('Emprendedor'),
+                                Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
+                                Column::make('entrepreneur.city.name')->heading('Municipio'),
+                                Column::make('manager.name')->heading('Gestor'),
+
+                                Column::make('visit_type')->heading('Tipo de Visita')->formatStateUsing(fn($state) => match ($state) {
+                                    'asistencia_tecnica' => 'Visita de Asistencia técnica',
+                                    'caracterizacion' => 'Visita de Caracterización',
+                                    'diagnostico' => 'Visita levantamiento de Diagnóstico',
+                                    'seguimiento' => 'Visita de Seguimiento',
+                                    default => $state,
+                                }),
+                                Column::make('visit_date')->heading('Fecha de Visita')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                Column::make('visit_time')->heading('Hora de Visita'),
+
+                                // === RESULTADO Y REAGENDAMIENTO ===
+                                Column::make('strengthened')->heading('Se ha fortalecido')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                Column::make('rescheduled')->heading('Reagendada')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                Column::make('reschedule_reason')->heading('Motivo de Reagendamiento'),
+
+                                // === DATOS DE REAGENDAMIENTO (si aplica) ===
+                                Column::make('originalVisit.visit_type')->heading('Tipo Visita Original')->formatStateUsing(fn($state) => $state ? match ($state) {
+                                    'asistencia_tecnica' => 'Asistencia técnica',
+                                    'caracterizacion' => 'Caracterización',
+                                    'diagnostico' => 'Diagnóstico',
+                                    'seguimiento' => 'Seguimiento',
+                                    default => $state,
+                                } : ''),
+                                Column::make('originalVisit.visit_date')->heading('Fecha Original')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                Column::make('originalVisit.visit_time')->heading('Hora Original'),
+
+                                // === INFORMACIÓN ADICIONAL ===
+                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                Column::make('updated_at')->heading('Última Actualización')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                            ]),
+                    ])
+                    ->color('success')
+                    ->icon('heroicon-o-arrow-down-tray'),
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    ExportBulkAction::make()
+                        ->label('Exportar seleccionadas')
+                        ->exports([
+                            ExcelExport::make()
+                                ->withFilename(fn() => 'visitas-seleccionadas-' . now()->format('Y-m-d-His'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                                ->modifyQueryUsing(fn($query) => $query->with([
+                                    'entrepreneur.business',
+                                    'entrepreneur.city',
+                                    'manager',
+                                    'originalVisit',
+                                ]))
+                                ->withColumns([
+                                    Column::make('entrepreneur.full_name')->heading('Emprendedor'),
+                                    Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
+                                    Column::make('entrepreneur.city.name')->heading('Municipio'),
+                                    Column::make('manager.name')->heading('Gestor'),
+                                    Column::make('visit_type')->heading('Tipo de Visita')->formatStateUsing(fn($state) => match ($state) {
+                                        'asistencia_tecnica' => 'Asistencia técnica',
+                                        'caracterizacion' => 'Caracterización',
+                                        'diagnostico' => 'Diagnóstico',
+                                        'seguimiento' => 'Seguimiento',
+                                        default => $state,
+                                    }),
+                                    Column::make('visit_date')->heading('Fecha')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                    Column::make('visit_time')->heading('Hora'),
+                                    Column::make('strengthened')->heading('Fortalecido')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                    Column::make('rescheduled')->heading('Reagendada')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                    Column::make('reschedule_reason')->heading('Motivo Reagendamiento'),
+                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                ]),
+                        ]),
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn() => static::userCanDelete()),
 

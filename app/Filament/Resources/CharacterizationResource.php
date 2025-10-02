@@ -13,6 +13,12 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
+//Exportar en excel
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use pxlrbt\FilamentExcel\Columns\Column;
+
 class CharacterizationResource extends Resource
 {
     protected static ?string $model = Characterization::class;
@@ -491,8 +497,136 @@ class CharacterizationResource extends Resource
                     ->modalDescription('Esta acción NO se puede deshacer.')
                     ->visible(fn() => auth()->user()->hasRole('Admin')),
             ])
+            ->headerActions([
+                ExportAction::make()
+                    ->label('Exportar Excel')
+                    ->exports([
+                        ExcelExport::make()
+                            ->withFilename(fn() => 'caracterizaciones-' . now()->format('Y-m-d-His'))
+                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                            ->modifyQueryUsing(fn($query) => $query->with([
+                                'entrepreneur.business.economicActivity',
+                                'entrepreneur.population',
+                                'entrepreneur.city',
+                                'entrepreneur.manager',
+                                'manager',
+                            ]))
+                            ->withColumns([
+                                // === INFORMACIÓN DEL EMPRENDEDOR ===
+                                Column::make('entrepreneur.full_name')->heading('Emprendedor'),
+                                Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
+                                Column::make('entrepreneur.city.name')->heading('Municipio'),
+                                Column::make('entrepreneur.manager.name')->heading('Gestor'),
+                                Column::make('characterization_date')->heading('Fecha Caracterización'),
+
+                                // === INFORMACIÓN ECONÓMICA ===
+                                Column::make('entrepreneur.business.economicActivity.name')->heading('Actividad Económica'),
+                                Column::make('entrepreneur.population.name')->heading('Población Vulnerable'),
+
+                                // === CARACTERÍSTICAS DEL NEGOCIO ===
+                                Column::make('business_type')->heading('Tipo de Negocio')->formatStateUsing(fn($state) => match ($state) {
+                                    'individual' => 'Individual',
+                                    'associative' => 'Asociativo',
+                                    default => $state,
+                                }),
+                                Column::make('business_age')->heading('Antigüedad del Negocio')->formatStateUsing(fn($state) => match ($state) {
+                                    'over_6_months' => 'Más de 6 meses',
+                                    'over_12_months' => 'Más de 12 meses',
+                                    'over_24_months' => 'Más de 24 meses',
+                                    default => $state,
+                                }),
+                                Column::make('clients')->heading('Clientela')->formatStateUsing(function ($state) {
+                                    if (!$state) return '';
+                                    $options = [
+                                        'community' => 'Comunidad en general',
+                                        'public_entities' => 'Entidades públicas',
+                                        'private_entities' => 'Entidades privadas',
+                                        'schools' => 'Colegios',
+                                        'hospitals' => 'Hospitales',
+                                    ];
+                                    return collect($state)->map(fn($key) => $options[$key] ?? $key)->join(', ');
+                                }),
+                                Column::make('promotion_strategies')->heading('Estrategias de Promoción')->formatStateUsing(function ($state) {
+                                    if (!$state) return '';
+                                    $options = [
+                                        'word_of_mouth' => 'Voz a voz',
+                                        'whatsapp' => 'WhatsApp',
+                                        'facebook' => 'Facebook',
+                                        'instagram' => 'Instagram',
+                                    ];
+                                    return collect($state)->map(fn($key) => $options[$key] ?? $key)->join(', ');
+                                }),
+                                Column::make('average_monthly_sales')->heading('Ventas Mensuales Promedio')->formatStateUsing(fn($state) => match ($state) {
+                                    'lt_500000' => 'Menos de $500.000',
+                                    '500k_1m' => '$500.001 — $1.000.000',
+                                    '1m_2m' => '$1.001.000 — $2.000.000',
+                                    '2m_5m' => '$2.001.000 — $5.000.000',
+                                    'gt_5m' => 'Más de $5.001.000',
+                                    default => $state,
+                                }),
+                                Column::make('employees_generated')->heading('Empleos Generados')->formatStateUsing(fn($state) => match ($state) {
+                                    'up_to_2' => 'Hasta 2 empleados',
+                                    '3_to_4' => '3 a 4 empleados',
+                                    'more_than_5' => 'Más de 5 empleados',
+                                    default => $state,
+                                }),
+
+                                // === FORMALIZACIÓN Y REGISTROS ===
+                                Column::make('has_accounting_records')->heading('Registros Contables')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                Column::make('has_commercial_registration')->heading('Registro Mercantil')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                Column::make('family_in_drummond')->heading('Familiar en Drummond')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+
+                                // === GEORREFERENCIACIÓN ===
+                                Column::make('latitude')->heading('Latitud'),
+                                Column::make('longitude')->heading('Longitud'),
+
+                                // === EVIDENCIAS FOTOGRÁFICAS ===
+                                Column::make('commerce_evidence_path')->heading('Evidencia del Comercio')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
+                                Column::make('population_evidence_path')->heading('Evidencia de Población')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
+                                Column::make('photo_evidence_path')->heading('Foto Georeferenciación')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
+
+                                // === INFORMACIÓN ADICIONAL ===
+                                Column::make('manager.name')->heading('Registrado por'),
+                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                            ]),
+                    ])
+                    ->color('success')
+                    ->icon('heroicon-o-arrow-down-tray'),
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    ExportBulkAction::make()
+                        ->label('Exportar seleccionadas')
+                        ->exports([
+                            ExcelExport::make()
+                                ->withFilename(fn() => 'caracterizaciones-seleccionadas-' . now()->format('Y-m-d-His'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                                ->modifyQueryUsing(fn($query) => $query->with([
+                                    'entrepreneur.business.economicActivity',
+                                    'entrepreneur.population',
+                                    'entrepreneur.city',
+                                    'entrepreneur.manager',
+                                    'manager',
+                                ]))
+                                ->withColumns([
+                                    Column::make('entrepreneur.full_name')->heading('Emprendedor'),
+                                    Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
+                                    Column::make('characterization_date')->heading('Fecha')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                    Column::make('business_type')->heading('Tipo Negocio')->formatStateUsing(fn($state) => $state === 'individual' ? 'Individual' : 'Asociativo'),
+                                    Column::make('average_monthly_sales')->heading('Ventas Promedio')->formatStateUsing(fn($state) => match ($state) {
+                                        'lt_500000' => 'Menos de $500k',
+                                        '500k_1m' => '$500k — $1M',
+                                        '1m_2m' => '$1M — $2M',
+                                        '2m_5m' => '$2M — $5M',
+                                        'gt_5m' => 'Más de $5M',
+                                        default => $state,
+                                    }),
+                                    Column::make('has_accounting_records')->heading('Reg. Contables')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                    Column::make('has_commercial_registration')->heading('Reg. Mercantil')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                    Column::make('commerce_evidence_path')->heading('Tiene Evidencia')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
+                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y')),
+                                ]),
+                        ]),
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn() => static::userCanDelete()),
 

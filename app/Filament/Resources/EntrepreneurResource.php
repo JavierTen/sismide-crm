@@ -586,89 +586,90 @@ class EntrepreneurResource extends Resource
                     ->visible(fn() => auth()->user()->hasRole('Admin')),
             ])
             ->headerActions([
-    ExportAction::make()
-        ->label('Exportar Excel')
-        ->exports([
-            ExcelExport::make()
-                ->withFilename(fn () => 'emprendedores-' . now()->format('Y-m-d-His'))
-                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                ->modifyQueryUsing(fn ($query) => $query->with([
-                    'documentType',
-                    'gender',
-                    'maritalStatus',
-                    'population',
-                    'educationLevel',
-                    'city',
-                    'department',
-                    'manager',
-                    'project',
-                    'business.economicActivity',
-                    'business.entrepreneurshipStage',
-                    'business.productiveLine',
-                    'business.ciiuCode',
-                    'business.department',
-                    'business.city',
-                    'business.ward',
-                    'business.village',
-                ]))
-                ->withColumns([
-                    // === INFORMACIÓN PERSONAL ===
-                    Column::make('documentType.code')->heading('Tipo Doc.'),
-                    Column::make('document_number')->heading('No. Documento'),
-                    Column::make('full_name')->heading('Nombre Completo'),
-                    Column::make('gender.name')->heading('Género'),
-                    Column::make('maritalStatus.name')->heading('Estado Civil'),
-                    Column::make('birth_date')->heading('Fecha Nacimiento')->formatStateUsing(fn ($state) => $state?->format('d/m/Y')),
-                    Column::make('population.name')->heading('Población Vulnerable'),
+                ExportAction::make()
+                    ->label('Exportar Excel')
+                    ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->exports([
+                        ExcelExport::make()
+                            ->withFilename(fn() => 'emprendedores-' . now()->format('Y-m-d-His'))
+                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                            ->modifyQueryUsing(fn($query) => $query->with([
+                                'documentType',
+                                'gender',
+                                'maritalStatus',
+                                'population',
+                                'educationLevel',
+                                'city',
+                                'department',
+                                'manager',
+                                'project',
+                                'business.economicActivity',
+                                'business.entrepreneurshipStage',
+                                'business.productiveLine',
+                                'business.ciiuCode',
+                                'business.department',
+                                'business.city',
+                                'business.ward',
+                                'business.village',
+                            ]))
+                            ->withColumns([
+                                // === INFORMACIÓN PERSONAL ===
+                                Column::make('documentType.code')->heading('Tipo Doc.'),
+                                Column::make('document_number')->heading('No. Documento'),
+                                Column::make('full_name')->heading('Nombre Completo'),
+                                Column::make('gender.name')->heading('Género'),
+                                Column::make('maritalStatus.name')->heading('Estado Civil'),
+                                Column::make('birth_date')->heading('Fecha Nacimiento')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                Column::make('population.name')->heading('Población Vulnerable'),
 
-                    // === INFORMACIÓN DE CONTACTO ===
-                    Column::make('phone')->heading('Teléfono'),
-                    Column::make('email')->heading('Email'),
+                                // === INFORMACIÓN DE CONTACTO ===
+                                Column::make('phone')->heading('Teléfono'),
+                                Column::make('email')->heading('Email'),
 
-                    // === INFORMACIÓN ACADÉMICA ===
-                    Column::make('educationLevel.name')->heading('Nivel Educativo'),
+                                // === INFORMACIÓN ACADÉMICA ===
+                                Column::make('educationLevel.name')->heading('Nivel Educativo'),
 
-                    // === ESTADO ===
-                    Column::make('status')->heading('Estado')->formatStateUsing(fn ($state) => $state ? 'Activo' : 'Inactivo'),
+                                // === ESTADO ===
+                                Column::make('status')->heading('Estado')->formatStateUsing(fn($state) => $state ? 'Activo' : 'Inactivo'),
 
-                    // === INFORMACIÓN EMPRENDIMIENTO ===
-                    Column::make('business.business_name')->heading('Nombre Emprendimiento'),
-                    Column::make('business.creation_date')->heading('Fecha Creación Negocio')->formatStateUsing(fn ($state) => $state?->format('d/m/Y')),
-                    Column::make('business.description')->heading('Descripción'),
-                    Column::make('business.entrepreneurshipStage.name')->heading('Etapa Emprendimiento'),
-                    Column::make('business.economicActivity.name')->heading('Actividad Económica'),
-                    Column::make('business.productiveLine.name')->heading('Línea Productiva'),
-                    Column::make('business.ciiuCode.code')->heading('Código CIIU'),
-                    Column::make('project.name')->heading('Proyecto'),
+                                // === INFORMACIÓN EMPRENDIMIENTO ===
+                                Column::make('business.business_name')->heading('Nombre Emprendimiento'),
+                                Column::make('business.creation_date')->heading('Fecha Creación Negocio')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                Column::make('business.description')->heading('Descripción'),
+                                Column::make('business.entrepreneurshipStage.name')->heading('Etapa Emprendimiento'),
+                                Column::make('business.economicActivity.name')->heading('Actividad Económica'),
+                                Column::make('business.productiveLine.name')->heading('Línea Productiva'),
+                                Column::make('business.ciiuCode.code')->heading('Código CIIU'),
+                                Column::make('project.name')->heading('Proyecto'),
 
-                    // === UBICACIÓN EMPRENDIMIENTO ===
-                    Column::make('business.department.name')->heading('Departamento Negocio'),
-                    Column::make('business.city.name')->heading('Ciudad Negocio'),
-                    Column::make('business.ward.name')->heading('Corregimiento'),
-                    Column::make('business.village.name')->heading('Vereda'),
-                    Column::make('business.address')->heading('Dirección Negocio'),
-                    Column::make('business.phone')->heading('Teléfono Negocio'),
-                    Column::make('business.email')->heading('Email Negocio'),
+                                // === UBICACIÓN EMPRENDIMIENTO ===
+                                Column::make('business.department.name')->heading('Departamento Negocio'),
+                                Column::make('business.city.name')->heading('Ciudad Negocio'),
+                                Column::make('business.ward.name')->heading('Corregimiento'),
+                                Column::make('business.village.name')->heading('Vereda'),
+                                Column::make('business.address')->heading('Dirección Negocio'),
+                                Column::make('business.phone')->heading('Teléfono Negocio'),
+                                Column::make('business.email')->heading('Email Negocio'),
 
-                    // === GESTOR Y FECHAS ===
-                    Column::make('manager.name')->heading('Gestor Asignado'),
-                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
-                ]),
-        ])
-        ->color('success')
-        ->icon('heroicon-o-arrow-down-tray'),
-])
+                                // === GESTOR Y FECHAS ===
+                                Column::make('manager.name')->heading('Gestor Asignado'),
+                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                            ]),
+                    ])
+                    ->color('success')
+                    ->icon('heroicon-o-arrow-down-tray'),
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
 
                     ExportBulkAction::make()
-                    ->label('Exportar seleccionados')
-                    ->exports([
-                        ExcelExport::make()
-                            ->fromTable()
-                            ->withFilename('emprendedores-seleccionados-' . date('Y-m-d'))
-                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX),
-                    ]),
+                        ->label('Exportar seleccionados')
+                        ->exports([
+                            ExcelExport::make()
+                                ->fromTable()
+                                ->withFilename('emprendedores-seleccionados-' . date('Y-m-d'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX),
+                        ]),
 
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn() => static::userCanDelete()),

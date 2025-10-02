@@ -424,6 +424,7 @@ class VisitResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     ExportBulkAction::make()
                         ->label('Exportar seleccionadas')
+                        ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
                         ->exports([
                             ExcelExport::make()
                                 ->withFilename(fn() => 'visitas-seleccionadas-' . now()->format('Y-m-d-His'))

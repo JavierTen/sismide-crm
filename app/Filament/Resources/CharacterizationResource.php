@@ -500,6 +500,7 @@ class CharacterizationResource extends Resource
             ->headerActions([
                 ExportAction::make()
                     ->label('Exportar Excel')
+                    ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
                         ExcelExport::make()
                             ->withFilename(fn() => 'caracterizaciones-' . now()->format('Y-m-d-His'))

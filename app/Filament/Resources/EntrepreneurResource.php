@@ -515,14 +515,24 @@ class EntrepreneurResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
                     ->tooltip('Editar emprendedor')
-                    ->visible(fn($record) => !$record->trashed() && static::userCanEdit()),
+                    ->visible(
+                        fn($record) =>
+                        !$record->trashed() &&
+                            static::userCanEdit() &&
+                            (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
+                    ),
 
                 Tables\Actions\DeleteAction::make()
                     ->label('')
                     ->icon('heroicon-o-archive-box-arrow-down')
                     ->color('primary')
                     ->tooltip('Deshabilitar')
-                    ->visible(fn($record) => !$record->trashed() && static::userCanDelete()),
+                    ->visible(
+                        fn($record) =>
+                        !$record->trashed() &&
+                            static::userCanDelete() &&
+                            (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
+                    ),
 
                 Tables\Actions\RestoreAction::make()
                     ->label('')

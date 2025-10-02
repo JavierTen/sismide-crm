@@ -509,7 +509,35 @@ class EntrepreneurResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-eye')
                     ->tooltip('Ver detalles')
-                    ->visible(fn() => static::userCanList()),
+                    ->visible(fn() => static::userCanList())
+                    ->fillForm(function ($record): array {
+                        $data = $record->toArray();
+
+                        // Cargar datos del emprendimiento si existe
+                        if ($record->business) {
+                            $business = $record->business;
+
+                            $data['business_name'] = $business->business_name;
+                            $data['creation_date'] = $business->creation_date;
+                            $data['business_description'] = $business->description;
+                            $data['entrepreneurship_stage_id'] = $business->entrepreneurship_stage_id;
+                            $data['economic_activity_id'] = $business->economic_activity_id;
+                            $data['productive_line_id'] = $business->productive_line_id;
+                            $data['code_ciiu'] = $business->ciiu_code_id;
+                            $data['department_id'] = $business->department_id;
+                            $data['city_id'] = $business->city_id;
+                            $data['ward_id'] = $business->ward_id;
+                            $data['village_id'] = $business->village_id;
+                            $data['business_address'] = $business->address;
+                            $data['business_phone'] = $business->phone;
+                            $data['business_email'] = $business->email;
+                        }
+
+                        $data['project_id'] = $record->project_id;
+
+                        return $data;
+                    })
+                    ->modalWidth('7xl'), // Modal grande para que se vea bien
 
                 Tables\Actions\EditAction::make()
                     ->label('')
@@ -593,6 +621,7 @@ class EntrepreneurResource extends Resource
         return [
             'index' => Pages\ListEntrepreneurs::route('/'),
             'create' => Pages\CreateEntrepreneur::route('/create'),
+            //'view' => Pages\ViewEntrepreneur::route('/{record}'),
             'edit' => Pages\EditEntrepreneur::route('/{record}/edit'),
         ];
     }

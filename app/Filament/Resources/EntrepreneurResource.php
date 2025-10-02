@@ -661,14 +661,82 @@ class EntrepreneurResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-
                     ExportBulkAction::make()
                         ->label('Exportar seleccionados')
                         ->exports([
                             ExcelExport::make()
-                                ->fromTable()
-                                ->withFilename('emprendedores-seleccionados-' . date('Y-m-d'))
-                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX),
+                                ->withFilename(fn() => 'emprendedores-seleccionados-' . now()->format('Y-m-d-His'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                                ->modifyQueryUsing(fn($query) => $query->with([
+                                    'documentType',
+                                    'gender',
+                                    'maritalStatus',
+                                    'population',
+                                    'educationLevel',
+                                    'city',
+                                    'department',
+                                    'manager',
+                                    'project',
+                                    'business.economicActivity',
+                                    'business.entrepreneurshipStage',
+                                    'business.productiveLine',
+                                    'business.ciiuCode',
+                                    'business.department',
+                                    'business.city',
+                                    'business.ward',
+                                    'business.village',
+                                ]))
+                                ->withColumns([
+                                    // === INFORMACIÓN PERSONAL ===
+                                    Column::make('document_type.code')->heading('Tipo Doc.'),
+                                    Column::make('document_number')->heading('No. Documento'),
+                                    Column::make('full_name')->heading('Nombre Completo'),
+                                    Column::make('gender.name')->heading('Género'),
+                                    Column::make('marital_status.name')->heading('Estado Civil'),
+                                    Column::make('birth_date')->heading('Fecha Nacimiento')->formatStateUsing(function ($state) {
+                                        if (!$state) return '';
+                                        return $state instanceof \Carbon\Carbon ? $state->format('d/m/Y') : $state;
+                                    }),
+                                    Column::make('population.name')->heading('Población Vulnerable'),
+
+                                    // === INFORMACIÓN DE CONTACTO ===
+                                    Column::make('phone')->heading('Teléfono'),
+                                    Column::make('email')->heading('Email'),
+
+                                    // === INFORMACIÓN ACADÉMICA ===
+                                    Column::make('education_level.name')->heading('Nivel Educativo'),
+
+                                    // === ESTADO ===
+                                    Column::make('status')->heading('Estado')->formatStateUsing(fn($state) => $state ? 'Activo' : 'Inactivo'),
+
+                                    // === INFORMACIÓN EMPRENDIMIENTO ===
+                                    Column::make('business.business_name')->heading('Nombre Emprendimiento'),
+                                    Column::make('business.creation_date')->heading('Fecha Creación Negocio')->formatStateUsing(function ($state) {
+                                        if (!$state) return '';
+                                        return $state instanceof \Carbon\Carbon ? $state->format('d/m/Y') : $state;
+                                    }),
+                                    Column::make('business.description')->heading('Descripción'),
+                                    Column::make('business.entrepreneurship_stage.name')->heading('Etapa Emprendimiento'),
+                                    Column::make('business.economic_activity.name')->heading('Actividad Económica'),
+                                    Column::make('business.productive_line.name')->heading('Línea Productiva'),
+                                    Column::make('business.ciiu_code.code')->heading('Código CIIU'),
+                                    Column::make('project.name')->heading('Proyecto'),
+
+                                    // === UBICACIÓN EMPRENDIMIENTO ===
+                                    Column::make('business.department.name')->heading('Departamento Negocio'),
+                                    Column::make('business.city.name')->heading('Ciudad Negocio'),
+                                    Column::make('business.ward.name')->heading('Corregimiento'),
+                                    Column::make('business.village.name')->heading('Vereda'),
+                                    Column::make('business.address')->heading('Dirección Negocio'),
+                                    Column::make('business.phone')->heading('Teléfono Negocio'),
+                                    Column::make('business.email')->heading('Email Negocio'),
+
+                                    // === GESTOR Y FECHAS ===
+                                    Column::make('manager.name')->heading('Gestor Asignado'),
+                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(function ($state) {
+                                        return $state instanceof \Carbon\Carbon ? $state->format('d/m/Y H:i') : $state;
+                                    }),
+                                ]),
                         ]),
 
                     Tables\Actions\DeleteBulkAction::make()

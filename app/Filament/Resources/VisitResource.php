@@ -427,7 +427,7 @@ class VisitResource extends Resource
                         ->label('Exportar Excel')
                         ->exports([
                             ExcelExport::make()
-                                ->withFilename(fn() => 'visitas-seleccionadas' . now()->format('Y-m-d-His'))
+                                ->withFilename(fn() => 'visitas-' . now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                                 ->modifyQueryUsing(fn($query) => $query->with([
                                     'entrepreneur.business',

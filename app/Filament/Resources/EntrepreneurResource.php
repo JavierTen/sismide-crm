@@ -665,7 +665,7 @@ class EntrepreneurResource extends Resource
                         ->label('Exportar seleccionados')
                         ->exports([
                             ExcelExport::make()
-                                ->withFilename(fn() => 'emprendedores-seleccionados-' . now()->format('Y-m-d-His'))
+                                ->withFilename(fn() => 'emprendedores-' . now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                                 ->modifyQueryUsing(fn($query) => $query->with([
                                     'documentType',

@@ -423,7 +423,7 @@ class VisitResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    ExportAction::make()
+                    ExportBulkAction::make()
                         ->label('Exportar Excel')
                         ->exports([
                             ExcelExport::make()

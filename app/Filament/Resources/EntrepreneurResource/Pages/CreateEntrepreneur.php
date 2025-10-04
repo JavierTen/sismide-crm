@@ -93,6 +93,7 @@ class CreateEntrepreneur extends CreateRecord
             'influence_zone' => $data['influence_zone'] ?? null,
             'is_characterized' => $data['is_characterized'] ?? 'No',
             'aid_compliance' => $data['aid_compliance'] ?? 'Does Not Comply',
+            'cohort' => $data['cohort'] ?? null,
         ];
     }
 

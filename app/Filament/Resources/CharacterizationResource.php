@@ -336,6 +336,7 @@ class CharacterizationResource extends Resource
                                     ->label('Latitud')
                                     ->numeric()
                                     ->step(0.00000001)
+                                    ->required()
                                     ->placeholder('Ej: 7.1193')
                                     ->helperText('Coordenada de latitud GPS')
                                     ->rules(['numeric', 'between:-90,90']),
@@ -343,6 +344,7 @@ class CharacterizationResource extends Resource
                                 Forms\Components\TextInput::make('longitude')
                                     ->label('Longitud')
                                     ->numeric()
+                                    ->required()
                                     ->step(0.00000001)
                                     ->placeholder('Ej: -73.1227')
                                     ->helperText('Coordenada de longitud GPS')

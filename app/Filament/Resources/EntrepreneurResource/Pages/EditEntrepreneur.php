@@ -75,6 +75,7 @@ class EditEntrepreneur extends EditRecord
                 'influence_zone' => $business->influence_zone,
                 'is_characterized' => $business->is_characterized,
                 'aid_compliance' => $business->aid_compliance,
+                'cohort' => $business->cohort,
             ]);
         }
 
@@ -162,6 +163,7 @@ class EditEntrepreneur extends EditRecord
             'influence_zone' => $data['influence_zone'] ?? null,
             'is_characterized' => $data['is_characterized'] ?? 'No',
             'aid_compliance' => $data['aid_compliance'] ?? 'Does Not Comply',
+            'cohort' => $data['cohort'] ?? null,
         ];
     }
 

@@ -327,8 +327,20 @@ class EntrepreneurResource extends Resource
                                             ->searchable()
                                             ->preload()
                                             ->required()
-                                            ->columnSpanFull()
                                             ->placeholder('Seleccione un proyecto'),
+
+                                        Forms\Components\Select::make('cohort')
+                                            ->label('Cohorte')
+                                            ->options([
+                                                '1' => '1',
+                                                '2' => '2',
+                                                '3' => '3',
+                                                '4' => '4',
+                                                '5' => '5',
+                                                '6' => '6',
+                                            ])
+                                            ->preload()
+                                            ->searchable(),
                                     ])
                                     ->columns(2)
                                     ->collapsible()
@@ -642,6 +654,7 @@ class EntrepreneurResource extends Resource
                                 Column::make('business.productiveLine.name')->heading('Línea Productiva'),
                                 Column::make('business.ciiuCode.code')->heading('Código CIIU'),
                                 Column::make('project.name')->heading('Proyecto'),
+                                Column::make('business.cohort')->heading('Cohorte'),
 
                                 // === UBICACIÓN EMPRENDIMIENTO ===
                                 Column::make('business.department.name')->heading('Departamento Negocio'),
@@ -722,6 +735,7 @@ class EntrepreneurResource extends Resource
                                     Column::make('business.productiveLine.name')->heading('Línea Productiva'),
                                     Column::make('business.ciiuCode.code')->heading('Código CIIU'),
                                     Column::make('project.name')->heading('Proyecto'),
+                                    Column::make('business.cohort')->heading('Cohorte'),
 
                                     // === UBICACIÓN EMPRENDIMIENTO ===
                                     Column::make('business.department.name')->heading('Departamento Negocio'),

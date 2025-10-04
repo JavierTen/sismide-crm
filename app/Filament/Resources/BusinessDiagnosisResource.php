@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BusinessDiagnosisResource\Pages;
-use App\Filament\Resources\BusinessDiagnosisResource\RelationManagers;
 use App\Models\BusinessDiagnosis;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,6 +11,12 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+
+//Exportar en excel
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use pxlrbt\FilamentExcel\Columns\Column;
 
 class BusinessDiagnosisResource extends Resource
 {
@@ -25,13 +30,11 @@ class BusinessDiagnosisResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    // Método helper para verificar permisos
-
+    // Métodos de permisos
     private static function userCanList(): bool
     {
         $user = auth()->user();
         if (!$user) return false;
-
         return $user->can('listBusinessDiagnosis');
     }
 
@@ -39,7 +42,6 @@ class BusinessDiagnosisResource extends Resource
     {
         $user = auth()->user();
         if (!$user) return false;
-
         return $user->can('createBusinessDiagnosis');
     }
 
@@ -47,7 +49,6 @@ class BusinessDiagnosisResource extends Resource
     {
         $user = auth()->user();
         if (!$user) return false;
-
         return $user->can('editBusinessDiagnosis');
     }
 
@@ -55,7 +56,6 @@ class BusinessDiagnosisResource extends Resource
     {
         $user = auth()->user();
         if (!$user) return false;
-
         return $user->can('deleteBusinessDiagnosis');
     }
 
@@ -79,7 +79,6 @@ class BusinessDiagnosisResource extends Resource
         return static::userCanDelete();
     }
 
-    // Permitir ver registros eliminados
     public static function canRestore($record): bool
     {
         return static::userCanDelete();
@@ -87,14 +86,13 @@ class BusinessDiagnosisResource extends Resource
 
     public static function canForceDelete($record): bool
     {
-        return auth()->user()->hasRole('Admin'); // Solo Admin puede eliminar permanentemente
+        return auth()->user()->hasRole('Admin');
     }
 
     public static function shouldRegisterNavigation(): bool
     {
         return static::canViewAny();
     }
-
 
     public static function form(Form $form): Form
     {
@@ -174,6 +172,33 @@ class BusinessDiagnosisResource extends Resource
                                                     return $entrepreneur?->manager?->name ?? 'Sin gestor';
                                                 }),
                                         ]),
+
+                                    Forms\Components\Grid::make(2)
+                                        ->schema([
+                                            Forms\Components\Placeholder::make('total_score')
+                                                ->label('Puntaje Total')
+                                                ->content(function ($record, string $operation) {
+                                                    if ($operation === 'create') {
+                                                        return 'Se calculará al guardar';
+                                                    }
+
+                                                    return $record?->total_score ?? 'Por calcular';
+                                                }),
+
+                                            Forms\Components\Placeholder::make('maturity_level')
+                                                ->label('Nivel de Madurez Empresarial')
+                                                ->content(function ($record, string $operation) {
+                                                    if ($operation === 'create') {
+                                                        return 'Por evaluar - Se calculará al completar el diagnóstico';
+                                                    }
+
+                                                    if (!$record || !$record->maturity_level) {
+                                                        return 'Por calcular';
+                                                    }
+
+                                                    return $record->maturity_level;
+                                                })
+                                        ]),
                                 ]),
 
                             Forms\Components\Section::make('Novedades del Emprendimiento')
@@ -187,18 +212,7 @@ class BusinessDiagnosisResource extends Resource
 
                                     Forms\Components\Select::make('news_type')
                                         ->label('Tipo de Novedad')
-                                        ->options([
-                                            'reactivation' => 'Reactivación',
-                                            'definitive_closure' => 'Cierre de Emprendimiento definitivo',
-                                            'temporary_closure' => 'Cierre de Emprendimiento temporal',
-                                            'permanent_disability' => 'Incapacidad Permanente',
-                                            'temporary_disability' => 'Incapacidad Temporal',
-                                            'definitive_retirement' => 'Retiro definitivo',
-                                            'temporary_retirement' => 'Retiro temporal',
-                                            'address_change' => 'Cambio de domicilio',
-                                            'owner_death' => 'Muerte del titular',
-                                            'no_news' => 'Sin novedad',
-                                        ])
+                                        ->options(BusinessDiagnosis::newsTypeOptions())
                                         ->visible(fn($get) => $get('has_news'))
                                         ->required(fn($get) => $get('has_news'))
                                         ->placeholder('Seleccione el tipo de novedad'),
@@ -327,6 +341,7 @@ class BusinessDiagnosisResource extends Resource
                                             'not_applicable' => 'No lo hago o No Aplica'
                                         ])
                                         ->required(),
+
                                     Forms\Components\Radio::make('financial_section.external_financing')
                                         ->label('6. ¿Cómo manejas la financiación y búsqueda de recursos externos?')
                                         ->options([
@@ -615,13 +630,7 @@ class BusinessDiagnosisResource extends Resource
                                 ->schema([
                                     Forms\Components\CheckboxList::make('work_sections')
                                         ->label('Escoger al menos 2 secciones a trabajar con el emprendedor')
-                                        ->options([
-                                            'administrative' => 'Sección Administrativa',
-                                            'financial' => 'Sección Financiera y Contable',
-                                            'production' => 'Sección De Producción',
-                                            'market' => 'Sección De Mercado y comercial',
-                                            'technology' => 'Sección Digital Tecnología',
-                                        ])
+                                        ->options(BusinessDiagnosis::workSectionOptions())
                                         ->required()
                                         ->minItems(2)
                                         ->maxItems(5)
@@ -641,9 +650,6 @@ class BusinessDiagnosisResource extends Resource
     {
         return $table
             ->defaultSort('created_at', 'desc')
-            ->modifyQueryUsing(function ($query) {
-                return $query->withTrashed();
-            })
             ->columns([
                 Tables\Columns\TextColumn::make('entrepreneur.full_name')
                     ->label('Emprendedor')
@@ -681,7 +687,7 @@ class BusinessDiagnosisResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
-                    ->tooltip('Editar emprendedor')
+                    ->tooltip('Editar diagnóstico')
                     ->visible(
                         fn($record) =>
                         !$record->trashed() &&
@@ -718,8 +724,129 @@ class BusinessDiagnosisResource extends Resource
                     ->modalDescription('Esta acción NO se puede deshacer.')
                     ->visible(fn() => auth()->user()->hasRole('Admin')),
             ])
+            ->headerActions([
+                ExportAction::make()
+                    ->label('Exportar Excel')
+                    ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->color('success')
+                    ->exports([
+                        ExcelExport::make()
+                            ->fromTable()
+                            ->modifyQueryUsing(fn($query) => $query->with(['entrepreneur.business', 'entrepreneur.city', 'entrepreneur.manager']))
+                            ->withFilename(fn() => 'diagnosticos-empresariales-' . date('Y-m-d'))
+                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                            ->withColumns([
+                                Column::make('entrepreneur.full_name')
+                                    ->heading('Emprendedor'),
+                                Column::make('entrepreneur.document_number')
+                                    ->heading('Documento'),
+                                Column::make('entrepreneur.business.business_name')
+                                    ->heading('Emprendimiento'),
+                                Column::make('entrepreneur.city.name')
+                                    ->heading('Municipio'),
+                                Column::make('entrepreneur.manager.name')
+                                    ->heading('Gestor'),
+                                Column::make('diagnosis_date')
+                                    ->heading('Fecha Diagnóstico')
+                                    ->formatStateUsing(fn($state) => $state ? $state->format('d/m/Y') : ''),
+                                Column::make('total_score')
+                                    ->heading('Puntaje Total'),
+                                Column::make('maturity_level')
+                                    ->heading('Nivel de Madurez'),
+                                Column::make('work_sections')
+                                    ->heading('Secciones de Trabajo')
+                                    ->formatStateUsing(function ($state) {
+                                        if (empty($state)) return '';
+                                        $options = BusinessDiagnosis::workSectionOptions();
+                                        return collect($state)
+                                            ->map(fn($key) => $options[$key] ?? $key)
+                                            ->join(', ');
+                                    }),
+                                Column::make('has_news')
+                                    ->heading('Tiene Novedades')
+                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                Column::make('news_type')
+                                    ->heading('Tipo de Novedad')
+                                    ->formatStateUsing(function ($state) {
+                                        if (!$state) return '';
+                                        $options = BusinessDiagnosis::newsTypeOptions();
+                                        return $options[$state] ?? $state;
+                                    }),
+                                Column::make('news_date')
+                                    ->heading('Fecha Novedad')
+                                    ->formatStateUsing(fn($state) => $state ? $state->format('d/m/Y') : ''),
+                                Column::make('general_observations')
+                                    ->heading('Observaciones Generales'),
+                                Column::make('created_at')
+                                    ->heading('Fecha Creación')
+                                    ->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                Column::make('updated_at')
+                                    ->heading('Última Actualización')
+                                    ->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                            ])
+                    ])
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    ExportBulkAction::make()
+                        ->label('Exportar Excel')
+                        ->color('success')
+                        ->exports([
+                            ExcelExport::make()
+                                ->fromTable()
+                                ->modifyQueryUsing(fn($query) => $query->with(['entrepreneur.business', 'entrepreneur.city', 'entrepreneur.manager']))
+                                ->withFilename(fn() => 'diagnosticos-empresariales-' . date('Y-m-d'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                                ->withColumns([
+                                    Column::make('entrepreneur.full_name')
+                                        ->heading('Emprendedor'),
+                                    Column::make('entrepreneur.document_number')
+                                        ->heading('Documento'),
+                                    Column::make('entrepreneur.business.business_name')
+                                        ->heading('Emprendimiento'),
+                                    Column::make('entrepreneur.city.name')
+                                        ->heading('Municipio'),
+                                    Column::make('entrepreneur.manager.name')
+                                        ->heading('Gestor'),
+                                    Column::make('diagnosis_date')
+                                        ->heading('Fecha Diagnóstico')
+                                        ->formatStateUsing(fn($state) => $state ? $state->format('d/m/Y') : ''),
+                                    Column::make('total_score')
+                                        ->heading('Puntaje Total'),
+                                    Column::make('maturity_level')
+                                        ->heading('Nivel de Madurez'),
+                                    Column::make('work_sections')
+                                        ->heading('Secciones de Trabajo')
+                                        ->formatStateUsing(function ($state) {
+                                            if (empty($state)) return '';
+                                            $options = BusinessDiagnosis::workSectionOptions();
+                                            return collect($state)
+                                                ->map(fn($key) => $options[$key] ?? $key)
+                                                ->join(', ');
+                                        }),
+                                    Column::make('has_news')
+                                        ->heading('Tiene Novedades')
+                                        ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                    Column::make('news_type')
+                                        ->heading('Tipo de Novedad')
+                                        ->formatStateUsing(function ($state) {
+                                            if (!$state) return '';
+                                            $options = BusinessDiagnosis::newsTypeOptions();
+                                            return $options[$state] ?? $state;
+                                        }),
+                                    Column::make('news_date')
+                                        ->heading('Fecha Novedad')
+                                        ->formatStateUsing(fn($state) => $state ? $state->format('d/m/Y') : ''),
+                                    Column::make('general_observations')
+                                        ->heading('Observaciones Generales'),
+                                    Column::make('created_at')
+                                        ->heading('Fecha Creación')
+                                        ->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                    Column::make('updated_at')
+                                        ->heading('Última Actualización')
+                                        ->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                ])
+                        ]),
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn() => static::userCanDelete()),
 
@@ -728,9 +855,10 @@ class BusinessDiagnosisResource extends Resource
 
                     Tables\Actions\ForceDeleteBulkAction::make()
                         ->visible(fn() => auth()->user()->hasRole('Admin')),
+
+
                 ]),
             ])
-            // Modificar query para incluir registros eliminados cuando sea necesario
             ->modifyQueryUsing(fn(Builder $query) => $query->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]));
@@ -740,8 +868,7 @@ class BusinessDiagnosisResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        // Ajusta según tu sistema de roles
-        if (auth()->user()->hasRole(['Admin', 'Viewer'])) { // o hasRole('admin')
+        if (auth()->user()->hasRole(['Admin', 'Viewer'])) {
             return $query;
         }
 
@@ -750,9 +877,7 @@ class BusinessDiagnosisResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
@@ -768,7 +893,6 @@ class BusinessDiagnosisResource extends Resource
     {
         $query = static::getModel()::query();
 
-        // Si no es admin, filtrar solo sus registros
         if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }

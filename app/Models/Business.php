@@ -32,13 +32,27 @@ class Business extends Model
         'influence_zone',
         'is_characterized',
         'aid_compliance',
+        'cohort',
     ];
 
     protected $casts = [
         'creation_date' => 'date',
         'deleted_at' => 'datetime',
         'village_id' => 'integer',
+        'cohort' => 'integer',
     ];
+
+    public static function cohortOptions(): array
+{
+    return [
+        1 => '1',
+        2 => '2',
+        3 => '3',
+        4 => '4',
+        5 => '5',
+        6 => '6',
+    ];
+}
 
     public function entrepreneur()
     {

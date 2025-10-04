@@ -651,7 +651,7 @@ class BusinessDiagnosisResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('entrepreneur.business.business_name')
-                    ->label('Emprendedor')
+                    ->label('Emprendimiento')
                     ->searchable()
                     ->sortable(),
 

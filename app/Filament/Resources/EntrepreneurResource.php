@@ -161,6 +161,7 @@ class EntrepreneurResource extends Resource
                                             ->label('Estado Civil')
                                             ->relationship('maritalStatus', 'name', fn($query) => $query->active())
                                             ->searchable()
+                                            ->required()
                                             ->preload()
                                             ->placeholder('Seleccione el estado civil'),
 

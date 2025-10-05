@@ -24,7 +24,7 @@ class DynamicGenderCardsWidget extends BaseWidget
 
         // Solo crear cards para géneros que tienen registros
         foreach ($genderStats as $gender => $count) {
-            if ($count > 0) { // Solo si hay emprendedores de este género
+            if ($count > 0) {
                 $percentage = $total > 0 ? round(($count / $total) * 100) : 0;
                 $color = $genderColors[$gender] ?? 'gray';
 
@@ -48,10 +48,16 @@ class DynamicGenderCardsWidget extends BaseWidget
 
     private function getGenderBreakdown(): array
     {
+        // Aplicar filtro por rol
+        $query = Entrepreneur::with('gender')
+            ->whereHas('gender'); // Solo emprendedores con género asignado
+
+        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
+            $query->where('manager_id', auth()->id());
+        }
+
         // Obtener solo los géneros que realmente existen en los datos
-        $distribution = Entrepreneur::with('gender')
-            ->whereHas('gender') // Solo emprendedores con género asignado
-            ->get()
+        $distribution = $query->get()
             ->groupBy('gender.name')
             ->map(function ($group) {
                 return $group->count();
@@ -64,7 +70,6 @@ class DynamicGenderCardsWidget extends BaseWidget
 
     protected static ?int $sort = 4;
 
-    // Hacer que se ajuste dinámicamente al número de cards
     protected int | string | array $columnSpan = [
         'sm' => 'full',
         'md' => 2,

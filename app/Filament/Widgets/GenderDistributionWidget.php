@@ -14,7 +14,7 @@ class GenderDistributionWidget extends ChartWidget
 
     protected int | string | array $columnSpan = [
         'sm' => 'full',
-        'md' => 2, // Ocupar 2 columnas del layout principal
+        'md' => 2,
         'lg' => 2,
         'xl' => 2
     ];
@@ -28,7 +28,6 @@ class GenderDistributionWidget extends ChartWidget
 
         // Crear etiquetas con nombres y porcentajes
         $labelsWithPercentages = [];
-        $originalLabels = array_keys($genderData['counts']);
 
         foreach ($genderData['counts'] as $label => $count) {
             $percentage = $total > 0 ? round(($count / $total) * 100) : 0;
@@ -48,7 +47,7 @@ class GenderDistributionWidget extends ChartWidget
                     'borderWidth' => 0,
                 ],
             ],
-            'labels' => $labelsWithPercentages, // Nombres con porcentajes
+            'labels' => $labelsWithPercentages,
         ];
     }
 
@@ -101,9 +100,15 @@ class GenderDistributionWidget extends ChartWidget
 
     private function getGenderDistribution(): array
     {
+        // Aplicar filtro por rol
+        $query = Entrepreneur::with('gender');
+
+        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
+            $query->where('manager_id', auth()->id());
+        }
+
         // Obtener la distribución por género con nombres
-        $distribution = Entrepreneur::with('gender')
-            ->get()
+        $distribution = $query->get()
             ->groupBy('gender.name')
             ->map(function ($group) {
                 return $group->count();

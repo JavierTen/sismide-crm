@@ -39,7 +39,7 @@ class EntrepreneursByCityWidget extends ChartWidget
                 [
                     'label' => 'Emprendedores',
                     'data' => array_values($cityData['counts']),
-                    'backgroundColor' => '#DC2626', // Rojo como en tu imagen
+                    'backgroundColor' => '#DC2626', // Rojo
                     'borderColor' => '#B91C1C',
                     'borderWidth' => 1,
                     'borderRadius' => 4,
@@ -102,10 +102,16 @@ class EntrepreneursByCityWidget extends ChartWidget
 
     private function getCityDistribution(): array
     {
+        // Aplicar filtro por rol
+        $query = Entrepreneur::with('city')
+            ->whereHas('city');
+
+        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
+            $query->where('manager_id', auth()->id());
+        }
+
         // Obtener la distribución por ciudad, limitando a los top 8
-        $distribution = Entrepreneur::with('city')
-            ->whereHas('city')
-            ->get()
+        $distribution = $query->get()
             ->groupBy('city.name')
             ->map(function ($group) {
                 return $group->count();

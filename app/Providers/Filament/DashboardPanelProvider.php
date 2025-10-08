@@ -57,7 +57,7 @@ class DashboardPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-            //->plugin(FilamentSpatieRolesPermissionsPlugin::make())
+            ->plugin(FilamentSpatieRolesPermissionsPlugin::make())
             ->authMiddleware([
                 Authenticate::class,
             ])
@@ -67,6 +67,9 @@ class DashboardPanelProvider extends PanelProvider
                     ->collapsible(),
                 NavigationGroup::make()
                     ->label('Información general')
+                    ->collapsible(),
+                NavigationGroup::make()
+                    ->label('Actores')
                     ->collapsible(),
                 NavigationGroup::make()
                     ->label('Gestión Tipos')

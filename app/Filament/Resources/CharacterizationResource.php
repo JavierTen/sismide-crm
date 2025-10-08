@@ -690,11 +690,6 @@ class CharacterizationResource extends Resource
                                 Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
                             ]),
                     ]),
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => static::userCanDelete()),
-
-                    Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn() => static::userCanDelete()),
 
                     Tables\Actions\ForceDeleteBulkAction::make()
                         ->visible(fn() => auth()->user()->hasRole('Admin')),

@@ -129,8 +129,7 @@ class FairResource extends Resource
                                             )
                                             ->validationMessages([
                                                 'unique' => 'Ya existe una feria registrada con este nombre.',
-                                            ])
-                                            ->columnSpanFull(),
+                                            ]),
 
                                         Forms\Components\TextInput::make('location')
                                             ->label('Municipio / Lugar de Realización')
@@ -144,6 +143,26 @@ class FairResource extends Resource
                                             ->rows(3)
                                             ->placeholder('Dirección completa donde se realizará la feria')
                                             ->columnSpanFull(),
+
+                                        Forms\Components\TextInput::make('latitude')
+                                            ->label('Latitud')
+                                            ->numeric()
+                                            ->placeholder('Ej: 10.9639997')
+                                            ->helperText('Coordenada de latitud del lugar')
+                                            ->step(0.00000001)
+                                            ->required()
+                                            ->minValue(-90)
+                                            ->maxValue(90),
+
+                                        Forms\Components\TextInput::make('longitude')
+                                            ->label('Longitud')
+                                            ->numeric()
+                                            ->placeholder('Ej: -74.7965423')
+                                            ->helperText('Coordenada de longitud del lugar')
+                                            ->step(0.00000001)
+
+                                            ->minValue(-180)
+                                            ->maxValue(180),
 
                                         Forms\Components\DatePicker::make('start_date')
                                             ->label('Fecha de Inicio')
@@ -420,7 +439,7 @@ class FairResource extends Resource
                         ->label('Exportar Excel')
                         ->exports([
                             ExcelExport::make()
-                            ->withFilename(fn() => 'ferias-' . now()->format('Y-m-d-His'))
+                                ->withFilename(fn() => 'ferias-' . now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                                 ->modifyQueryUsing(fn($query) => $query->with([
                                     'manager',

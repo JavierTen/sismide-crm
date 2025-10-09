@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class Actor extends Model
 {
@@ -71,6 +72,39 @@ class Actor extends Model
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Al actualizar: eliminar foto antigua si se cambió
+        static::updating(function ($actor) {
+            if ($actor->isDirty('georeference_photo_path')) {
+                $oldPhoto = $actor->getOriginal('georeference_photo_path');
+
+                if ($oldPhoto && Storage::disk('public')->exists($oldPhoto)) {
+                    Storage::disk('public')->delete($oldPhoto);
+                }
+            }
+        });
+
+        // Al eliminar (soft delete): NO eliminar la foto aún
+        static::deleting(function ($actor) {
+            // No hacer nada en soft delete
+        });
+
+        // Al forzar eliminación: eliminar la foto permanentemente
+        static::forceDeleting(function ($actor) {
+            if ($actor->georeference_photo_path && Storage::disk('public')->exists($actor->georeference_photo_path)) {
+                Storage::disk('public')->delete($actor->georeference_photo_path);
+            }
+        });
+
+        // Al restaurar: no hacer nada (la foto ya existe)
+        static::restoring(function ($actor) {
+            // La foto se mantiene
+        });
+    }
 
     // Relaciones
     public function manager(): BelongsTo

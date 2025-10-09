@@ -19,6 +19,10 @@ class Fair extends Model
         'start_date',
         'end_date',
 
+         // Georreferenciación
+         'latitude',
+         'longitude',
+
         // Organización
         'organizer_name',
         'organizer_position',
@@ -35,6 +39,8 @@ class Fair extends Model
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -96,6 +102,12 @@ class Fair extends Model
     public function scopeUpcoming($query)
     {
         return $query->whereDate('start_date', '>', now());
+    }
+
+    public function scopeWithCoordinates($query)
+    {
+        return $query->whereNotNull('latitude')
+                    ->whereNotNull('longitude');
     }
 
     // Accessors calculados

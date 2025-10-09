@@ -190,7 +190,7 @@ class ActorResource extends Resource
                                     ->persistCollapsed(),
                             ]),
 
-                        Forms\Components\Tabs\Tab::make('Ubicación')
+                            Forms\Components\Tabs\Tab::make('Ubicación')
                             ->icon('heroicon-o-map-pin')
                             ->schema([
                                 Forms\Components\Section::make('Ubicación y Accesibilidad')
@@ -254,17 +254,60 @@ class ActorResource extends Resource
                                         Forms\Components\TextInput::make('main_location')
                                             ->label('Lugar de Ubicación Principal')
                                             ->maxLength(255)
-                                            ->requiredIf('has_physical_office', true)
                                             ->visible(fn(Get $get) => $get('has_physical_office') === true)
+                                            ->requiredIf('has_physical_office', true)
                                             ->placeholder('Ej: Sede administrativa, local comercial, plaza de mercado')
                                             ->helperText('Especifique el tipo de ubicación'),
 
                                         Forms\Components\TextInput::make('office_hours')
                                             ->label('Horarios de Atención / Disponibilidad')
                                             ->maxLength(255)
-                                            ->requiredIf('has_physical_office', true)
                                             ->visible(fn(Get $get) => $get('has_physical_office') === true)
+                                            ->requiredIf('has_physical_office', true)
                                             ->placeholder('Ej: Lunes a Viernes 8:00 AM - 5:00 PM'),
+
+                                        // Georreferenciación
+                                        Forms\Components\TextInput::make('latitude')
+                                            ->label('Latitud')
+                                            ->numeric()
+                                            ->visible(fn(Get $get) => $get('has_physical_office') === true)
+                                            ->requiredIf('has_physical_office', true)
+                                            ->placeholder('Ej: 10.9639997')
+                                            ->helperText('Coordenada de latitud del lugar')
+                                            ->step(0.00000001)
+                                            ->minValue(-90)
+                                            ->maxValue(90),
+
+                                        Forms\Components\TextInput::make('longitude')
+                                            ->label('Longitud')
+                                            ->numeric()
+                                            ->visible(fn(Get $get) => $get('has_physical_office') === true)
+                                            ->requiredIf('has_physical_office', true)
+                                            ->placeholder('Ej: -74.7965423')
+                                            ->helperText('Coordenada de longitud del lugar')
+                                            ->step(0.00000001)
+                                            ->minValue(-180)
+                                            ->maxValue(180),
+
+                                        Forms\Components\FileUpload::make('georeference_photo_path')
+                                            ->label('Foto de Georreferenciación')
+                                            ->image()
+                                            ->visible(fn(Get $get) => $get('has_physical_office') === true)
+                                            ->requiredIf('has_physical_office', true)
+                                            ->directory('actors/georeference-photos')
+                                            ->downloadable()
+                                            ->imageEditorAspectRatios([
+                                                '16:9',
+                                                '4:3',
+                                                '1:1',
+                                            ])
+                                            ->maxSize(5120) // 5MB
+                                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
+                                            ->helperText('Imagen de la ubicación del actor (máx. 5MB)')
+                                            ->validationMessages([
+                                                'max' => 'El archivo no puede superar los 5MB.',
+                                            ])
+                                            ->columnSpanFull(),
                                     ])
                                     ->columns(2)
                                     ->collapsible()

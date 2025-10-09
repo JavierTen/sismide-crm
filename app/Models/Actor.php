@@ -30,6 +30,11 @@ class Actor extends Model
         'main_location',
         'office_hours',
 
+        // Georreferenciación
+        'latitude',
+        'longitude',
+        'georeference_photo_path',
+
         // Áreas de aporte
         'contribution_areas',
         'contribution_areas_other',
@@ -60,6 +65,8 @@ class Actor extends Model
         'has_physical_office' => 'boolean',
         'has_entrepreneurship_experience' => 'boolean',
         'contribution_areas' => 'array',
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',

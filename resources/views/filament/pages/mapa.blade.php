@@ -40,7 +40,6 @@
 
         const entrepreneurs = @js($this->getEntrepreneursWithCoordinates());
 
-
         // Debug: ver cuántos datos llegan
         console.log('Total de emprendedores:', entrepreneurs.length);
         console.log('Datos completos:', entrepreneurs);
@@ -48,24 +47,55 @@
         // Actualizar contador
         document.getElementById('entrepreneur-count').textContent = entrepreneurs.length;
 
-        entrepreneurs.forEach(entrepreneur => {
-            const popupContent = `
-            <div style="padding: 12px; min-width: 320px; max-width: 400px;">
-                <h3 style="font-weight: bold; margin-bottom: 10px; font-size: 16px; color: #1f2937; word-wrap: break-word;">${entrepreneur.entrepreneur_name}</h3>
-                <p style="margin: 6px 0; font-size: 14px; word-wrap: break-word;"><strong>Emprendimiento:</strong> ${entrepreneur.business_name}</p>
-                <p style="margin: 6px 0; font-size: 14px;"><strong>Teléfono:</strong> ${entrepreneur.phone}</p>
-                <p style="margin: 6px 0; font-size: 14px; word-wrap: break-word;"><strong>Correo:</strong> ${entrepreneur.email}</p>
-                <p style="margin: 6px 0; font-size: 14px;"><strong>Gestor:</strong> ${entrepreneur.manager}</p>
-            </div>
-        `;
+        // Mantener etiquetas de lugares siempre visibles
+        map.on('load', () => {
+            const layers = map.getStyle().layers;
 
-            const popup = new mapboxgl.Popup({ offset: 25 })
-                .setHTML(popupContent);
+            layers.forEach((layer) => {
+                if (layer.type === 'symbol' && layer.id.includes('label')) {
+                    // Aumentar tamaño de texto según zoom
+                    map.setLayoutProperty(layer.id, 'text-size', [
+                        'interpolate',
+                        ['linear'],
+                        ['zoom'],
+                        0, 11,
+                        22, 18
+                    ]);
 
-            new mapboxgl.Marker({ color: '#ef4444' })
-                .setLngLat([entrepreneur.longitude, entrepreneur.latitude])
-                .setPopup(popup)
-                .addTo(map);
+                    // Hacer las etiquetas de lugares más prominentes
+                    if (layer.id.includes('place')) {
+                        map.setLayoutProperty(layer.id, 'text-size', [
+                            'interpolate',
+                            ['linear'],
+                            ['zoom'],
+                            0, 13,
+                            22, 20
+                        ]);
+                    }
+                }
+            });
+
+            // Agregar marcadores después de cargar el mapa
+            entrepreneurs.forEach(entrepreneur => {
+                const popupContent = `
+                    <div style="padding: 12px; min-width: 320px; max-width: 400px;">
+                        <h3 style="font-weight: bold; margin-bottom: 10px; font-size: 16px; color: #1f2937; word-wrap: break-word;">${entrepreneur.entrepreneur_name}</h3>
+                        <p style="margin: 6px 0; font-size: 14px; word-wrap: break-word;"><strong>Emprendimiento:</strong> ${entrepreneur.business_name}</p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Municipio:</strong> ${entrepreneur.city}</p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Teléfono:</strong> ${entrepreneur.phone}</p>
+                        <p style="margin: 6px 0; font-size: 14px; word-wrap: break-word;"><strong>Correo:</strong> ${entrepreneur.email}</p>
+                        <p style="margin: 6px 0; font-size: 14px;"><strong>Gestor:</strong> ${entrepreneur.manager}</p>
+                    </div>
+                `;
+
+                const popup = new mapboxgl.Popup({ offset: 25 })
+                    .setHTML(popupContent);
+
+                new mapboxgl.Marker({ color: '#ef4444' })
+                    .setLngLat([entrepreneur.longitude, entrepreneur.latitude])
+                    .setPopup(popup)
+                    .addTo(map);
+            });
         });
     </script>
 

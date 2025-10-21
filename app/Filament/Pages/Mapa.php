@@ -23,6 +23,7 @@ class Mapa extends Page
         return Characterization::with([
             'entrepreneur',
             'entrepreneur.business',
+            'entrepreneur.city',
             'manager'
         ])
         ->whereNotNull('latitude')
@@ -37,6 +38,7 @@ class Mapa extends Page
                 'phone' => $characterization->entrepreneur?->phone ?? 'N/A',
                 'email' => $characterization->entrepreneur?->email ?? 'N/A',
                 'manager' => $characterization->manager?->name ?? 'N/A',
+                'city' => $characterization->entrepreneur?->city?->name ?? 'N/A',
             ];
         })
         ->values()

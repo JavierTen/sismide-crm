@@ -40,10 +40,6 @@
 
         const entrepreneurs = @js($this->getEntrepreneursWithCoordinates());
 
-        // Debug: ver cuántos datos llegan
-        console.log('Total de emprendedores:', entrepreneurs.length);
-        console.log('Datos completos:', entrepreneurs);
-
         // Actualizar contador
         document.getElementById('entrepreneur-count').textContent = entrepreneurs.length;
 

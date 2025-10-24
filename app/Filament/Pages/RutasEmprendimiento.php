@@ -24,9 +24,9 @@ class RutasEmprendimiento extends Page
     public function getRoutesData(): array
     {
         return [
-            'ruta1' => $this->getRouteData(0, 30, 'Ruta 1: Pre-emprendimiento y validación temprana'),
-            'ruta2' => $this->getRouteData(31, 70, 'Ruta 2: Consolidación empresarial'),
-            'ruta3' => $this->getRouteData(71, 100, 'Ruta 3: Escalamiento'),
+            'ruta1' => $this->getRouteData(0, 50, 'Ruta 1: Pre-emprendimiento y validación temprana (Niveles 0, 1, 2)'),
+            'ruta2' => $this->getRouteData(51, 85, 'Ruta 2: Consolidación (Niveles 3, 4)'),
+            'ruta3' => $this->getRouteData(86, 100, 'Ruta 3: Escalamiento (Nivel 5)'),
         ];
     }
 

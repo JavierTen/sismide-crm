@@ -3,14 +3,20 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasName;
+use Filament\Panel;
+use App\Models\Visit;
 
-class Entrepreneur extends Model
+class Entrepreneur extends Authenticatable implements FilamentUser, HasName
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Notifiable;
 
     protected $table = 'entrepreneurs';
+    protected $guard = 'entrepreneur';
 
     protected $fillable = [
         'status',
@@ -34,17 +40,49 @@ class Entrepreneur extends Model
         'cohort_id',
         'user_id',
         'traffic_light',
+        'password',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
     ];
 
     protected $casts = [
         'status' => 'boolean',
         'birth_date' => 'date',
         'admission_date' => 'date',
+        'password' => 'hashed',
     ];
 
     /**
-     * Relationships
+     * Método REQUERIDO por HasName interface
+     * Este es el que Filament usa internamente
      */
+    public function getFilamentName(): string
+    {
+        return $this->full_name ?? $this->email ?? 'Emprendedor';
+    }
+
+    /**
+     * Verificar acceso al panel
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return (bool) $this->status;
+    }
+
+    /**
+     * OPCIONAL: Avatar personalizado
+     */
+    public function getFilamentAvatarUrl(): ?string
+    {
+        $name = $this->getFilamentName();
+        return 'https://ui-avatars.com/api/?name=' . urlencode($name) . '&color=7F9CF5&background=EBF4FF';
+    }
+
+    // ... resto de relaciones
+
     public function documentType()
     {
         return $this->belongsTo(DocumentType::class);
@@ -110,27 +148,28 @@ class Entrepreneur extends Model
         return $this->belongsTo(User::class, 'manager_id');
     }
 
-    /**
-     * Relación con visitas
-     */
     public function visits()
     {
         return $this->hasMany(\App\Models\Visit::class);
     }
 
-    /**
-     * Relación con caracterizaciones
-     */
+    public function pqrfs()
+    {
+        return $this->hasMany(Pqrf::class, 'entrepreneur_id');
+    }
+
     public function characterizations()
     {
         return $this->hasMany(\App\Models\Characterization::class);
     }
 
-    /**
-     * Relación con diagnósticos empresariales
-     */
     public function businessDiagnoses()
     {
         return $this->hasMany(\App\Models\BusinessDiagnosis::class);
+    }
+
+    public function businessDiagnosis()
+    {
+        return $this->hasOne(BusinessDiagnosis::class);
     }
 }

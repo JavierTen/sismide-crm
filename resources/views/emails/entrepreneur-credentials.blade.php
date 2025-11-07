@@ -138,7 +138,7 @@
                     <span class="credential-value">{{ $email }}</span>
                 </div>
                 <div class="credential-item">
-                    <span class="credential-label">Contraseña temporal:</span><br>
+                    <span class="credential-label">Contraseña:</span><br>
                     <span class="credential-value">{{ $password }}</span>
                 </div>
             </div>

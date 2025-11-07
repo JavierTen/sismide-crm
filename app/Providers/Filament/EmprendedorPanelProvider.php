@@ -25,6 +25,9 @@ class EmprendedorPanelProvider extends PanelProvider
             ->id('emprendedor')
             ->path('emprendedor')
             ->login()
+            ->brandLogo(asset('img/logo.png'))
+            ->brandLogoHeight('100%')
+            ->favicon(asset('favicon.png'))
             ->authGuard('entrepreneur')
             ->brandName('Portal Emprendedor')
             ->colors([

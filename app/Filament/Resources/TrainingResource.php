@@ -322,7 +322,7 @@ class TrainingResource extends Resource
             })
             ->columns([
                 Tables\Columns\TextColumn::make('name')
-                    ->label('Nombre de la Capacitación')
+                    ->label('Capacitación')
                     ->searchable()
                     ->sortable()
                     ->wrap()

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Training extends Model
 {
@@ -46,14 +47,18 @@ class Training extends Model
             $originalTraining = $training->getOriginal();
 
             // Si cambió el archivo PPT, eliminar el anterior
-            if ($originalTraining['ppt_file_path'] &&
-                $originalTraining['ppt_file_path'] !== $training->ppt_file_path) {
+            if (
+                $originalTraining['ppt_file_path'] &&
+                $originalTraining['ppt_file_path'] !== $training->ppt_file_path
+            ) {
                 Storage::disk('public')->delete($originalTraining['ppt_file_path']);
             }
 
             // Si cambió el archivo de divulgación, eliminar el anterior
-            if ($originalTraining['promotional_file_path'] &&
-                $originalTraining['promotional_file_path'] !== $training->promotional_file_path) {
+            if (
+                $originalTraining['promotional_file_path'] &&
+                $originalTraining['promotional_file_path'] !== $training->promotional_file_path
+            ) {
                 Storage::disk('public')->delete($originalTraining['promotional_file_path']);
             }
         });
@@ -131,7 +136,7 @@ class Training extends Model
      */
     public function getRouteNameAttribute(): string
     {
-        return match($this->route) {
+        return match ($this->route) {
             'route_1' => 'Ruta 1: Pre-emprendimiento y validación temprana',
             'route_2' => 'Ruta 2: Consolidación',
             'route_3' => 'Ruta 3: Escalamiento e Innovación',
@@ -144,7 +149,7 @@ class Training extends Model
      */
     public function getModalityNameAttribute(): string
     {
-        return match($this->modality) {
+        return match ($this->modality) {
             'virtual' => 'Virtual',
             'in_person' => 'Presencial',
             default => $this->modality,
@@ -237,5 +242,21 @@ class Training extends Model
     public function scopePast($query)
     {
         return $query->where('training_date', '<', now());
+    }
+
+    /**
+     * Relación con el soporte de evidencias (uno a uno)
+     */
+    public function support(): HasOne
+    {
+        return $this->hasOne(TrainingSupport::class);
+    }
+
+    /**
+     * Verificar si tiene soporte cargado
+     */
+    public function hasSupportAttribute(): bool
+    {
+        return $this->support()->exists();
     }
 }

@@ -26,7 +26,7 @@
     {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, scopes: $this->getRenderHookScopes()) }}
 
     {{-- Enlace dinámico según el panel --}}
-    {{-- @php
+    @php
         $currentPanel = filament()->getCurrentPanel()->getId();
         $isEmprendedorPanel = $currentPanel === 'emprendedor';
     @endphp
@@ -80,5 +80,5 @@
         </div>
 
     </div>
-    --}}
+
 </x-filament-panels::page.simple>

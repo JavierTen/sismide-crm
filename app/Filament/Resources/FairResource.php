@@ -26,7 +26,7 @@ class FairResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-building-storefront';
 
-    protected static ?string $navigationGroup = 'Actores';
+    protected static ?string $navigationGroup = 'Ferias';
 
     protected static ?string $modelLabel = 'Feria';
 

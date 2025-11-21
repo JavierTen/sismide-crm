@@ -72,11 +72,17 @@ class DashboardPanelProvider extends PanelProvider
                     ->label('Actores')
                     ->collapsible(),
                 NavigationGroup::make()
+                    ->label('Ferias')
+                    ->collapsible(),
+                NavigationGroup::make()
+                    ->label('Capacitaciones')
+                    ->collapsible(),
+                NavigationGroup::make()
                     ->label('Gestión Tipos')
                     ->collapsible(),
                 NavigationGroup::make()
-                ->label('Roles y Permisos')
-                ->collapsible(),
+                    ->label('Roles y Permisos')
+                    ->collapsible(),
                 NavigationGroup::make()
                     ->label('CRM')
                     ->icon('heroicon-o-building-office')

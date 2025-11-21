@@ -10,6 +10,8 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
 use App\Models\Visit;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Entrepreneur extends Authenticatable implements FilamentUser, HasName
 {
@@ -81,7 +83,7 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
         return 'https://ui-avatars.com/api/?name=' . urlencode($name) . '&color=7F9CF5&background=EBF4FF';
     }
 
-    // ... resto de relaciones
+    // ... relaciones básicas
 
     public function documentType()
     {
@@ -171,5 +173,34 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
     public function businessDiagnosis()
     {
         return $this->hasOne(BusinessDiagnosis::class);
+    }
+
+    /**
+     * Relación con las participaciones en capacitaciones
+     */
+    public function trainingParticipations(): HasMany
+    {
+        return $this->hasMany(TrainingParticipation::class);
+    }
+
+    /**
+     * Relación con las capacitaciones en las que ha participado (many-to-many a través de participations)
+     */
+    public function trainings(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Training::class,
+            'training_participations',
+            'entrepreneur_id',
+            'training_id'
+        )->withTimestamps()->withTrashed();
+    }
+
+    /**
+     * Contar capacitaciones en las que ha participado
+     */
+    public function getTrainingsCountAttribute(): int
+    {
+        return $this->trainingParticipations()->count();
     }
 }

@@ -25,10 +25,11 @@ class FairEvaluationResource extends Resource
     protected static ?string $model = FairEvaluation::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
+
     protected static ?string $navigationGroup = 'Ferias';
 
-    protected static ?string $modelLabel = 'Participacion en Feria';
-    protected static ?string $pluralModelLabel = 'Participacion en Ferias';
+    protected static ?string $modelLabel = 'Participacion';
+    protected static ?string $pluralModelLabel = 'Participaciones';
 
     protected static ?int $navigationSort = 3;
 

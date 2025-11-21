@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
@@ -93,6 +95,35 @@ class Training extends Model
     public function manager(): BelongsTo
     {
         return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    /**
+     * Relación con las participaciones (inscripciones a la capacitación)
+     */
+    public function participations(): HasMany
+    {
+        return $this->hasMany(TrainingParticipation::class);
+    }
+
+    /**
+     * Relación con los emprendedores participantes (many-to-many a través de participations)
+     */
+    public function participants(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Entrepreneur::class,
+            'training_participations',
+            'training_id',
+            'entrepreneur_id'
+        )->withTimestamps()->withTrashed();
+    }
+
+    /**
+     * Contar participantes de esta capacitación
+     */
+    public function getParticipantsCountAttribute(): int
+    {
+        return $this->participations()->count();
     }
 
     /**

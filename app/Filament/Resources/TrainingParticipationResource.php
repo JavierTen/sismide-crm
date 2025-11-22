@@ -185,6 +185,35 @@ class TrainingParticipationResource extends Resource
                     ->collapsible()
                     ->persistCollapsed(),
 
+                Forms\Components\Section::make('Registro de Asistencia')
+                    ->description('Indica si el emprendedor asistió a la capacitación')
+                    ->icon('heroicon-o-check-circle')
+                    ->schema([
+                        Forms\Components\Select::make('attended')
+                            ->label('¿Asistió a la Capacitación?')
+                            ->options([
+                                1 => 'Sí',
+                                0 => 'No',
+                            ])
+                            ->required()
+                            ->native(false)
+                            ->live()
+                            ->placeholder('Seleccione si asistió o no')
+                            ->helperText('Indica si el emprendedor asistió a la capacitación'),
+
+                        Forms\Components\Textarea::make('non_attendance_reason')
+                            ->label('Motivo de la No Asistencia')
+                            ->required(fn($get) => $get('attended') === 0 || $get('attended') === '0')
+                            ->visible(fn($get) => $get('attended') === 0 || $get('attended') === '0')
+                            ->rows(4)
+                            ->placeholder('Especifica el motivo por el cual no asistió...')
+                            ->validationMessages([
+                                'required' => 'Debes especificar el motivo de la no asistencia.',
+                            ]),
+                    ])
+                    ->collapsible()
+                    ->persistCollapsed(),
+
                 // Campo oculto para manager_id (se llena automáticamente)
                 Forms\Components\Hidden::make('manager_id')
                     ->default(auth()->id()),
@@ -268,8 +297,11 @@ class TrainingParticipationResource extends Resource
                         'route_2' => 'Ruta 2: Consolidación',
                         'route_3' => 'Ruta 3: Escalamiento',
                     ])
-                    ->query(fn(Builder $query, $data) =>
-                        $query->when($data['value'], fn($q, $route) =>
+                    ->query(
+                        fn(Builder $query, $data) =>
+                        $query->when(
+                            $data['value'],
+                            fn($q, $route) =>
                             $q->whereHas('training', fn($q) => $q->where('route', $route))
                         )
                     ),
@@ -280,8 +312,11 @@ class TrainingParticipationResource extends Resource
                         'virtual' => 'Virtual',
                         'in_person' => 'Presencial',
                     ])
-                    ->query(fn(Builder $query, $data) =>
-                        $query->when($data['value'], fn($q, $modality) =>
+                    ->query(
+                        fn(Builder $query, $data) =>
+                        $query->when(
+                            $data['value'],
+                            fn($q, $modality) =>
                             $q->whereHas('training', fn($q) => $q->where('modality', $modality))
                         )
                     ),

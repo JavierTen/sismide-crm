@@ -15,6 +15,12 @@ class TrainingParticipation extends Model
         'training_id',
         'entrepreneur_id',
         'manager_id',
+        'attended',                    // ← NUEVO
+        'non_attendance_reason',
+    ];
+
+    protected $casts = [
+        'attended' => 'boolean',
     ];
 
     /**

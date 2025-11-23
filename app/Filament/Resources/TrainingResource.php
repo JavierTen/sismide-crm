@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TrainingResource\Pages;
-use App\Filament\Resources\TrainingResource\RelationManagers;
 use App\Models\Training;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,12 +11,11 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
-//Exportar en excel
+// Exportar en excel
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
 use pxlrbt\FilamentExcel\Columns\Column;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class TrainingResource extends Resource
 {
@@ -26,6 +24,7 @@ class TrainingResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
 
     protected static ?string $navigationGroup = 'Capacitaciones';
+
     protected static ?string $modelLabel = 'Capacitación';
 
     protected static ?string $pluralModelLabel = 'Capacitaciones';
@@ -37,7 +36,9 @@ class TrainingResource extends Resource
     private static function userCanList(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('listTrainings');
     }
@@ -45,7 +46,9 @@ class TrainingResource extends Resource
     private static function userCanCreate(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('createTraining');
     }
@@ -53,7 +56,9 @@ class TrainingResource extends Resource
     private static function userCanEdit(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('editTraining');
     }
@@ -61,7 +66,9 @@ class TrainingResource extends Resource
     private static function userCanDelete(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('deleteTraining');
     }
@@ -102,7 +109,6 @@ class TrainingResource extends Resource
         return static::canViewAny();
     }
 
-
     public static function form(Form $form): Form
     {
         return $form
@@ -126,7 +132,10 @@ class TrainingResource extends Resource
                                     ->relationship(
                                         'city',
                                         'name',
-                                        fn($query) => $query->where('department_id', 47)
+                                        fn ($query) => $query
+                                            ->where('status', true)
+                                            ->whereHas('department', fn ($q) => $q->where('status', true))
+                                            ->orderBy('name', 'asc')
                                     )
                                     ->searchable()
                                     ->preload()
@@ -134,16 +143,43 @@ class TrainingResource extends Resource
                                     ->placeholder('Seleccione el municipio')
                                     ->helperText('Lugar donde se realizará la capacitación'),
 
-                                Forms\Components\DateTimePicker::make('training_date')
-                                    ->label('Fecha y Hora')
+                                Forms\Components\DatePicker::make('training_date')
+                                    ->label('Fecha')
                                     ->required()
                                     ->native(false)
-                                    ->displayFormat('d/m/Y H:i')
-                                    ->seconds(false)
-                                    ->placeholder('Seleccione fecha y hora')
-                                    ->helperText('Fecha y hora programada del evento')
+                                    ->displayFormat('d/m/Y')
+                                    ->placeholder('Seleccione la fecha')
+                                    ->helperText('Fecha programada del evento')
                                     ->minDate(now()->subMonths(6))
                                     ->maxDate(now()->addYear()),
+
+                                Forms\Components\TimePicker::make('start_time')
+                                    ->label('Hora de Inicio')
+                                    ->required()
+                                    ->native(false)
+                                    ->seconds(false)
+                                    ->placeholder('Seleccione hora de inicio')
+                                    ->helperText('Hora de inicio del evento'),
+
+                                Forms\Components\TimePicker::make('end_time')
+                                    ->label('Hora de Finalización')
+                                    ->native(false)
+                                    ->seconds(false)
+                                    ->required()
+                                    ->placeholder('Seleccione hora de finalización')
+                                    ->helperText('Hora de finalización del evento (opcional)'),
+
+                                Forms\Components\TextInput::make('intensity_hours')
+                                    ->label('Intensidad Horaria')
+                                    ->numeric()
+                                    ->inputMode('decimal')
+                                    ->step(0.5)
+                                    ->minValue(0)
+                                    ->required()
+                                    ->maxValue(999.99)
+                                    ->placeholder('Ej: 2.5')
+                                    ->helperText('Número de horas de duración')
+                                    ->suffix('horas'),
 
                                 Forms\Components\Select::make('route')
                                     ->label('Ruta de Formación')
@@ -196,7 +232,7 @@ class TrainingResource extends Resource
                                         'inputmode' => 'numeric',
                                     ])
                                     ->rules([
-                                        'regex:/^[0-9]{10}$/'
+                                        'regex:/^[0-9]{10}$/',
                                     ]),
 
                                 Forms\Components\TextInput::make('organizer_entity')
@@ -230,6 +266,7 @@ class TrainingResource extends Resource
                                     ->options([
                                         'virtual' => 'Virtual',
                                         'in_person' => 'Presencial',
+                                        'hybrid' => 'Híbrida',
                                     ])
                                     ->required()
                                     ->native(false)
@@ -294,7 +331,7 @@ class TrainingResource extends Resource
                                     ->maxLength(255)
                                     ->placeholder('https://meet.google.com/xxx-xxxx-xxx o https://zoom.us/rec/share/...')
                                     ->helperText('URL de la grabación (solo para modalidad virtual) - No obligatorio')
-                                    ->visible(fn($get) => $get('modality') === 'virtual')
+                                    ->visible(fn ($get) => $get('modality') === 'virtual')
                                     ->prefixIcon('heroicon-o-video-camera'),
                             ]),
 
@@ -335,23 +372,44 @@ class TrainingResource extends Resource
                     ->placeholder('Sin municipio'),
 
                 Tables\Columns\TextColumn::make('training_date')
-                    ->label('Fecha y Hora')
-                    ->dateTime('d/m/Y H:i')
+                    ->label('Fecha')
+                    ->date('d/m/Y')
                     ->searchable()
                     ->sortable()
                     ->placeholder('Sin fecha'),
 
+                Tables\Columns\TextColumn::make('start_time')
+                    ->label('Horario')
+                    ->formatStateUsing(function ($record) {
+                        if (! $record->start_time) {
+                            return 'Sin horario';
+                        }
+
+                        $start = substr($record->start_time, 0, 5);
+                        $end = $record->end_time ? ' - '.substr($record->end_time, 0, 5) : '';
+
+                        return $start.$end;
+                    })
+                    ->placeholder('Sin horario'),
+
+                Tables\Columns\TextColumn::make('intensity_hours')
+                    ->label('Intensidad')
+                    ->formatStateUsing(fn ($state) => $state ? $state.' hrs' : '-')
+                    ->placeholder('-'),
+
                 Tables\Columns\TextColumn::make('modality')
                     ->label('Modalidad')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'virtual' => 'success',
                         'in_person' => 'info',
+                        'hybrid' => 'primary',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
                         'virtual' => 'Virtual',
                         'in_person' => 'Presencial',
+                        'hybrid' => 'Híbrida',
                         default => $state,
                     })
                     ->searchable()
@@ -360,13 +418,13 @@ class TrainingResource extends Resource
                 Tables\Columns\TextColumn::make('route')
                     ->label('Ruta')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'route_1' => 'warning',
                         'route_2' => 'info',
                         'route_3' => 'success',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
                         'route_1' => 'Ruta 1',
                         'route_2' => 'Ruta 2',
                         'route_3' => 'Ruta 3',
@@ -391,6 +449,7 @@ class TrainingResource extends Resource
                     ->options([
                         'virtual' => 'Virtual',
                         'in_person' => 'Presencial',
+                        'hybrid' => 'Híbrida',
                     ]),
 
                 Tables\Filters\SelectFilter::make('city_id')
@@ -404,15 +463,14 @@ class TrainingResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-eye')
                     ->tooltip('Ver detalles')
-                    ->visible(fn() => static::userCanList()),
+                    ->visible(fn () => static::userCanList()),
 
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
                     ->tooltip('Editar capacitación')
                     ->visible(
-                        fn($record) =>
-                        !$record->trashed() &&
+                        fn ($record) => ! $record->trashed() &&
                             static::userCanEdit() &&
                             (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
                     ),
@@ -423,8 +481,7 @@ class TrainingResource extends Resource
                     ->color('primary')
                     ->tooltip('Deshabilitar')
                     ->visible(
-                        fn($record) =>
-                        !$record->trashed() &&
+                        fn ($record) => ! $record->trashed() &&
                             static::userCanDelete() &&
                             (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
                     ),
@@ -434,7 +491,7 @@ class TrainingResource extends Resource
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
                     ->tooltip('Restaurar capacitación')
-                    ->visible(fn($record) => $record->trashed() && static::userCanDelete()),
+                    ->visible(fn ($record) => $record->trashed() && static::userCanDelete()),
 
                 Tables\Actions\ForceDeleteAction::make()
                     ->label('')
@@ -444,17 +501,17 @@ class TrainingResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('¿Eliminar permanentemente?')
                     ->modalDescription('Esta acción NO se puede deshacer.')
-                    ->visible(fn() => auth()->user()->hasRole('Admin')),
+                    ->visible(fn () => auth()->user()->hasRole('Admin')),
             ])
             ->headerActions([
                 ExportAction::make()
                     ->label('Exportar Excel')
-                    ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
                         ExcelExport::make()
-                            ->withFilename(fn() => 'capacitaciones-' . now()->format('Y-m-d-His'))
+                            ->withFilename(fn () => 'capacitaciones-'.now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                            ->modifyQueryUsing(fn($query) => $query->with([
+                            ->modifyQueryUsing(fn ($query) => $query->with([
                                 'city',
                                 'manager',
                             ]))
@@ -462,8 +519,11 @@ class TrainingResource extends Resource
                                 // === INFORMACIÓN DE LA CAPACITACIÓN ===
                                 Column::make('name')->heading('Nombre de la Capacitación'),
                                 Column::make('city.name')->heading('Municipio'),
-                                Column::make('training_date')->heading('Fecha y Hora')->formatStateUsing(fn($state) => $state?->format('d/m/Y H:i')),
-                                Column::make('route')->heading('Ruta')->formatStateUsing(fn($state) => match ($state) {
+                                Column::make('training_date')->heading('Fecha')->formatStateUsing(fn ($state) => $state?->format('d/m/Y')),
+                                Column::make('start_time')->heading('Hora Inicio')->formatStateUsing(fn ($state) => $state ? substr($state, 0, 5) : '-'),
+                                Column::make('end_time')->heading('Hora Fin')->formatStateUsing(fn ($state) => $state ? substr($state, 0, 5) : '-'),
+                                Column::make('intensity_hours')->heading('Intensidad Horaria')->formatStateUsing(fn ($state) => $state ? $state.' hrs' : '-'),
+                                Column::make('route')->heading('Ruta')->formatStateUsing(fn ($state) => match ($state) {
                                     'route_1' => 'Ruta 1: Pre-emprendimiento y validación temprana',
                                     'route_2' => 'Ruta 2: Consolidación',
                                     'route_3' => 'Ruta 3: Escalamiento e Innovación',
@@ -478,21 +538,22 @@ class TrainingResource extends Resource
                                 Column::make('organizer_email')->heading('Correo Electrónico'),
 
                                 // === MODALIDAD Y MATERIAL ===
-                                Column::make('modality')->heading('Modalidad')->formatStateUsing(fn($state) => match ($state) {
+                                Column::make('modality')->heading('Modalidad')->formatStateUsing(fn ($state) => match ($state) {
                                     'virtual' => 'Virtual',
                                     'in_person' => 'Presencial',
+                                    'hybrid' => 'Híbrida',
                                     default => $state,
                                 }),
                                 Column::make('objective')->heading('Objetivo o Descripción'),
 
                                 // === ARCHIVOS ===
-                                Column::make('ppt_file_path')->heading('Tiene PPT')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('promotional_file_path')->heading('Tiene Pieza de Divulgación')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('recording_link')->heading('Link de Grabación')->formatStateUsing(fn($state) => !empty($state) ? $state : 'No disponible'),
+                                Column::make('ppt_file_path')->heading('Tiene PPT')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                Column::make('promotional_file_path')->heading('Tiene Pieza de Divulgación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                Column::make('recording_link')->heading('Link de Grabación')->formatStateUsing(fn ($state) => ! empty($state) ? $state : 'No disponible'),
 
                                 // === INFORMACIÓN ADICIONAL ===
                                 Column::make('manager.name')->heading('Registrado por'),
-                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
                             ]),
                     ])
                     ->color('success')
@@ -504,9 +565,9 @@ class TrainingResource extends Resource
                         ->label('Exportar Excel')
                         ->exports([
                             ExcelExport::make()
-                                ->withFilename(fn() => 'capacitaciones-' . now()->format('Y-m-d-His'))
+                                ->withFilename(fn () => 'capacitaciones-'.now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                                ->modifyQueryUsing(fn($query) => $query->with([
+                                ->modifyQueryUsing(fn ($query) => $query->with([
                                     'city',
                                     'manager',
                                 ]))
@@ -514,8 +575,11 @@ class TrainingResource extends Resource
                                     // === INFORMACIÓN DE LA CAPACITACIÓN ===
                                     Column::make('name')->heading('Nombre de la Capacitación'),
                                     Column::make('city.name')->heading('Municipio'),
-                                    Column::make('training_date')->heading('Fecha y Hora')->formatStateUsing(fn($state) => $state?->format('d/m/Y H:i')),
-                                    Column::make('route')->heading('Ruta')->formatStateUsing(fn($state) => match ($state) {
+                                    Column::make('training_date')->heading('Fecha')->formatStateUsing(fn ($state) => $state?->format('d/m/Y')),
+                                    Column::make('start_time')->heading('Hora Inicio')->formatStateUsing(fn ($state) => $state ? substr($state, 0, 5) : '-'),
+                                    Column::make('end_time')->heading('Hora Fin')->formatStateUsing(fn ($state) => $state ? substr($state, 0, 5) : '-'),
+                                    Column::make('intensity_hours')->heading('Intensidad Horaria')->formatStateUsing(fn ($state) => $state ? $state.' hrs' : '-'),
+                                    Column::make('route')->heading('Ruta')->formatStateUsing(fn ($state) => match ($state) {
                                         'route_1' => 'Ruta 1: Pre-emprendimiento y validación temprana',
                                         'route_2' => 'Ruta 2: Consolidación',
                                         'route_3' => 'Ruta 3: Escalamiento e Innovación',
@@ -530,30 +594,31 @@ class TrainingResource extends Resource
                                     Column::make('organizer_email')->heading('Correo Electrónico'),
 
                                     // === MODALIDAD Y MATERIAL ===
-                                    Column::make('modality')->heading('Modalidad')->formatStateUsing(fn($state) => match ($state) {
+                                    Column::make('modality')->heading('Modalidad')->formatStateUsing(fn ($state) => match ($state) {
                                         'virtual' => 'Virtual',
                                         'in_person' => 'Presencial',
+                                        'hybrid' => 'Híbrida',
                                         default => $state,
                                     }),
                                     Column::make('objective')->heading('Objetivo o Descripción'),
 
                                     // === ARCHIVOS ===
-                                    Column::make('ppt_file_path')->heading('Tiene PPT')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('promotional_file_path')->heading('Tiene Pieza de Divulgación')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('recording_link')->heading('Link de Grabación')->formatStateUsing(fn($state) => !empty($state) ? $state : 'No disponible'),
+                                    Column::make('ppt_file_path')->heading('Tiene PPT')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                    Column::make('promotional_file_path')->heading('Tiene Pieza de Divulgación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                    Column::make('recording_link')->heading('Link de Grabación')->formatStateUsing(fn ($state) => ! empty($state) ? $state : 'No disponible'),
 
                                     // === INFORMACIÓN ADICIONAL ===
                                     Column::make('manager.name')->heading('Registrado por'),
-                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
                                 ]),
                         ]),
 
                     Tables\Actions\ForceDeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()->hasRole('Admin')),
+                        ->visible(fn () => auth()->user()->hasRole('Admin')),
                 ]),
             ])
             // Modificar query para incluir registros eliminados cuando sea necesario
-            ->modifyQueryUsing(fn(Builder $query) => $query->withoutGlobalScopes([
+            ->modifyQueryUsing(fn (Builder $query) => $query->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]));
     }
@@ -575,7 +640,7 @@ class TrainingResource extends Resource
         $query = static::getModel()::query();
 
         // Si no es admin, filtrar solo sus registros
-        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
+        if (! auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }
 
@@ -597,6 +662,4 @@ class TrainingResource extends Resource
             'edit' => Pages\EditTraining::route('/{record}/edit'),
         ];
     }
-
-
 }

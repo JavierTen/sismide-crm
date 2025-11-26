@@ -39,18 +39,19 @@ class TrainingIndicators extends Page
     }
 
     public function getTrainingsByCity(): array
-    {
-        $cities = Training::join('cities', 'trainings.city_id', '=', 'cities.id')
-            ->select('cities.name', DB::raw('count(*) as total'))
-            ->groupBy('cities.id', 'cities.name')
-            ->orderByDesc('total')
-            ->get();
+{
+    $cities = TrainingParticipation::join('entrepreneurs', 'training_participations.entrepreneur_id', '=', 'entrepreneurs.id')
+        ->join('cities', 'entrepreneurs.city_id', '=', 'cities.id')
+        ->select('cities.name', DB::raw('count(DISTINCT training_participations.entrepreneur_id) as total'))
+        ->groupBy('cities.id', 'cities.name')
+        ->orderByDesc('total')
+        ->get();
 
-        return [
-            'labels' => $cities->pluck('name')->toArray(),
-            'data' => $cities->pluck('total')->toArray(),
-        ];
-    }
+    return [
+        'labels' => $cities->pluck('name')->toArray(),
+        'data' => $cities->pluck('total')->toArray(),
+    ];
+}
 
     public function getParticipationByTraining(): array
     {

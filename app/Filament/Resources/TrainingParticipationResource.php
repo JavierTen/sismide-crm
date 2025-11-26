@@ -396,7 +396,7 @@ class TrainingParticipationResource extends Resource
                                 Column::make('entrepreneur.city.name')->heading('Municipio'),
 
                                 Column::make('attended')->heading('Asistió')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('non_attendance_reason')->heading('Motivo No Asistencia')->formatStateUsing(fn($state, $record) => $record->attended ? 'N/A' : ($state ?? 'Sin especificar')),
+                                Column::make('non_attendance_reason')->heading('Motivo No Asistencia')->formatStateUsing(fn($state, $record) => $record->attended == 1 ? 'N/A' : ($state ?? 'Sin especificar')),
 
                                 // === INFORMACIÓN DE LA CAPACITACIÓN ===
                                 Column::make('training.route')->heading('Ruta')->formatStateUsing(fn($state) => match ($state) {
@@ -442,7 +442,7 @@ class TrainingParticipationResource extends Resource
                                     Column::make('entrepreneur.city.name')->heading('Municipio'),
 
                                     Column::make('attended')->heading('Asistió')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                    Column::make('non_attendance_reason')->heading('Motivo No Asistencia')->formatStateUsing(fn($state, $record) => $record->attended ? 'N/A' : ($state ?? 'Sin especificar')),
+                                    Column::make('non_attendance_reason')->heading('Motivo No Asistencia')->formatStateUsing(fn($state, $record) => $record->attended == 1 ? 'N/A' : ($state ?? 'Sin especificar')),
 
                                     // === INFORMACIÓN DE LA CAPACITACIÓN ===
                                     Column::make('training.route')->heading('Ruta')->formatStateUsing(fn($state) => match ($state) {

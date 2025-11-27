@@ -46,7 +46,7 @@ class RutasEmprendimiento extends Page
                 ->count();
 
             $ruta3 = BusinessDiagnosis::whereNotNull('total_score')
-                ->where('maturity_level', 'Nivel 5: Escalamiento')
+                ->where('maturity_level', 'Nivel 5: Escalamiento e Innovación')
                 ->count();
 
             return [

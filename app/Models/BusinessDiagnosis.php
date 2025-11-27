@@ -391,7 +391,7 @@ class BusinessDiagnosis extends Model
             return [
                 'level' => 5,
                 'name' => 'Escalamiento',
-                'label' => 'Nivel 5: Escalamiento',
+                'label' => 'Nivel 5: Escalamiento e Innovación',
                 'color' => 'success',
             ];
         }

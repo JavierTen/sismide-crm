@@ -39,19 +39,19 @@ class TrainingIndicators extends Page
     }
 
     public function getTrainingsByCity(): array
-{
-    $cities = TrainingParticipation::join('entrepreneurs', 'training_participations.entrepreneur_id', '=', 'entrepreneurs.id')
-        ->join('cities', 'entrepreneurs.city_id', '=', 'cities.id')
-        ->select('cities.name', DB::raw('count(DISTINCT training_participations.entrepreneur_id) as total'))
-        ->groupBy('cities.id', 'cities.name')
-        ->orderByDesc('total')
-        ->get();
+    {
+        $cities = TrainingParticipation::join('entrepreneurs', 'training_participations.entrepreneur_id', '=', 'entrepreneurs.id')
+            ->join('cities', 'entrepreneurs.city_id', '=', 'cities.id')
+            ->select('cities.name', DB::raw('count(DISTINCT training_participations.entrepreneur_id) as total'))
+            ->groupBy('cities.id', 'cities.name')
+            ->orderByDesc('total')
+            ->get();
 
-    return [
-        'labels' => $cities->pluck('name')->toArray(),
-        'data' => $cities->pluck('total')->toArray(),
-    ];
-}
+        return [
+            'labels' => $cities->pluck('name')->toArray(),
+            'data' => $cities->pluck('total')->toArray(),
+        ];
+    }
 
     public function getParticipationByTraining(): array
     {
@@ -68,6 +68,29 @@ class TrainingIndicators extends Page
         return [
             'labels' => $participations->pluck('name')->toArray(),
             'data' => $participations->pluck('total')->toArray(),
+        ];
+    }
+
+    public function getUniqueEntrepreneursByRoute(): array
+    {
+        $route1 = TrainingParticipation::join('trainings', 'training_participations.training_id', '=', 'trainings.id')
+            ->where('trainings.route', 'route_1')
+            ->distinct('training_participations.entrepreneur_id')
+            ->count('training_participations.entrepreneur_id');
+
+        $route2 = TrainingParticipation::join('trainings', 'training_participations.training_id', '=', 'trainings.id')
+            ->where('trainings.route', 'route_2')
+            ->distinct('training_participations.entrepreneur_id')
+            ->count('training_participations.entrepreneur_id');
+
+        $route3 = TrainingParticipation::join('trainings', 'training_participations.training_id', '=', 'trainings.id')
+            ->where('trainings.route', 'route_3')
+            ->distinct('training_participations.entrepreneur_id')
+            ->count('training_participations.entrepreneur_id');
+
+        return [
+            'labels' => ['Ruta 1: Pre-emprendimiento', 'Ruta 2: Consolidación', 'Ruta 3: Escalamiento'],
+            'data' => [$route1, $route2, $route3],
         ];
     }
 

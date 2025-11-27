@@ -458,6 +458,7 @@
                     }]
                 },
                 options: {
+                    indexAxis: 'y', // ← ESTO HACE QUE SEA HORIZONTAL
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
@@ -466,7 +467,7 @@
                         }
                     },
                     scales: {
-                        y: {
+                        x: { // ← Cambia 'y' por 'x'
                             beginAtZero: true,
                             ticks: {
                                 stepSize: 1

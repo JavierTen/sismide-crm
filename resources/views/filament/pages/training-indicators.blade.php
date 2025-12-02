@@ -394,7 +394,7 @@
     {{-- Gráfico de barras --}}
     <div class="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
         <h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-            Capacitaciones por Municipio
+            Emprendedores por Municipio
         </h3>
         <canvas id="chartTrainingsByCity" style="max-height: 400px;"></canvas>
     </div>
@@ -412,7 +412,7 @@
                     data: {
                         labels: @json($trainingsByCity['labels']),
                         datasets: [{
-                            label: 'Capacitaciones',
+                            label: 'Emprendedores',
                             data: @json($trainingsByCity['data']),
                             backgroundColor: 'rgba(59, 130, 246, 0.8)',
                             borderColor: 'rgb(59, 130, 246)',
@@ -441,40 +441,81 @@
         </script>
         {{-- Agregar en el script dentro del @push('scripts') --}}
         <script>
-            @php
-                $participationByTraining = $this->getParticipationByTraining();
-            @endphp
+            document.addEventListener('DOMContentLoaded', function() {
+                @php
+                    $participationByTraining = $this->getParticipationByTraining();
+                    $itemCount = count($participationByTraining['labels']);
+                    // Altura dinámica: mínimo 600px, 40px por cada item
+                    $chartHeight = max(600, $itemCount * 40);
+                @endphp
 
-            new Chart(document.getElementById('chartParticipationByTraining'), {
-                type: 'bar',
-                data: {
-                    labels: @json($participationByTraining['labels']),
-                    datasets: [{
-                        label: 'Participantes',
-                        data: @json($participationByTraining['data']),
-                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                        borderColor: 'rgb(34, 197, 94)',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    indexAxis: 'y', // ← ESTO HACE QUE SEA HORIZONTAL
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
+                const ctx = document.getElementById('chartParticipationByTraining');
+
+                // Ajustar altura dinámicamente
+                ctx.style.height = '{{ $chartHeight }}px';
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: @json($participationByTraining['labels']),
+                        datasets: [{
+                            label: 'Participantes',
+                            data: @json($participationByTraining['data']),
+                            backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                            borderColor: 'rgb(34, 197, 94)',
+                            borderWidth: 2
+                        }]
                     },
-                    scales: {
-                        x: { // ← Cambia 'y' por 'x'
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                left: 10,
+                                right: 20
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: function(context) {
+                                        // Muestra el nombre completo en el tooltip
+                                        return context[0].label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    precision: 0
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    autoSkip: false, // ← NO omitir labels
+                                    font: {
+                                        size: 11
+                                    },
+                                    callback: function(value, index, values) {
+                                        // Truncar labels largos y agregar "..."
+                                        const label = this.getLabelForValue(value);
+                                        const maxLength = 50;
+                                        return label.length > maxLength ?
+                                            label.substring(0, maxLength) + '...' :
+                                            label;
+                                    }
+                                }
                             }
                         }
                     }
-                }
+                });
             });
         </script>
     @endpush

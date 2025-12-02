@@ -11,12 +11,11 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
-//Exportar en excel
+// Exportar en excel
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
 use pxlrbt\FilamentExcel\Columns\Column;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class TrainingParticipationResource extends Resource
 {
@@ -25,15 +24,20 @@ class TrainingParticipationResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
 
     protected static ?string $navigationGroup = 'Capacitaciones';
+
     protected static ?string $modelLabel = 'Participación';
+
     protected static ?string $pluralModelLabel = 'Participaciones';
+
     protected static ?int $navigationSort = 2;
 
     // Método helper para verificar permisos
     private static function userCanList(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('listTrainingParticipations');
     }
@@ -41,7 +45,9 @@ class TrainingParticipationResource extends Resource
     private static function userCanCreate(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('createTrainingParticipation');
     }
@@ -49,7 +55,9 @@ class TrainingParticipationResource extends Resource
     private static function userCanEdit(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('editTrainingParticipation');
     }
@@ -57,7 +65,9 @@ class TrainingParticipationResource extends Resource
     private static function userCanDelete(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('deleteTrainingParticipation');
     }
@@ -117,8 +127,8 @@ class TrainingParticipationResource extends Resource
                                     ->live()
                                     ->placeholder('Buscar capacitación')
                                     ->helperText('Capacitación en la que participará')
-                                    ->disabled(fn(string $operation): bool => $operation === 'edit')
-                                    ->getOptionLabelFromRecordUsing(fn($record) => $record->name)
+                                    ->disabled(fn (string $operation): bool => $operation === 'edit')
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->name)
                                     ->columnSpanFull(),
 
                                 Forms\Components\Select::make('entrepreneur_id')
@@ -126,9 +136,9 @@ class TrainingParticipationResource extends Resource
                                     ->relationship(
                                         'entrepreneur',
                                         'full_name',
-                                        fn($query) => $query->when(
-                                            !auth()->user()->hasRole('Admin'),
-                                            fn($q) => $q->where('manager_id', auth()->id())
+                                        fn ($query) => $query->when(
+                                            ! auth()->user()->hasRole('Admin'),
+                                            fn ($q) => $q->where('manager_id', auth()->id())
                                         )
                                     )
                                     ->searchable()
@@ -136,15 +146,14 @@ class TrainingParticipationResource extends Resource
                                     ->required()
                                     ->columnSpanFull()
                                     ->reactive()
-                                    ->disabled(fn(string $operation): bool => $operation === 'edit')
+                                    ->disabled(fn (string $operation): bool => $operation === 'edit')
                                     ->helperText(
-                                        fn(string $operation): string =>
-                                        $operation === 'edit'
+                                        fn (string $operation): string => $operation === 'edit'
                                             ? 'El emprendedor no puede ser modificado después de crear la participación.'
                                             : 'Selecciona el emprendedor que participará en la capacitación.'
                                     )
                                     ->getOptionLabelFromRecordUsing(function ($record) {
-                                        return $record->full_name ?? $record->email ?? 'Emprendedor #' . $record->id;
+                                        return $record->full_name ?? $record->email ?? 'Emprendedor #'.$record->id;
                                     }),
                             ]),
 
@@ -154,9 +163,12 @@ class TrainingParticipationResource extends Resource
                                     ->label('Emprendimiento')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (!$entrepreneurId) return '----';
+                                        if (! $entrepreneurId) {
+                                            return '----';
+                                        }
 
                                         $entrepreneur = \App\Models\Entrepreneur::with('business')->find($entrepreneurId);
+
                                         return $entrepreneur?->business?->business_name ?? 'Sin emprendimiento';
                                     }),
 
@@ -164,9 +176,12 @@ class TrainingParticipationResource extends Resource
                                     ->label('Municipio')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (!$entrepreneurId) return '----';
+                                        if (! $entrepreneurId) {
+                                            return '----';
+                                        }
 
                                         $entrepreneur = \App\Models\Entrepreneur::with('city')->find($entrepreneurId);
+
                                         return $entrepreneur?->city?->name ?? 'Sin ubicación';
                                     }),
 
@@ -174,9 +189,12 @@ class TrainingParticipationResource extends Resource
                                     ->label('Gestor')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (!$entrepreneurId) return '----';
+                                        if (! $entrepreneurId) {
+                                            return '----';
+                                        }
 
                                         $entrepreneur = \App\Models\Entrepreneur::with('manager')->find($entrepreneurId);
+
                                         return $entrepreneur?->manager?->name ?? 'Sin gestor asignado';
                                     }),
                             ])
@@ -203,8 +221,8 @@ class TrainingParticipationResource extends Resource
 
                         Forms\Components\Textarea::make('non_attendance_reason')
                             ->label('Motivo de la No Asistencia')
-                            ->required(fn($get) => $get('attended') === 0 || $get('attended') === '0')
-                            ->visible(fn($get) => $get('attended') === 0 || $get('attended') === '0')
+                            ->required(fn ($get) => $get('attended') === 0 || $get('attended') === '0')
+                            ->visible(fn ($get) => $get('attended') === 0 || $get('attended') === '0')
                             ->rows(4)
                             ->placeholder('Especifica el motivo por el cual no asistió...')
                             ->validationMessages([
@@ -242,6 +260,22 @@ class TrainingParticipationResource extends Resource
                     ->searchable()
                     ->placeholder('Sin emprendedor'),
 
+                Tables\Columns\TextColumn::make('attended')
+                    ->label('Asistió')
+                    ->badge()
+                    ->formatStateUsing(fn ($state): string => match ($state) {
+                        1, true => 'Sí',
+                        0, false => 'No',
+                        default => 'Sin registro',
+                    })
+                    ->color(fn ($state): string => match ($state) {
+                        1, true => 'success',
+                        0, false => 'danger',
+                        default => 'gray',
+                    })
+                    ->sortable()
+                    ->alignCenter(),
+
                 Tables\Columns\TextColumn::make('entrepreneur.business.business_name')
                     ->label('Emprendimiento')
                     ->sortable()
@@ -257,12 +291,12 @@ class TrainingParticipationResource extends Resource
                 Tables\Columns\TextColumn::make('training.modality')
                     ->label('Modalidad')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'virtual' => 'success',
                         'in_person' => 'info',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
                         'virtual' => 'Virtual',
                         'in_person' => 'Presencial',
                         default => $state,
@@ -298,11 +332,9 @@ class TrainingParticipationResource extends Resource
                         'route_3' => 'Ruta 3: Escalamiento',
                     ])
                     ->query(
-                        fn(Builder $query, $data) =>
-                        $query->when(
+                        fn (Builder $query, $data) => $query->when(
                             $data['value'],
-                            fn($q, $route) =>
-                            $q->whereHas('training', fn($q) => $q->where('route', $route))
+                            fn ($q, $route) => $q->whereHas('training', fn ($q) => $q->where('route', $route))
                         )
                     ),
 
@@ -313,11 +345,9 @@ class TrainingParticipationResource extends Resource
                         'in_person' => 'Presencial',
                     ])
                     ->query(
-                        fn(Builder $query, $data) =>
-                        $query->when(
+                        fn (Builder $query, $data) => $query->when(
                             $data['value'],
-                            fn($q, $modality) =>
-                            $q->whereHas('training', fn($q) => $q->where('modality', $modality))
+                            fn ($q, $modality) => $q->whereHas('training', fn ($q) => $q->where('modality', $modality))
                         )
                     ),
 
@@ -326,21 +356,33 @@ class TrainingParticipationResource extends Resource
                     ->relationship('entrepreneur.city', 'name')
                     ->searchable()
                     ->preload(),
+
+                Tables\Filters\SelectFilter::make('attended')
+                    ->label('Asistencia')
+                    ->options([
+                        1 => 'Sí asistió',
+                        0 => 'No asistió',
+                    ])
+                    ->placeholder('Todos')
+                    ->query(fn (Builder $query, array $data) => $query->when(
+                        isset($data['value']),
+                        fn ($q) => $q->where('attended', $data['value'])
+                    )
+                    ),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label('')
                     ->icon('heroicon-o-eye')
                     ->tooltip('Ver detalles')
-                    ->visible(fn() => static::userCanList()),
+                    ->visible(fn () => static::userCanList()),
 
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
                     ->tooltip('Editar participación')
                     ->visible(
-                        fn($record) =>
-                        !$record->trashed() &&
+                        fn ($record) => ! $record->trashed() &&
                             static::userCanEdit() &&
                             (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
                     ),
@@ -351,8 +393,7 @@ class TrainingParticipationResource extends Resource
                     ->color('primary')
                     ->tooltip('Deshabilitar')
                     ->visible(
-                        fn($record) =>
-                        !$record->trashed() &&
+                        fn ($record) => ! $record->trashed() &&
                             static::userCanDelete() &&
                             (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
                     ),
@@ -362,7 +403,7 @@ class TrainingParticipationResource extends Resource
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
                     ->tooltip('Restaurar participación')
-                    ->visible(fn($record) => $record->trashed() && static::userCanDelete()),
+                    ->visible(fn ($record) => $record->trashed() && static::userCanDelete()),
 
                 Tables\Actions\ForceDeleteAction::make()
                     ->label('')
@@ -372,17 +413,17 @@ class TrainingParticipationResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('¿Eliminar permanentemente?')
                     ->modalDescription('Esta acción NO se puede deshacer.')
-                    ->visible(fn() => auth()->user()->hasRole('Admin')),
+                    ->visible(fn () => auth()->user()->hasRole('Admin')),
             ])
             ->headerActions([
                 ExportAction::make()
                     ->label('Exportar Excel')
-                    ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
                         ExcelExport::make()
-                            ->withFilename(fn() => 'participaciones-capacitaciones-' . now()->format('Y-m-d-His'))
+                            ->withFilename(fn () => 'participaciones-capacitaciones-'.now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                            ->modifyQueryUsing(fn($query) => $query->with([
+                            ->modifyQueryUsing(fn ($query) => $query->with([
                                 'training',
                                 'entrepreneur.business',
                                 'entrepreneur.city',
@@ -395,26 +436,26 @@ class TrainingParticipationResource extends Resource
                                 Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
                                 Column::make('entrepreneur.city.name')->heading('Municipio'),
 
-                                Column::make('attended')->heading('Asistió')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('non_attendance_reason')->heading('Motivo No Asistencia')->formatStateUsing(fn($state, $record) => $record->attended == 1 ? 'N/A' : ($state ?? 'Sin especificar')),
+                                Column::make('attended')->heading('Asistió')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
+                                Column::make('non_attendance_reason')->heading('Motivo No Asistencia')->formatStateUsing(fn ($state, $record) => $record->attended == 1 ? 'N/A' : ($state ?? 'Sin especificar')),
 
                                 // === INFORMACIÓN DE LA CAPACITACIÓN ===
-                                Column::make('training.route')->heading('Ruta')->formatStateUsing(fn($state) => match ($state) {
+                                Column::make('training.route')->heading('Ruta')->formatStateUsing(fn ($state) => match ($state) {
                                     'route_1' => 'Ruta 1: Pre-emprendimiento y validación temprana',
                                     'route_2' => 'Ruta 2: Consolidación',
                                     'route_3' => 'Ruta 3: Escalamiento e Innovación',
                                     default => $state,
                                 }),
-                                Column::make('training.modality')->heading('Modalidad')->formatStateUsing(fn($state) => match ($state) {
+                                Column::make('training.modality')->heading('Modalidad')->formatStateUsing(fn ($state) => match ($state) {
                                     'virtual' => 'Virtual',
                                     'in_person' => 'Presencial',
                                     default => $state,
                                 }),
-                                Column::make('training.training_date')->heading('Fecha Capacitación')->formatStateUsing(fn($state) => $state?->format('d/m/Y H:i')),
+                                Column::make('training.training_date')->heading('Fecha Capacitación')->formatStateUsing(fn ($state) => $state?->format('d/m/Y H:i')),
 
                                 // === INFORMACIÓN ADICIONAL ===
                                 Column::make('manager.name')->heading('Registrado por'),
-                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
                             ]),
                     ])
                     ->color('success')
@@ -426,9 +467,9 @@ class TrainingParticipationResource extends Resource
                         ->label('Exportar Excel')
                         ->exports([
                             ExcelExport::make()
-                                ->withFilename(fn() => 'participaciones-capacitaciones-' . now()->format('Y-m-d-His'))
+                                ->withFilename(fn () => 'participaciones-capacitaciones-'.now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                                ->modifyQueryUsing(fn($query) => $query->with([
+                                ->modifyQueryUsing(fn ($query) => $query->with([
                                     'training',
                                     'entrepreneur.business',
                                     'entrepreneur.city',
@@ -441,40 +482,40 @@ class TrainingParticipationResource extends Resource
                                     Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
                                     Column::make('entrepreneur.city.name')->heading('Municipio'),
 
-                                    Column::make('attended')->heading('Asistió')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                    Column::make('non_attendance_reason')->heading('Motivo No Asistencia')->formatStateUsing(fn($state, $record) => $record->attended == 1 ? 'N/A' : ($state ?? 'Sin especificar')),
+                                    Column::make('attended')->heading('Asistió')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
+                                    Column::make('non_attendance_reason')->heading('Motivo No Asistencia')->formatStateUsing(fn ($state, $record) => $record->attended == 1 ? 'N/A' : ($state ?? 'Sin especificar')),
 
                                     // === INFORMACIÓN DE LA CAPACITACIÓN ===
-                                    Column::make('training.route')->heading('Ruta')->formatStateUsing(fn($state) => match ($state) {
+                                    Column::make('training.route')->heading('Ruta')->formatStateUsing(fn ($state) => match ($state) {
                                         'route_1' => 'Ruta 1: Pre-emprendimiento y validación temprana',
                                         'route_2' => 'Ruta 2: Consolidación',
                                         'route_3' => 'Ruta 3: Escalamiento e Innovación',
                                         default => $state,
                                     }),
-                                    Column::make('training.modality')->heading('Modalidad')->formatStateUsing(fn($state) => match ($state) {
+                                    Column::make('training.modality')->heading('Modalidad')->formatStateUsing(fn ($state) => match ($state) {
                                         'virtual' => 'Virtual',
                                         'in_person' => 'Presencial',
                                         default => $state,
                                     }),
-                                    Column::make('training.training_date')->heading('Fecha Capacitación')->formatStateUsing(fn($state) => $state?->format('d/m/Y H:i')),
+                                    Column::make('training.training_date')->heading('Fecha Capacitación')->formatStateUsing(fn ($state) => $state?->format('d/m/Y H:i')),
 
                                     // === INFORMACIÓN ADICIONAL ===
                                     Column::make('manager.name')->heading('Registrado por'),
-                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
                                 ]),
                         ]),
 
                     Tables\Actions\DeleteBulkAction::make()
-                        ->visible(fn() => static::userCanDelete()),
+                        ->visible(fn () => static::userCanDelete()),
 
                     Tables\Actions\ForceDeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()->hasRole('Admin')),
+                        ->visible(fn () => auth()->user()->hasRole('Admin')),
 
                     Tables\Actions\RestoreBulkAction::make()
-                        ->visible(fn() => static::userCanDelete()),
+                        ->visible(fn () => static::userCanDelete()),
                 ]),
             ])
-            ->modifyQueryUsing(fn(Builder $query) => $query->withoutGlobalScopes([
+            ->modifyQueryUsing(fn (Builder $query) => $query->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]));
     }
@@ -496,7 +537,7 @@ class TrainingParticipationResource extends Resource
         $query = static::getModel()::query();
 
         // Si no es admin, filtrar solo sus registros
-        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
+        if (! auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }
 

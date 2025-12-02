@@ -42,6 +42,8 @@ class TrainingIndicators extends Page
     {
         $cities = TrainingParticipation::join('entrepreneurs', 'training_participations.entrepreneur_id', '=', 'entrepreneurs.id')
             ->join('cities', 'entrepreneurs.city_id', '=', 'cities.id')
+            ->whereNull('training_participations.deleted_at')
+            ->where('training_participations.attended', true)
             ->select('cities.name', DB::raw('count(DISTINCT training_participations.entrepreneur_id) as total'))
             ->groupBy('cities.id', 'cities.name')
             ->orderByDesc('total')

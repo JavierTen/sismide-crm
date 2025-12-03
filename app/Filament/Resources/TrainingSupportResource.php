@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\TrainingSupportResource\Pages;
-use App\Filament\Resources\TrainingSupportResource\RelationManagers;
 use App\Models\TrainingSupport;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,12 +11,11 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
-//Exportar en excel
+// Exportar en excel
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
 use pxlrbt\FilamentExcel\Columns\Column;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class TrainingSupportResource extends Resource
 {
@@ -26,15 +24,20 @@ class TrainingSupportResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-cloud-arrow-up';
 
     protected static ?string $navigationGroup = 'Capacitaciones';
+
     protected static ?string $modelLabel = 'Carga de Soporte';
+
     protected static ?string $pluralModelLabel = 'Carga de Soportes';
+
     protected static ?int $navigationSort = 3;
 
     // Método helper para verificar permisos
     private static function userCanList(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('listTrainingSupports');
     }
@@ -42,7 +45,9 @@ class TrainingSupportResource extends Resource
     private static function userCanCreate(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('createTrainingSupport');
     }
@@ -50,7 +55,9 @@ class TrainingSupportResource extends Resource
     private static function userCanEdit(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('editTrainingSupport');
     }
@@ -58,7 +65,9 @@ class TrainingSupportResource extends Resource
     private static function userCanDelete(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('deleteTrainingSupport');
     }
@@ -116,8 +125,8 @@ class TrainingSupportResource extends Resource
                             ->live()
                             ->placeholder('Buscar capacitación')
                             ->helperText('Capacitación a la que se cargarán los soportes')
-                            ->disabled(fn(string $operation): bool => $operation === 'edit')
-                            ->getOptionLabelFromRecordUsing(fn($record) => $record->name . ' - ' . $record->city->name . ' (' . $record->training_date->format('d/m/Y') . ')')
+                            ->disabled(fn (string $operation): bool => $operation === 'edit')
+                            ->getOptionLabelFromRecordUsing(fn ($record) => $record->name.' - '.$record->city->name.' ('.$record->training_date->format('d/m/Y').')')
                             ->unique(
                                 table: 'training_supports',
                                 column: 'training_id',
@@ -134,9 +143,12 @@ class TrainingSupportResource extends Resource
                                     ->label('Modalidad')
                                     ->content(function ($get) {
                                         $trainingId = $get('training_id');
-                                        if (!$trainingId) return '----';
+                                        if (! $trainingId) {
+                                            return '----';
+                                        }
 
                                         $training = \App\Models\Training::find($trainingId);
+
                                         return match ($training?->modality) {
                                             'virtual' => '🌐 Virtual',
                                             'in_person' => '🏢 Presencial',
@@ -148,9 +160,12 @@ class TrainingSupportResource extends Resource
                                     ->label('Municipio')
                                     ->content(function ($get) {
                                         $trainingId = $get('training_id');
-                                        if (!$trainingId) return '----';
+                                        if (! $trainingId) {
+                                            return '----';
+                                        }
 
                                         $training = \App\Models\Training::with('city')->find($trainingId);
+
                                         return $training?->city?->name ?? 'Sin municipio';
                                     }),
 
@@ -158,9 +173,12 @@ class TrainingSupportResource extends Resource
                                     ->label('Fecha y Hora')
                                     ->content(function ($get) {
                                         $trainingId = $get('training_id');
-                                        if (!$trainingId) return '----';
+                                        if (! $trainingId) {
+                                            return '----';
+                                        }
 
                                         $training = \App\Models\Training::find($trainingId);
+
                                         return $training?->training_date?->format('d/m/Y H:i') ?? 'Sin fecha';
                                     }),
 
@@ -168,9 +186,12 @@ class TrainingSupportResource extends Resource
                                     ->label('Responsable')
                                     ->content(function ($get) {
                                         $trainingId = $get('training_id');
-                                        if (!$trainingId) return '----';
+                                        if (! $trainingId) {
+                                            return '----';
+                                        }
 
                                         $training = \App\Models\Training::find($trainingId);
+
                                         return $training?->organizer_name ?? 'Sin responsable';
                                     }),
                             ]),
@@ -192,7 +213,9 @@ class TrainingSupportResource extends Resource
                             ->openable()
                             ->acceptedFileTypes(function ($get) {
                                 $trainingId = $get('training_id');
-                                if (!$trainingId) return ['application/pdf'];
+                                if (! $trainingId) {
+                                    return ['application/pdf'];
+                                }
 
                                 $training = \App\Models\Training::find($trainingId);
 
@@ -216,7 +239,9 @@ class TrainingSupportResource extends Resource
                             })
                             ->helperText(function ($get) {
                                 $trainingId = $get('training_id');
-                                if (!$trainingId) return 'Primero selecciona una capacitación';
+                                if (! $trainingId) {
+                                    return 'Primero selecciona una capacitación';
+                                }
 
                                 $training = \App\Models\Training::find($trainingId);
 
@@ -247,9 +272,12 @@ class TrainingSupportResource extends Resource
                             ->url()
                             ->required(function ($get) {
                                 $trainingId = $get('training_id');
-                                if (!$trainingId) return false;
+                                if (! $trainingId) {
+                                    return false;
+                                }
 
                                 $training = \App\Models\Training::find($trainingId);
+
                                 return $training?->modality === 'virtual';
                             })
                             ->maxLength(255)
@@ -262,7 +290,7 @@ class TrainingSupportResource extends Resource
                             ])
                             ->columnSpanFull(),
                     ])
-                    ->visible(fn($get) => $get('training_id') && \App\Models\Training::find($get('training_id'))?->modality === 'virtual')
+                    ->visible(fn ($get) => $get('training_id') && \App\Models\Training::find($get('training_id'))?->modality === 'virtual')
                     ->collapsible()
                     ->persistCollapsed(),
 
@@ -276,9 +304,12 @@ class TrainingSupportResource extends Resource
                             ->disk('public')
                             ->required(function ($get) {
                                 $trainingId = $get('training_id');
-                                if (!$trainingId) return false;
+                                if (! $trainingId) {
+                                    return false;
+                                }
 
                                 $training = \App\Models\Training::find($trainingId);
+
                                 return $training?->modality === 'in_person';
                             })
                             ->maxSize(5120) // 5MB
@@ -356,7 +387,7 @@ class TrainingSupportResource extends Resource
                             ->content('Las fotografías adicionales son opcionales. Puedes cargar hasta 3 evidencias fotográficas de la actividad.')
                             ->columnSpanFull(),
                     ])
-                    ->visible(fn($get) => $get('training_id') && \App\Models\Training::find($get('training_id'))?->modality === 'in_person')
+                    ->visible(fn ($get) => $get('training_id') && \App\Models\Training::find($get('training_id'))?->modality === 'in_person')
                     ->collapsible()
                     ->persistCollapsed(),
 
@@ -400,12 +431,12 @@ class TrainingSupportResource extends Resource
                 Tables\Columns\TextColumn::make('training.modality')
                     ->label('Modalidad')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'virtual' => 'success',
                         'in_person' => 'info',
                         default => 'gray',
                     })
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
                         'virtual' => 'Virtual',
                         'in_person' => 'Presencial',
                         default => $state,
@@ -437,26 +468,48 @@ class TrainingSupportResource extends Resource
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
 
-                Tables\Filters\SelectFilter::make('training.modality')
+                Tables\Filters\SelectFilter::make('modality')
                     ->label('Modalidad')
                     ->options([
                         'virtual' => 'Virtual',
                         'in_person' => 'Presencial',
+                        'hybrid' => 'Híbrida',
                     ])
-                    ->attribute('training.modality'),
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['value'] ?? null,
+                            fn (Builder $q, $value) => $q->whereHas('training',
+                                fn (Builder $sq) => $sq->where('modality', $value)
+                            )
+                        );
+                    }),
 
-                Tables\Filters\SelectFilter::make('training.route')
-                    ->label('Ruta')
+                Tables\Filters\SelectFilter::make('route')
+                    ->label('Ruta de Capacitación')
                     ->options([
                         'route_1' => 'Ruta 1: Pre-emprendimiento',
                         'route_2' => 'Ruta 2: Consolidación',
                         'route_3' => 'Ruta 3: Escalamiento',
                     ])
-                    ->attribute('training.route'),
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['value'] ?? null,
+                            fn (Builder $q, $value) => $q->whereHas('training',
+                                fn (Builder $sq) => $sq->where('route', $value)
+                            )
+                        );
+                    }),
 
                 Tables\Filters\SelectFilter::make('training.city_id')
                     ->label('Municipio')
-                    ->relationship('training.city', 'name')
+                    ->relationship(
+                        'training.city',
+                        'name',
+                        fn (Builder $query) => $query
+                            ->where('status', true)  // Solo ciudades activas
+                            ->whereHas('department', fn (Builder $q) => $q->where('status', true))  // Solo de departamentos activos
+                            ->orderBy('name', 'asc')
+                    )
                     ->searchable()
                     ->preload(),
             ])
@@ -465,15 +518,14 @@ class TrainingSupportResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-eye')
                     ->tooltip('Ver detalles')
-                    ->visible(fn() => static::userCanList()),
+                    ->visible(fn () => static::userCanList()),
 
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
                     ->tooltip('Editar soporte')
                     ->visible(
-                        fn($record) =>
-                        !$record->trashed() &&
+                        fn ($record) => ! $record->trashed() &&
                             static::userCanEdit() &&
                             (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
                     ),
@@ -484,8 +536,7 @@ class TrainingSupportResource extends Resource
                     ->color('primary')
                     ->tooltip('Deshabilitar')
                     ->visible(
-                        fn($record) =>
-                        !$record->trashed() &&
+                        fn ($record) => ! $record->trashed() &&
                             static::userCanDelete() &&
                             (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
                     ),
@@ -495,7 +546,7 @@ class TrainingSupportResource extends Resource
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
                     ->tooltip('Restaurar soporte')
-                    ->visible(fn($record) => $record->trashed() && static::userCanDelete()),
+                    ->visible(fn ($record) => $record->trashed() && static::userCanDelete()),
 
                 Tables\Actions\ForceDeleteAction::make()
                     ->label('')
@@ -505,17 +556,17 @@ class TrainingSupportResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('¿Eliminar permanentemente?')
                     ->modalDescription('Esta acción NO se puede deshacer y eliminará todos los archivos.')
-                    ->visible(fn() => auth()->user()->hasRole('Admin')),
+                    ->visible(fn () => auth()->user()->hasRole('Admin')),
             ])
             ->headerActions([
                 ExportAction::make()
                     ->label('Exportar Excel')
-                    ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
                         ExcelExport::make()
-                            ->withFilename(fn() => 'soportes-capacitaciones-' . now()->format('Y-m-d-His'))
+                            ->withFilename(fn () => 'soportes-capacitaciones-'.now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                            ->modifyQueryUsing(fn($query) => $query->with([
+                            ->modifyQueryUsing(fn ($query) => $query->with([
                                 'training.city',
                                 'manager',
                             ]))
@@ -523,14 +574,14 @@ class TrainingSupportResource extends Resource
                                 // === INFORMACIÓN DE LA CAPACITACIÓN ===
                                 Column::make('training.name')->heading('Nombre de la Capacitación'),
                                 Column::make('training.city.name')->heading('Municipio'),
-                                Column::make('training.training_date')->heading('Fecha y Hora')->formatStateUsing(fn($state) => $state?->format('d/m/Y H:i')),
-                                Column::make('training.route')->heading('Ruta')->formatStateUsing(fn($state) => match ($state) {
+                                Column::make('training.training_date')->heading('Fecha y Hora')->formatStateUsing(fn ($state) => $state?->format('d/m/Y H:i')),
+                                Column::make('training.route')->heading('Ruta')->formatStateUsing(fn ($state) => match ($state) {
                                     'route_1' => 'Ruta 1: Pre-emprendimiento y validación temprana',
                                     'route_2' => 'Ruta 2: Consolidación',
                                     'route_3' => 'Ruta 3: Escalamiento e Innovación',
                                     default => $state,
                                 }),
-                                Column::make('training.modality')->heading('Modalidad')->formatStateUsing(fn($state) => match ($state) {
+                                Column::make('training.modality')->heading('Modalidad')->formatStateUsing(fn ($state) => match ($state) {
                                     'virtual' => 'Virtual',
                                     'in_person' => 'Presencial',
                                     default => $state,
@@ -538,19 +589,19 @@ class TrainingSupportResource extends Resource
                                 Column::make('training.organizer_name')->heading('Organizador'),
 
                                 // === EVIDENCIAS CARGADAS ===
-                                Column::make('attendance_list_path')->heading('Tiene Lista de Asistencia')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('recording_link')->heading('Link de Grabación')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No disponible'),
-                                Column::make('georeference_photo_path')->heading('Tiene Foto Georeferenciación')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('additional_photo_1_path')->heading('Foto Adicional 1')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('additional_photo_2_path')->heading('Foto Adicional 2')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('additional_photo_3_path')->heading('Foto Adicional 3')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
+                                Column::make('attendance_list_path')->heading('Tiene Lista de Asistencia')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                Column::make('recording_link')->heading('Link de Grabación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No disponible'),
+                                Column::make('georeference_photo_path')->heading('Tiene Foto Georeferenciación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                Column::make('additional_photo_1_path')->heading('Foto Adicional 1')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                Column::make('additional_photo_2_path')->heading('Foto Adicional 2')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                Column::make('additional_photo_3_path')->heading('Foto Adicional 3')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
 
                                 // === OBSERVACIONES ===
                                 Column::make('observations')->heading('Observaciones'),
 
                                 // === INFORMACIÓN ADICIONAL ===
                                 Column::make('manager.name')->heading('Registrado por'),
-                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
                             ]),
                     ])
                     ->color('success')
@@ -562,9 +613,9 @@ class TrainingSupportResource extends Resource
                         ->label('Exportar Excel')
                         ->exports([
                             ExcelExport::make()
-                                ->withFilename(fn() => 'soportes-capacitaciones-' . now()->format('Y-m-d-His'))
+                                ->withFilename(fn () => 'soportes-capacitaciones-'.now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                                ->modifyQueryUsing(fn($query) => $query->with([
+                                ->modifyQueryUsing(fn ($query) => $query->with([
                                     'training.city',
                                     'manager',
                                 ]))
@@ -572,14 +623,14 @@ class TrainingSupportResource extends Resource
                                     // === INFORMACIÓN DE LA CAPACITACIÓN ===
                                     Column::make('training.name')->heading('Nombre de la Capacitación'),
                                     Column::make('training.city.name')->heading('Municipio'),
-                                    Column::make('training.training_date')->heading('Fecha y Hora')->formatStateUsing(fn($state) => $state?->format('d/m/Y H:i')),
-                                    Column::make('training.route')->heading('Ruta')->formatStateUsing(fn($state) => match ($state) {
+                                    Column::make('training.training_date')->heading('Fecha y Hora')->formatStateUsing(fn ($state) => $state?->format('d/m/Y H:i')),
+                                    Column::make('training.route')->heading('Ruta')->formatStateUsing(fn ($state) => match ($state) {
                                         'route_1' => 'Ruta 1: Pre-emprendimiento y validación temprana',
                                         'route_2' => 'Ruta 2: Consolidación',
                                         'route_3' => 'Ruta 3: Escalamiento e Innovación',
                                         default => $state,
                                     }),
-                                    Column::make('training.modality')->heading('Modalidad')->formatStateUsing(fn($state) => match ($state) {
+                                    Column::make('training.modality')->heading('Modalidad')->formatStateUsing(fn ($state) => match ($state) {
                                         'virtual' => 'Virtual',
                                         'in_person' => 'Presencial',
                                         default => $state,
@@ -587,28 +638,28 @@ class TrainingSupportResource extends Resource
                                     Column::make('training.organizer_name')->heading('Organizador'),
 
                                     // === EVIDENCIAS CARGADAS ===
-                                    Column::make('attendance_list_path')->heading('Tiene Lista de Asistencia')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('recording_link')->heading('Link de Grabación')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No disponible'),
-                                    Column::make('georeference_photo_path')->heading('Tiene Foto Georeferenciación')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('additional_photo_1_path')->heading('Foto Adicional 1')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('additional_photo_2_path')->heading('Foto Adicional 2')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('additional_photo_3_path')->heading('Foto Adicional 3')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
+                                    Column::make('attendance_list_path')->heading('Tiene Lista de Asistencia')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                    Column::make('recording_link')->heading('Link de Grabación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No disponible'),
+                                    Column::make('georeference_photo_path')->heading('Tiene Foto Georeferenciación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                    Column::make('additional_photo_1_path')->heading('Foto Adicional 1')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                    Column::make('additional_photo_2_path')->heading('Foto Adicional 2')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                    Column::make('additional_photo_3_path')->heading('Foto Adicional 3')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
 
                                     // === OBSERVACIONES ===
                                     Column::make('observations')->heading('Observaciones'),
 
                                     // === INFORMACIÓN ADICIONAL ===
                                     Column::make('manager.name')->heading('Registrado por'),
-                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
                                 ]),
                         ]),
 
                     Tables\Actions\ForceDeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()->hasRole('Admin')),
+                        ->visible(fn () => auth()->user()->hasRole('Admin')),
                 ]),
             ])
             // Modificar query para incluir registros eliminados cuando sea necesario
-            ->modifyQueryUsing(fn(Builder $query) => $query->withoutGlobalScopes([
+            ->modifyQueryUsing(fn (Builder $query) => $query->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]));
     }
@@ -646,7 +697,7 @@ class TrainingSupportResource extends Resource
         $query = static::getModel()::query();
 
         // Si no es admin, filtrar solo sus registros
-        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
+        if (! auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }
 

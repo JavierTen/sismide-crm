@@ -590,7 +590,7 @@ class TrainingSupportResource extends Resource
 
                                 // === EVIDENCIAS CARGADAS ===
                                 Column::make('attendance_list_path')->heading('Tiene Lista de Asistencia')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
-                                Column::make('recording_link')->heading('Link de Grabación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No disponible'),
+                                Column::make('recording_link')->heading('Link de Grabación')->formatStateUsing(fn ($state) => ! empty($state) ? $state : 'No disponible'),
                                 Column::make('georeference_photo_path')->heading('Tiene Foto Georeferenciación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
                                 Column::make('additional_photo_1_path')->heading('Foto Adicional 1')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
                                 Column::make('additional_photo_2_path')->heading('Foto Adicional 2')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),

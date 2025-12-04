@@ -17,9 +17,6 @@ use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use pxlrbt\FilamentExcel\Columns\Column;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-
 class CharacterizationResource extends Resource
 {
     protected static ?string $model = Characterization::class;
@@ -793,9 +790,9 @@ class CharacterizationResource extends Resource
     public static function downloadAllEvidences()
     {
         try {
-            $characterizations = Characterization::with(['entrepreneur.business'])
-                ->whereNotNull('entrepreneur_id')
-                ->get();
+            // Aumentar límite de memoria temporalmente
+            ini_set('memory_limit', '512M');
+            set_time_limit(300); // 5 minutos
 
             // Crear nombre del archivo ZIP
             $zipFileName = 'evidencias_caracterizaciones_'.now()->format('Y-m-d_His').'.zip';
@@ -815,73 +812,77 @@ class CharacterizationResource extends Resource
 
             $filesAdded = 0;
 
-            foreach ($characterizations as $characterization) {
-                $entrepreneur = $characterization->entrepreneur;
-                if (! $entrepreneur) {
-                    continue;
-                }
+            // ✅ PROCESAR EN LOTES DE 50 REGISTROS
+            Characterization::with(['entrepreneur.business'])
+                ->whereNotNull('entrepreneur_id')
+                ->chunk(50, function ($characterizations) use ($zip, &$filesAdded) {
 
-                // Nombre de la carpeta del emprendedor
-                $folderName = self::sanitizeFileName(
-                    $entrepreneur->full_name.'_'.($entrepreneur->business->business_name ?? 'Sin_Emprendimiento')
-                );
-
-                $hasFiles = false;
-
-                // Array con los campos de archivos
-                $fileFields = [
-                    'commerce_evidence_path' => 'Evidencia_Comercio',
-                    'population_evidence_path' => 'Evidencia_Poblacion',
-                    'photo_evidence_path' => 'Foto_Georeferenciacion',
-                ];
-
-                foreach ($fileFields as $field => $prefix) {
-                    $filePaths = $characterization->$field;
-
-                    if (empty($filePaths)) {
-                        continue;
-                    }
-
-                    // Si es un string, convertir a array
-                    if (is_string($filePaths)) {
-                        $filePaths = json_decode($filePaths, true) ?? [$filePaths];
-                    }
-
-                    if (! is_array($filePaths)) {
-                        continue;
-                    }
-
-                    foreach ($filePaths as $index => $filePath) {
-                        if (empty($filePath)) {
+                    foreach ($characterizations as $characterization) {
+                        $entrepreneur = $characterization->entrepreneur;
+                        if (! $entrepreneur) {
                             continue;
                         }
 
-                        $fullPath = storage_path('app/public/'.$filePath);
+                        // Nombre de la carpeta del emprendedor
+                        $folderName = self::sanitizeFileName(
+                            $entrepreneur->full_name.'_'.($entrepreneur->business->business_name ?? 'Sin_Emprendimiento')
+                        );
 
-                        if (! file_exists($fullPath)) {
-                            continue;
-                        }
+                        $hasFiles = false;
 
-                        // Obtener extensión del archivo
-                        $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
+                        // Array con los campos de archivos
+                        $fileFields = [
+                            'commerce_evidence_path' => 'Evidencia_Comercio',
+                            'population_evidence_path' => 'Evidencia_Poblacion',
+                            'photo_evidence_path' => 'Foto_Georeferenciacion',
+                        ];
 
-                        // Nombre del archivo dentro del ZIP
-                        $fileNumber = count($filePaths) > 1 ? '_'.($index + 1) : '';
-                        $zipPath = $folderName.'/'.$prefix.$fileNumber.'.'.$extension;
+                        foreach ($fileFields as $field => $prefix) {
+                            $filePaths = $characterization->$field;
 
-                        // Agregar archivo al ZIP
-                        if ($zip->addFile($fullPath, $zipPath)) {
-                            $hasFiles = true;
-                            $filesAdded++;
+                            if (empty($filePaths)) {
+                                continue;
+                            }
+
+                            // Si es un string, convertir a array
+                            if (is_string($filePaths)) {
+                                $filePaths = json_decode($filePaths, true) ?? [$filePaths];
+                            }
+
+                            if (! is_array($filePaths)) {
+                                continue;
+                            }
+
+                            foreach ($filePaths as $index => $filePath) {
+                                if (empty($filePath)) {
+                                    continue;
+                                }
+
+                                $fullPath = storage_path('app/public/'.$filePath);
+
+                                if (! file_exists($fullPath)) {
+                                    continue;
+                                }
+
+                                // Obtener extensión del archivo
+                                $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
+
+                                // Nombre del archivo dentro del ZIP
+                                $fileNumber = count($filePaths) > 1 ? '_'.($index + 1) : '';
+                                $zipPath = $folderName.'/'.$prefix.$fileNumber.'.'.$extension;
+
+                                // Agregar archivo al ZIP
+                                if ($zip->addFile($fullPath, $zipPath)) {
+                                    $hasFiles = true;
+                                    $filesAdded++;
+                                }
+                            }
                         }
                     }
-                }
 
-                // Si el emprendedor no tiene archivos, no crear carpeta
-                if (! $hasFiles) {
-                    continue;
-                }
-            }
+                    // Liberar memoria después de cada chunk
+                    gc_collect_cycles();
+                });
 
             $zip->close();
 

@@ -822,7 +822,7 @@ class CharacterizationResource extends Resource
                 }
 
                 // Nombre de la carpeta del emprendedor
-                $folderName = $this->sanitizeFileName(
+                $folderName = self::sanitizeFileName(
                     $entrepreneur->full_name.'_'.($entrepreneur->business->business_name ?? 'Sin_Emprendimiento')
                 );
 

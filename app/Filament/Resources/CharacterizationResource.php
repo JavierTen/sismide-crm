@@ -820,7 +820,7 @@ class CharacterizationResource extends Resource
 
                     foreach ($characterizations as $characterization) {
                         // Cargar entrepreneur solo cuando se necesite
-                        $entrepreneur = \App\Models\Entrepreneur::select(['id', 'first_name', 'last_name'])
+                        $entrepreneur = \App\Models\Entrepreneur::select(['id', 'full_name'])
                             ->with(['business:id,entrepreneur_id,business_name'])
                             ->find($characterization->entrepreneur_id);
 

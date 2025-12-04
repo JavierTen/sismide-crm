@@ -815,7 +815,7 @@ class CharacterizationResource extends Resource
             // ✅ PROCESAR EN LOTES DE 50 REGISTROS
             Characterization::with(['entrepreneur.business'])
                 ->whereNotNull('entrepreneur_id')
-                ->chunk(50, function ($characterizations) use ($zip, &$filesAdded) {
+                ->chunk(20, function ($characterizations) use ($zip, &$filesAdded) {
 
                     foreach ($characterizations as $characterization) {
                         $entrepreneur = $characterization->entrepreneur;

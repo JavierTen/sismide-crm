@@ -790,15 +790,15 @@ class CharacterizationResource extends Resource
     public static function downloadAllEvidences()
     {
         try {
-            // Aumentar límite de memoria temporalmente
-            ini_set('memory_limit', '512M');
-            set_time_limit(300); // 5 minutos
+            // Configuración de memoria y tiempo
+            ini_set('memory_limit', '1024M');
+            ini_set('max_execution_time', '600'); // 10 minutos
+            set_time_limit(600);
 
-            // Crear nombre del archivo ZIP
             $zipFileName = 'evidencias_caracterizaciones_'.now()->format('Y-m-d_His').'.zip';
             $zipFilePath = storage_path('app/temp/'.$zipFileName);
 
-            // Crear directorio temporal si no existe
+            // Crear directorio temporal
             if (! file_exists(storage_path('app/temp'))) {
                 mkdir(storage_path('app/temp'), 0755, true);
             }
@@ -812,23 +812,26 @@ class CharacterizationResource extends Resource
 
             $filesAdded = 0;
 
-            // ✅ PROCESAR EN LOTES DE 50 REGISTROS
-            Characterization::with(['entrepreneur.business'])
+            // ✅ PROCESAR EN CHUNKS MUY PEQUEÑOS (5 registros)
+            Characterization::query()
                 ->whereNotNull('entrepreneur_id')
-                ->chunk(20, function ($characterizations) use ($zip, &$filesAdded) {
+                ->select(['id', 'entrepreneur_id', 'commerce_evidence_path', 'population_evidence_path', 'photo_evidence_path'])
+                ->chunk(5, function ($characterizations) use ($zip, &$filesAdded) {
 
                     foreach ($characterizations as $characterization) {
-                        $entrepreneur = $characterization->entrepreneur;
+                        // Cargar entrepreneur solo cuando se necesite
+                        $entrepreneur = \App\Models\Entrepreneur::select(['id', 'first_name', 'last_name'])
+                            ->with(['business:id,entrepreneur_id,business_name'])
+                            ->find($characterization->entrepreneur_id);
+
                         if (! $entrepreneur) {
                             continue;
                         }
 
-                        // Nombre de la carpeta del emprendedor
+                        // Nombre de la carpeta
                         $folderName = self::sanitizeFileName(
                             $entrepreneur->full_name.'_'.($entrepreneur->business->business_name ?? 'Sin_Emprendimiento')
                         );
-
-                        $hasFiles = false;
 
                         // Array con los campos de archivos
                         $fileFields = [
@@ -844,7 +847,7 @@ class CharacterizationResource extends Resource
                                 continue;
                             }
 
-                            // Si es un string, convertir a array
+                            // Convertir a array si es string
                             if (is_string($filePaths)) {
                                 $filePaths = json_decode($filePaths, true) ?? [$filePaths];
                             }
@@ -864,29 +867,32 @@ class CharacterizationResource extends Resource
                                     continue;
                                 }
 
-                                // Obtener extensión del archivo
-                                $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
+                                // Verificar tamaño del archivo (skip si es mayor a 10MB)
+                                $fileSize = filesize($fullPath);
+                                if ($fileSize === false || $fileSize > 10485760) { // 10MB
+                                    \Log::warning("Archivo muy grande o inaccesible: {$filePath}");
 
-                                // Nombre del archivo dentro del ZIP
+                                    continue;
+                                }
+
+                                $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
                                 $fileNumber = count($filePaths) > 1 ? '_'.($index + 1) : '';
                                 $zipPath = $folderName.'/'.$prefix.$fileNumber.'.'.$extension;
 
-                                // Agregar archivo al ZIP
                                 if ($zip->addFile($fullPath, $zipPath)) {
-                                    $hasFiles = true;
                                     $filesAdded++;
                                 }
                             }
                         }
                     }
 
-                    // Liberar memoria después de cada chunk
+                    // Liberar memoria agresivamente
+                    unset($characterizations);
                     gc_collect_cycles();
                 });
 
             $zip->close();
 
-            // Verificar que se agregaron archivos
             if ($filesAdded === 0) {
                 @unlink($zipFilePath);
                 \Filament\Notifications\Notification::make()
@@ -898,14 +904,12 @@ class CharacterizationResource extends Resource
                 return null;
             }
 
-            // Notificación de éxito
             \Filament\Notifications\Notification::make()
                 ->success()
                 ->title('Descarga iniciada')
                 ->body("Se han empaquetado {$filesAdded} archivos en el ZIP.")
                 ->send();
 
-            // Descargar y eliminar archivo temporal
             return response()->download($zipFilePath, $zipFileName)->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
@@ -926,16 +930,10 @@ class CharacterizationResource extends Resource
      */
     private static function sanitizeFileName(string $name): string
     {
-        // Reemplazar caracteres especiales
         $name = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '_', $name);
-
-        // Reemplazar espacios múltiples
         $name = preg_replace('/\s+/', '_', $name);
-
-        // Eliminar acentos
         $name = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
 
-        // Limitar longitud
         return substr($name, 0, 100);
     }
 }

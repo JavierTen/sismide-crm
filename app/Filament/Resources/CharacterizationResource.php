@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CharacterizationResource\Pages;
-use App\Filament\Resources\CharacterizationResource\RelationManagers;
 use App\Models\Characterization;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -12,21 +11,25 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
-//Exportar en excel
+// Exportar en excel
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
 use pxlrbt\FilamentExcel\Columns\Column;
+use pxlrbt\FilamentExcel\Exports\ExcelExport;
+
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class CharacterizationResource extends Resource
 {
     protected static ?string $model = Characterization::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-check';
+
     protected static ?string $navigationGroup = 'Información general';
 
     protected static ?string $modelLabel = 'Caracterización';
+
     protected static ?string $pluralModelLabel = 'Caracterizaciones';
 
     protected static ?int $navigationSort = 3;
@@ -36,7 +39,9 @@ class CharacterizationResource extends Resource
     private static function userCanList(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('listCharacterizations');
     }
@@ -44,7 +49,9 @@ class CharacterizationResource extends Resource
     private static function userCanCreate(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('createCharacterization');
     }
@@ -52,7 +59,9 @@ class CharacterizationResource extends Resource
     private static function userCanEdit(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('editCharacterization');
     }
@@ -60,7 +69,9 @@ class CharacterizationResource extends Resource
     private static function userCanDelete(): bool
     {
         $user = auth()->user();
-        if (!$user) return false;
+        if (! $user) {
+            return false;
+        }
 
         return $user->can('deleteCharacterization');
     }
@@ -114,9 +125,9 @@ class CharacterizationResource extends Resource
                             ->relationship(
                                 'entrepreneur',
                                 'full_name',
-                                fn($query) => $query->when(
-                                    !auth()->user()->hasRole('Admin'),
-                                    fn($q) => $q->where('manager_id', auth()->id())
+                                fn ($query) => $query->when(
+                                    ! auth()->user()->hasRole('Admin'),
+                                    fn ($q) => $q->where('manager_id', auth()->id())
                                 )
                             )
                             ->searchable()
@@ -124,10 +135,9 @@ class CharacterizationResource extends Resource
                             ->required()
                             ->live()
                             ->placeholder('Buscar emprendedor por nombre')
-                            ->disabled(fn(string $operation): bool => $operation === 'edit')
+                            ->disabled(fn (string $operation): bool => $operation === 'edit')
                             ->helperText(
-                                fn(string $operation): string =>
-                                $operation === 'edit'
+                                fn (string $operation): string => $operation === 'edit'
                                     ? 'El emprendedor asignado no puede ser modificado.'
                                     : 'Selecciona el emprendedor para autocompletar información relacionada'
                             )
@@ -139,9 +149,12 @@ class CharacterizationResource extends Resource
                                     ->label('Emprendimiento')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (!$entrepreneurId) return '----';
+                                        if (! $entrepreneurId) {
+                                            return '----';
+                                        }
 
                                         $entrepreneur = \App\Models\Entrepreneur::with('business')->find($entrepreneurId);
+
                                         return $entrepreneur?->business?->business_name ?? 'Sin emprendimiento';
                                     }),
 
@@ -149,9 +162,12 @@ class CharacterizationResource extends Resource
                                     ->label('Municipio')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (!$entrepreneurId) return '----';
+                                        if (! $entrepreneurId) {
+                                            return '----';
+                                        }
 
                                         $entrepreneur = \App\Models\Entrepreneur::with('city')->find($entrepreneurId);
+
                                         return $entrepreneur?->city?->name ?? 'Sin ubicación';
                                     }),
 
@@ -159,9 +175,12 @@ class CharacterizationResource extends Resource
                                     ->label('Gestor Asignado')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (!$entrepreneurId) return '----';
+                                        if (! $entrepreneurId) {
+                                            return '----';
+                                        }
 
                                         $entrepreneur = \App\Models\Entrepreneur::with('manager')->find($entrepreneurId);
+
                                         return $entrepreneur?->manager?->name ?? 'Sin gestor asignado';
                                     }),
                             ]),
@@ -186,7 +205,9 @@ class CharacterizationResource extends Resource
                                     ->label('Actividad Económica')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (!$entrepreneurId) return '----';
+                                        if (! $entrepreneurId) {
+                                            return '----';
+                                        }
 
                                         $entrepreneur = \App\Models\Entrepreneur::with('business.economicActivity')
                                             ->find($entrepreneurId);
@@ -198,7 +219,9 @@ class CharacterizationResource extends Resource
                                     ->label('Población Vulnerable')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (!$entrepreneurId) return '----';
+                                        if (! $entrepreneurId) {
+                                            return '----';
+                                        }
 
                                         $entrepreneur = \App\Models\Entrepreneur::with('population')
                                             ->find($entrepreneurId);
@@ -219,7 +242,7 @@ class CharacterizationResource extends Resource
                                 Forms\Components\Select::make('business_type')
                                     ->label('Tipo de Negocio')
                                     ->options([
-                                        'individual'  => 'Individual',
+                                        'individual' => 'Individual',
                                         'associative' => 'Asociativo',
                                     ])
                                     ->placeholder('Seleccione el tipo de negocio')
@@ -228,7 +251,7 @@ class CharacterizationResource extends Resource
                                 Forms\Components\Select::make('business_age')
                                     ->label('Antigüedad del Negocio')
                                     ->options([
-                                        'over_6_months'  => 'Más de 6 meses',
+                                        'over_6_months' => 'Más de 6 meses',
                                         'over_12_months' => 'Más de 12 meses',
                                         'over_24_months' => 'Más de 24 meses',
                                     ])
@@ -238,11 +261,11 @@ class CharacterizationResource extends Resource
                                 Forms\Components\CheckboxList::make('clients')
                                     ->label('Clientela Actual y Potencial')
                                     ->options([
-                                        'community'        => 'Comunidad en general',
-                                        'public_entities'  => 'Entidades públicas',
+                                        'community' => 'Comunidad en general',
+                                        'public_entities' => 'Entidades públicas',
                                         'private_entities' => 'Entidades privadas',
-                                        'schools'          => 'Colegios',
-                                        'hospitals'        => 'Hospitales',
+                                        'schools' => 'Colegios',
+                                        'hospitals' => 'Hospitales',
                                     ])
                                     ->columns(2)
                                     ->helperText('Seleccione todos los tipos de clientes que apliquen')
@@ -252,9 +275,9 @@ class CharacterizationResource extends Resource
                                     ->label('Estrategias de Promoción')
                                     ->options([
                                         'word_of_mouth' => 'Voz a voz',
-                                        'whatsapp'      => 'WhatsApp',
-                                        'facebook'      => 'Facebook',
-                                        'instagram'     => 'Instagram',
+                                        'whatsapp' => 'WhatsApp',
+                                        'facebook' => 'Facebook',
+                                        'instagram' => 'Instagram',
                                     ])
                                     ->columns(2)
                                     ->helperText('Marque todas las estrategias que utiliza')
@@ -264,10 +287,10 @@ class CharacterizationResource extends Resource
                                     ->label('Ventas Mensuales Promedio')
                                     ->options([
                                         'lt_500000' => 'Menos de $500.000',
-                                        '500k_1m'   => '$500.001 — $1.000.000',
-                                        '1m_2m'     => '$1.001.000 — $2.000.000',
-                                        '2m_5m'     => '$2.001.000 — $5.000.000',
-                                        'gt_5m'     => 'Más de $5.001.000',
+                                        '500k_1m' => '$500.001 — $1.000.000',
+                                        '1m_2m' => '$1.001.000 — $2.000.000',
+                                        '2m_5m' => '$2.001.000 — $5.000.000',
+                                        'gt_5m' => 'Más de $5.001.000',
                                     ])
                                     ->placeholder('Seleccione rango de ventas')
                                     ->helperText('Ingreso promedio mensual del negocio'),
@@ -275,8 +298,8 @@ class CharacterizationResource extends Resource
                                 Forms\Components\Select::make('employees_generated')
                                     ->label('Empleos Generados')
                                     ->options([
-                                        'up_to_2'     => 'Hasta 2 empleados',
-                                        '3_to_4'      => '3 a 4 empleados',
+                                        'up_to_2' => 'Hasta 2 empleados',
+                                        '3_to_4' => '3 a 4 empleados',
                                         'more_than_5' => 'Más de 5 empleados',
                                     ])
                                     ->placeholder('Seleccione cantidad de empleos')
@@ -457,15 +480,14 @@ class CharacterizationResource extends Resource
                     ->label('')
                     ->icon('heroicon-o-eye')
                     ->tooltip('Ver detalles')
-                    ->visible(fn() => static::userCanList()),
+                    ->visible(fn () => static::userCanList()),
 
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')
                     ->tooltip('Editar emprendedor')
                     ->visible(
-                        fn($record) =>
-                        !$record->trashed() &&
+                        fn ($record) => ! $record->trashed() &&
                             static::userCanEdit() &&
                             (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
                     ),
@@ -476,8 +498,7 @@ class CharacterizationResource extends Resource
                     ->color('primary')
                     ->tooltip('Deshabilitar')
                     ->visible(
-                        fn($record) =>
-                        !$record->trashed() &&
+                        fn ($record) => ! $record->trashed() &&
                             static::userCanDelete() &&
                             (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
                     ),
@@ -487,7 +508,7 @@ class CharacterizationResource extends Resource
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
                     ->tooltip('Restaurar caracterización')
-                    ->visible(fn($record) => $record->trashed() && static::userCanDelete()),
+                    ->visible(fn ($record) => $record->trashed() && static::userCanDelete()),
 
                 Tables\Actions\ForceDeleteAction::make()
                     ->label('')
@@ -497,17 +518,17 @@ class CharacterizationResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('¿Eliminar permanentemente?')
                     ->modalDescription('Esta acción NO se puede deshacer.')
-                    ->visible(fn() => auth()->user()->hasRole('Admin')),
+                    ->visible(fn () => auth()->user()->hasRole('Admin')),
             ])
             ->headerActions([
                 ExportAction::make()
                     ->label('Exportar Excel')
-                    ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
                         ExcelExport::make()
-                            ->withFilename(fn() => 'caracterizaciones-' . now()->format('Y-m-d-His'))
+                            ->withFilename(fn () => 'caracterizaciones-'.now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                            ->modifyQueryUsing(fn($query) => $query->with([
+                            ->modifyQueryUsing(fn ($query) => $query->with([
                                 'entrepreneur.business.economicActivity',
                                 'entrepreneur.population',
                                 'entrepreneur.city',
@@ -527,19 +548,21 @@ class CharacterizationResource extends Resource
                                 Column::make('entrepreneur.population.name')->heading('Población Vulnerable'),
 
                                 // === CARACTERÍSTICAS DEL NEGOCIO ===
-                                Column::make('business_type')->heading('Tipo de Negocio')->formatStateUsing(fn($state) => match ($state) {
+                                Column::make('business_type')->heading('Tipo de Negocio')->formatStateUsing(fn ($state) => match ($state) {
                                     'individual' => 'Individual',
                                     'associative' => 'Asociativo',
                                     default => $state,
                                 }),
-                                Column::make('business_age')->heading('Antigüedad del Negocio')->formatStateUsing(fn($state) => match ($state) {
+                                Column::make('business_age')->heading('Antigüedad del Negocio')->formatStateUsing(fn ($state) => match ($state) {
                                     'over_6_months' => 'Más de 6 meses',
                                     'over_12_months' => 'Más de 12 meses',
                                     'over_24_months' => 'Más de 24 meses',
                                     default => $state,
                                 }),
                                 Column::make('clients')->heading('Clientela')->formatStateUsing(function ($state) {
-                                    if (!$state) return '';
+                                    if (! $state) {
+                                        return '';
+                                    }
                                     $options = [
                                         'community' => 'Comunidad en general',
                                         'public_entities' => 'Entidades públicas',
@@ -547,19 +570,23 @@ class CharacterizationResource extends Resource
                                         'schools' => 'Colegios',
                                         'hospitals' => 'Hospitales',
                                     ];
-                                    return collect($state)->map(fn($key) => $options[$key] ?? $key)->join(', ');
+
+                                    return collect($state)->map(fn ($key) => $options[$key] ?? $key)->join(', ');
                                 }),
                                 Column::make('promotion_strategies')->heading('Estrategias de Promoción')->formatStateUsing(function ($state) {
-                                    if (!$state) return '';
+                                    if (! $state) {
+                                        return '';
+                                    }
                                     $options = [
                                         'word_of_mouth' => 'Voz a voz',
                                         'whatsapp' => 'WhatsApp',
                                         'facebook' => 'Facebook',
                                         'instagram' => 'Instagram',
                                     ];
-                                    return collect($state)->map(fn($key) => $options[$key] ?? $key)->join(', ');
+
+                                    return collect($state)->map(fn ($key) => $options[$key] ?? $key)->join(', ');
                                 }),
-                                Column::make('average_monthly_sales')->heading('Ventas Mensuales Promedio')->formatStateUsing(fn($state) => match ($state) {
+                                Column::make('average_monthly_sales')->heading('Ventas Mensuales Promedio')->formatStateUsing(fn ($state) => match ($state) {
                                     'lt_500000' => 'Menos de $500.000',
                                     '500k_1m' => '$500.001 — $1.000.000',
                                     '1m_2m' => '$1.001.000 — $2.000.000',
@@ -567,7 +594,7 @@ class CharacterizationResource extends Resource
                                     'gt_5m' => 'Más de $5.001.000',
                                     default => $state,
                                 }),
-                                Column::make('employees_generated')->heading('Empleos Generados')->formatStateUsing(fn($state) => match ($state) {
+                                Column::make('employees_generated')->heading('Empleos Generados')->formatStateUsing(fn ($state) => match ($state) {
                                     'up_to_2' => 'Hasta 2 empleados',
                                     '3_to_4' => '3 a 4 empleados',
                                     'more_than_5' => 'Más de 5 empleados',
@@ -575,128 +602,147 @@ class CharacterizationResource extends Resource
                                 }),
 
                                 // === FORMALIZACIÓN Y REGISTROS ===
-                                Column::make('has_accounting_records')->heading('Registros Contables')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('has_commercial_registration')->heading('Registro Mercantil')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('family_in_drummond')->heading('Familiar en Drummond')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                Column::make('has_accounting_records')->heading('Registros Contables')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
+                                Column::make('has_commercial_registration')->heading('Registro Mercantil')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
+                                Column::make('family_in_drummond')->heading('Familiar en Drummond')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
 
                                 // === GEORREFERENCIACIÓN ===
                                 Column::make('latitude')->heading('Latitud'),
                                 Column::make('longitude')->heading('Longitud'),
 
                                 // === EVIDENCIAS FOTOGRÁFICAS ===
-                                Column::make('commerce_evidence_path')->heading('Evidencia del Comercio')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('population_evidence_path')->heading('Evidencia de Población')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('photo_evidence_path')->heading('Foto Georeferenciación')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
+                                Column::make('commerce_evidence_path')->heading('Evidencia del Comercio')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                Column::make('population_evidence_path')->heading('Evidencia de Población')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                Column::make('photo_evidence_path')->heading('Foto Georeferenciación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
 
                                 // === INFORMACIÓN ADICIONAL ===
                                 Column::make('manager.name')->heading('Registrado por'),
-                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
                             ]),
                     ])
                     ->color('success')
                     ->icon('heroicon-o-arrow-down-tray'),
+
+                Tables\Actions\Action::make('download_evidences')
+                    ->label('Descargar Evidencias')
+                    ->icon('heroicon-o-photo')
+                    ->color('primary')
+                    ->requiresConfirmation()
+                    ->modalHeading('Descargar Evidencias Fotográficas')
+                    ->modalDescription('Se descargará un archivo ZIP con todas las evidencias organizadas por emprendedor. Este proceso puede tardar varios minutos dependiendo de la cantidad de archivos.')
+                    ->modalSubmitActionLabel('Descargar ZIP')
+                    ->action(function () {
+                        return static::downloadAllEvidences();
+                    })
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer'])),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     ExportBulkAction::make()
-                    ->label('Exportar Excel')
-                    ->exports([
-                        ExcelExport::make()
-                            ->withFilename(fn() => 'caracterizaciones-' . now()->format('Y-m-d-His'))
-                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                            ->modifyQueryUsing(fn($query) => $query->with([
-                                'entrepreneur.business.economicActivity',
-                                'entrepreneur.population',
-                                'entrepreneur.city',
-                                'entrepreneur.manager',
-                                'manager',
-                            ]))
-                            ->withColumns([
-                                // === INFORMACIÓN DEL EMPRENDEDOR ===
-                                Column::make('entrepreneur.full_name')->heading('Emprendedor'),
-                                Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
-                                Column::make('entrepreneur.city.name')->heading('Municipio'),
-                                Column::make('entrepreneur.manager.name')->heading('Gestor'),
-                                Column::make('characterization_date')->heading('Fecha Caracterización'),
+                        ->label('Exportar Excel')
+                        ->exports([
+                            ExcelExport::make()
+                                ->withFilename(fn () => 'caracterizaciones-'.now()->format('Y-m-d-His'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                                ->modifyQueryUsing(fn ($query) => $query->with([
+                                    'entrepreneur.business.economicActivity',
+                                    'entrepreneur.population',
+                                    'entrepreneur.city',
+                                    'entrepreneur.manager',
+                                    'manager',
+                                ]))
+                                ->withColumns([
+                                    // === INFORMACIÓN DEL EMPRENDEDOR ===
+                                    Column::make('entrepreneur.full_name')->heading('Emprendedor'),
+                                    Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
+                                    Column::make('entrepreneur.city.name')->heading('Municipio'),
+                                    Column::make('entrepreneur.manager.name')->heading('Gestor'),
+                                    Column::make('characterization_date')->heading('Fecha Caracterización'),
 
-                                // === INFORMACIÓN ECONÓMICA ===
-                                Column::make('entrepreneur.business.economicActivity.name')->heading('Actividad Económica'),
-                                Column::make('entrepreneur.population.name')->heading('Población Vulnerable'),
+                                    // === INFORMACIÓN ECONÓMICA ===
+                                    Column::make('entrepreneur.business.economicActivity.name')->heading('Actividad Económica'),
+                                    Column::make('entrepreneur.population.name')->heading('Población Vulnerable'),
 
-                                // === CARACTERÍSTICAS DEL NEGOCIO ===
-                                Column::make('business_type')->heading('Tipo de Negocio')->formatStateUsing(fn($state) => match ($state) {
-                                    'individual' => 'Individual',
-                                    'associative' => 'Asociativo',
-                                    default => $state,
-                                }),
-                                Column::make('business_age')->heading('Antigüedad del Negocio')->formatStateUsing(fn($state) => match ($state) {
-                                    'over_6_months' => 'Más de 6 meses',
-                                    'over_12_months' => 'Más de 12 meses',
-                                    'over_24_months' => 'Más de 24 meses',
-                                    default => $state,
-                                }),
-                                Column::make('clients')->heading('Clientela')->formatStateUsing(function ($state) {
-                                    if (!$state) return '';
-                                    $options = [
-                                        'community' => 'Comunidad en general',
-                                        'public_entities' => 'Entidades públicas',
-                                        'private_entities' => 'Entidades privadas',
-                                        'schools' => 'Colegios',
-                                        'hospitals' => 'Hospitales',
-                                    ];
-                                    return collect($state)->map(fn($key) => $options[$key] ?? $key)->join(', ');
-                                }),
-                                Column::make('promotion_strategies')->heading('Estrategias de Promoción')->formatStateUsing(function ($state) {
-                                    if (!$state) return '';
-                                    $options = [
-                                        'word_of_mouth' => 'Voz a voz',
-                                        'whatsapp' => 'WhatsApp',
-                                        'facebook' => 'Facebook',
-                                        'instagram' => 'Instagram',
-                                    ];
-                                    return collect($state)->map(fn($key) => $options[$key] ?? $key)->join(', ');
-                                }),
-                                Column::make('average_monthly_sales')->heading('Ventas Mensuales Promedio')->formatStateUsing(fn($state) => match ($state) {
-                                    'lt_500000' => 'Menos de $500.000',
-                                    '500k_1m' => '$500.001 — $1.000.000',
-                                    '1m_2m' => '$1.001.000 — $2.000.000',
-                                    '2m_5m' => '$2.001.000 — $5.000.000',
-                                    'gt_5m' => 'Más de $5.001.000',
-                                    default => $state,
-                                }),
-                                Column::make('employees_generated')->heading('Empleos Generados')->formatStateUsing(fn($state) => match ($state) {
-                                    'up_to_2' => 'Hasta 2 empleados',
-                                    '3_to_4' => '3 a 4 empleados',
-                                    'more_than_5' => 'Más de 5 empleados',
-                                    default => $state,
-                                }),
+                                    // === CARACTERÍSTICAS DEL NEGOCIO ===
+                                    Column::make('business_type')->heading('Tipo de Negocio')->formatStateUsing(fn ($state) => match ($state) {
+                                        'individual' => 'Individual',
+                                        'associative' => 'Asociativo',
+                                        default => $state,
+                                    }),
+                                    Column::make('business_age')->heading('Antigüedad del Negocio')->formatStateUsing(fn ($state) => match ($state) {
+                                        'over_6_months' => 'Más de 6 meses',
+                                        'over_12_months' => 'Más de 12 meses',
+                                        'over_24_months' => 'Más de 24 meses',
+                                        default => $state,
+                                    }),
+                                    Column::make('clients')->heading('Clientela')->formatStateUsing(function ($state) {
+                                        if (! $state) {
+                                            return '';
+                                        }
+                                        $options = [
+                                            'community' => 'Comunidad en general',
+                                            'public_entities' => 'Entidades públicas',
+                                            'private_entities' => 'Entidades privadas',
+                                            'schools' => 'Colegios',
+                                            'hospitals' => 'Hospitales',
+                                        ];
 
-                                // === FORMALIZACIÓN Y REGISTROS ===
-                                Column::make('has_accounting_records')->heading('Registros Contables')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('has_commercial_registration')->heading('Registro Mercantil')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('family_in_drummond')->heading('Familiar en Drummond')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+                                        return collect($state)->map(fn ($key) => $options[$key] ?? $key)->join(', ');
+                                    }),
+                                    Column::make('promotion_strategies')->heading('Estrategias de Promoción')->formatStateUsing(function ($state) {
+                                        if (! $state) {
+                                            return '';
+                                        }
+                                        $options = [
+                                            'word_of_mouth' => 'Voz a voz',
+                                            'whatsapp' => 'WhatsApp',
+                                            'facebook' => 'Facebook',
+                                            'instagram' => 'Instagram',
+                                        ];
 
-                                // === GEORREFERENCIACIÓN ===
-                                Column::make('latitude')->heading('Latitud'),
-                                Column::make('longitude')->heading('Longitud'),
+                                        return collect($state)->map(fn ($key) => $options[$key] ?? $key)->join(', ');
+                                    }),
+                                    Column::make('average_monthly_sales')->heading('Ventas Mensuales Promedio')->formatStateUsing(fn ($state) => match ($state) {
+                                        'lt_500000' => 'Menos de $500.000',
+                                        '500k_1m' => '$500.001 — $1.000.000',
+                                        '1m_2m' => '$1.001.000 — $2.000.000',
+                                        '2m_5m' => '$2.001.000 — $5.000.000',
+                                        'gt_5m' => 'Más de $5.001.000',
+                                        default => $state,
+                                    }),
+                                    Column::make('employees_generated')->heading('Empleos Generados')->formatStateUsing(fn ($state) => match ($state) {
+                                        'up_to_2' => 'Hasta 2 empleados',
+                                        '3_to_4' => '3 a 4 empleados',
+                                        'more_than_5' => 'Más de 5 empleados',
+                                        default => $state,
+                                    }),
 
-                                // === EVIDENCIAS FOTOGRÁFICAS ===
-                                Column::make('commerce_evidence_path')->heading('Evidencia del Comercio')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('population_evidence_path')->heading('Evidencia de Población')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('photo_evidence_path')->heading('Foto Georeferenciación')->formatStateUsing(fn($state) => !empty($state) ? 'Sí' : 'No'),
+                                    // === FORMALIZACIÓN Y REGISTROS ===
+                                    Column::make('has_accounting_records')->heading('Registros Contables')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
+                                    Column::make('has_commercial_registration')->heading('Registro Mercantil')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
+                                    Column::make('family_in_drummond')->heading('Familiar en Drummond')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
 
-                                // === INFORMACIÓN ADICIONAL ===
-                                Column::make('manager.name')->heading('Registrado por'),
-                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
-                            ]),
-                    ]),
+                                    // === GEORREFERENCIACIÓN ===
+                                    Column::make('latitude')->heading('Latitud'),
+                                    Column::make('longitude')->heading('Longitud'),
+
+                                    // === EVIDENCIAS FOTOGRÁFICAS ===
+                                    Column::make('commerce_evidence_path')->heading('Evidencia del Comercio')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                    Column::make('population_evidence_path')->heading('Evidencia de Población')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                    Column::make('photo_evidence_path')->heading('Foto Georeferenciación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+
+                                    // === INFORMACIÓN ADICIONAL ===
+                                    Column::make('manager.name')->heading('Registrado por'),
+                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
+                                ]),
+                        ]),
 
                     Tables\Actions\ForceDeleteBulkAction::make()
-                        ->visible(fn() => auth()->user()->hasRole('Admin')),
+                        ->visible(fn () => auth()->user()->hasRole('Admin')),
                 ]),
             ])
             // Modificar query para incluir registros eliminados cuando sea necesario
-            ->modifyQueryUsing(fn(Builder $query) => $query->withoutGlobalScopes([
+            ->modifyQueryUsing(fn (Builder $query) => $query->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]));
     }
@@ -734,10 +780,161 @@ class CharacterizationResource extends Resource
         $query = static::getModel()::query();
 
         // Si no es admin, filtrar solo sus registros
-        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
+        if (! auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }
 
         return $query->count();
+    }
+
+    /**
+     * Descargar todas las evidencias en un archivo ZIP
+     */
+    public static function downloadAllEvidences()
+    {
+        try {
+            $characterizations = Characterization::with(['entrepreneur.business'])
+                ->whereNotNull('entrepreneur_id')
+                ->get();
+
+            // Crear nombre del archivo ZIP
+            $zipFileName = 'evidencias_caracterizaciones_'.now()->format('Y-m-d_His').'.zip';
+            $zipFilePath = storage_path('app/temp/'.$zipFileName);
+
+            // Crear directorio temporal si no existe
+            if (! file_exists(storage_path('app/temp'))) {
+                mkdir(storage_path('app/temp'), 0755, true);
+            }
+
+            // Crear archivo ZIP
+            $zip = new \ZipArchive;
+
+            if ($zip->open($zipFilePath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+                throw new \Exception('No se pudo crear el archivo ZIP');
+            }
+
+            $filesAdded = 0;
+
+            foreach ($characterizations as $characterization) {
+                $entrepreneur = $characterization->entrepreneur;
+                if (! $entrepreneur) {
+                    continue;
+                }
+
+                // Nombre de la carpeta del emprendedor
+                $folderName = $this->sanitizeFileName(
+                    $entrepreneur->full_name.'_'.($entrepreneur->business->business_name ?? 'Sin_Emprendimiento')
+                );
+
+                $hasFiles = false;
+
+                // Array con los campos de archivos
+                $fileFields = [
+                    'commerce_evidence_path' => 'Evidencia_Comercio',
+                    'population_evidence_path' => 'Evidencia_Poblacion',
+                    'photo_evidence_path' => 'Foto_Georeferenciacion',
+                ];
+
+                foreach ($fileFields as $field => $prefix) {
+                    $filePaths = $characterization->$field;
+
+                    if (empty($filePaths)) {
+                        continue;
+                    }
+
+                    // Si es un string, convertir a array
+                    if (is_string($filePaths)) {
+                        $filePaths = json_decode($filePaths, true) ?? [$filePaths];
+                    }
+
+                    if (! is_array($filePaths)) {
+                        continue;
+                    }
+
+                    foreach ($filePaths as $index => $filePath) {
+                        if (empty($filePath)) {
+                            continue;
+                        }
+
+                        $fullPath = storage_path('app/public/'.$filePath);
+
+                        if (! file_exists($fullPath)) {
+                            continue;
+                        }
+
+                        // Obtener extensión del archivo
+                        $extension = pathinfo($fullPath, PATHINFO_EXTENSION);
+
+                        // Nombre del archivo dentro del ZIP
+                        $fileNumber = count($filePaths) > 1 ? '_'.($index + 1) : '';
+                        $zipPath = $folderName.'/'.$prefix.$fileNumber.'.'.$extension;
+
+                        // Agregar archivo al ZIP
+                        if ($zip->addFile($fullPath, $zipPath)) {
+                            $hasFiles = true;
+                            $filesAdded++;
+                        }
+                    }
+                }
+
+                // Si el emprendedor no tiene archivos, no crear carpeta
+                if (! $hasFiles) {
+                    continue;
+                }
+            }
+
+            $zip->close();
+
+            // Verificar que se agregaron archivos
+            if ($filesAdded === 0) {
+                @unlink($zipFilePath);
+                \Filament\Notifications\Notification::make()
+                    ->warning()
+                    ->title('Sin evidencias')
+                    ->body('No se encontraron evidencias fotográficas para descargar.')
+                    ->send();
+
+                return null;
+            }
+
+            // Notificación de éxito
+            \Filament\Notifications\Notification::make()
+                ->success()
+                ->title('Descarga iniciada')
+                ->body("Se han empaquetado {$filesAdded} archivos en el ZIP.")
+                ->send();
+
+            // Descargar y eliminar archivo temporal
+            return response()->download($zipFilePath, $zipFileName)->deleteFileAfterSend(true);
+
+        } catch (\Exception $e) {
+            \Filament\Notifications\Notification::make()
+                ->danger()
+                ->title('Error al generar ZIP')
+                ->body('Ocurrió un error: '.$e->getMessage())
+                ->send();
+
+            \Log::error('Error descargando evidencias: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Sanitizar nombre de archivo/carpeta
+     */
+    private static function sanitizeFileName(string $name): string
+    {
+        // Reemplazar caracteres especiales
+        $name = str_replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], '_', $name);
+
+        // Reemplazar espacios múltiples
+        $name = preg_replace('/\s+/', '_', $name);
+
+        // Eliminar acentos
+        $name = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $name);
+
+        // Limitar longitud
+        return substr($name, 0, 100);
     }
 }

@@ -170,7 +170,7 @@ class TrainingSupportResource extends Resource
                                     }),
 
                                 Forms\Components\Placeholder::make('training_date')
-                                    ->label('Fecha y Hora')
+                                    ->label('Fecha')
                                     ->content(function ($get) {
                                         $trainingId = $get('training_id');
                                         if (! $trainingId) {
@@ -179,7 +179,7 @@ class TrainingSupportResource extends Resource
 
                                         $training = \App\Models\Training::find($trainingId);
 
-                                        return $training?->training_date?->format('d/m/Y H:i') ?? 'Sin fecha';
+                                        return $training?->training_date?->format('d/m/Y') ?? 'Sin fecha';
                                     }),
 
                                 Forms\Components\Placeholder::make('training_organizer')
@@ -451,7 +451,7 @@ class TrainingSupportResource extends Resource
 
                 Tables\Columns\TextColumn::make('training.training_date')
                     ->label('Fecha Capacitación')
-                    ->dateTime('d/m/Y H:i')
+                    ->dateTime('d/m/Y')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('manager.name')

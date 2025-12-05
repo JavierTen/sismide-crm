@@ -2,22 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
-use App\Models\Visit;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
 class Entrepreneur extends Authenticatable implements FilamentUser, HasName
 {
-    use HasFactory, SoftDeletes, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     protected $table = 'entrepreneurs';
+
     protected $guard = 'entrepreneur';
 
     protected $fillable = [
@@ -80,7 +80,8 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
     public function getFilamentAvatarUrl(): ?string
     {
         $name = $this->getFilamentName();
-        return 'https://ui-avatars.com/api/?name=' . urlencode($name) . '&color=7F9CF5&background=EBF4FF';
+
+        return 'https://ui-avatars.com/api/?name='.urlencode($name).'&color=7F9CF5&background=EBF4FF';
     }
 
     // ... relaciones básicas
@@ -202,5 +203,15 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
     public function getTrainingsCountAttribute(): int
     {
         return $this->trainingParticipations()->count();
+    }
+
+    public function businessPlans()
+    {
+        return $this->hasMany(BusinessPlan::class);
+    }
+
+    public function businessPlan()
+    {
+        return $this->hasOne(BusinessPlan::class);
     }
 }

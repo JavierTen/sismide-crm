@@ -40,7 +40,7 @@ class EmprendedorPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Emprendedor/Resources'), for: 'App\\Filament\\Emprendedor\\Resources')
             ->discoverPages(in: app_path('Filament/Emprendedor/Pages'), for: 'App\\Filament\\Emprendedor\\Pages')
             ->pages([
-                Pages\Dashboard::class,
+                Pages\Dashboard2::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Emprendedor/Widgets'), for: 'App\\Filament\\Emprendedor\\Widgets')
             ->widgets([])

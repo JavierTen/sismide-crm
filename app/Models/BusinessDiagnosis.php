@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Validation\ValidationException;
 
 class BusinessDiagnosis extends Model
 {
@@ -14,6 +15,7 @@ class BusinessDiagnosis extends Model
     protected $fillable = [
         'entrepreneur_id',
         'manager_id',
+        'diagnosis_type',
         'diagnosis_date',
         'has_news',
         'news_type',
@@ -43,6 +45,7 @@ class BusinessDiagnosis extends Model
 
     protected static function booted()
     {
+        // Calcular puntaje antes de guardar
         static::saving(function ($diagnosis) {
             $diagnosis->total_score = $diagnosis->calculateTotalScore();
 
@@ -51,7 +54,44 @@ class BusinessDiagnosis extends Model
                 $diagnosis->maturity_level = $maturity['label'];
             }
         });
+
+        // ✅ VALIDAR QUE NO EXISTA OTRO DIAGNÓSTICO DEL MISMO TIPO AL CREAR
+        static::creating(function ($diagnosis) {
+            $exists = static::where('entrepreneur_id', $diagnosis->entrepreneur_id)
+                ->where('diagnosis_type', $diagnosis->diagnosis_type)
+                ->whereNull('deleted_at')
+                ->exists();
+
+            if ($exists) {
+                $tipo = $diagnosis->diagnosis_type === 'entry' ? 'entrada' : 'salida';
+                
+                throw ValidationException::withMessages([
+                    'diagnosis_type' => "Este emprendedor ya tiene un diagnóstico de {$tipo}. No se puede crear otro del mismo tipo."
+                ]);
+            }
+        });
+
+        // ✅ VALIDAR AL ACTUALIZAR (por si cambia el tipo)
+        static::updating(function ($diagnosis) {
+            if ($diagnosis->isDirty('diagnosis_type')) {
+                $exists = static::where('entrepreneur_id', $diagnosis->entrepreneur_id)
+                    ->where('diagnosis_type', $diagnosis->diagnosis_type)
+                    ->where('id', '!=', $diagnosis->id)
+                    ->whereNull('deleted_at')
+                    ->exists();
+
+                if ($exists) {
+                    $tipo = $diagnosis->diagnosis_type === 'entry' ? 'entrada' : 'salida';
+                    
+                    throw ValidationException::withMessages([
+                        'diagnosis_type' => "Ya existe un diagnóstico de {$tipo} para este emprendedor."
+                    ]);
+                }
+            }
+        });
     }
+    
+    // ========== RELACIONES ==========
 
     public function entrepreneur(): BelongsTo
     {
@@ -63,9 +103,66 @@ class BusinessDiagnosis extends Model
         return $this->belongsTo(\App\Models\User::class, 'manager_id');
     }
 
+    // ========== MÉTODOS PARA TIPO DE DIAGNÓSTICO ==========
+
     /**
-     * SCORING MAPS - Mapeo de respuestas a puntuaciones
+     * Opciones para tipos de diagnóstico
      */
+    public static function diagnosisTypeOptions(): array
+    {
+        return [
+            'entry' => 'Diagnóstico de Entrada',
+            'exit' => 'Diagnóstico de Salida',
+        ];
+    }
+
+    /**
+     * Verifica si un emprendedor tiene diagnóstico de entrada
+     */
+    public static function hasEntryDiagnosis(int $entrepreneurId): bool
+    {
+        return static::where('entrepreneur_id', $entrepreneurId)
+            ->where('diagnosis_type', 'entry')
+            ->whereNull('deleted_at')
+            ->exists();
+    }
+
+    /**
+     * Verifica si un emprendedor tiene diagnóstico de salida
+     */
+    public static function hasExitDiagnosis(int $entrepreneurId): bool
+    {
+        return static::where('entrepreneur_id', $entrepreneurId)
+            ->where('diagnosis_type', 'exit')
+            ->whereNull('deleted_at')
+            ->exists();
+    }
+
+    /**
+     * Scope para filtrar diagnósticos de entrada
+     */
+    public function scopeEntryDiagnosis($query)
+    {
+        return $query->where('diagnosis_type', 'entry');
+    }
+
+    /**
+     * Scope para filtrar diagnósticos de salida
+     */
+    public function scopeExitDiagnosis($query)
+    {
+        return $query->where('diagnosis_type', 'exit');
+    }
+
+    /**
+     * Accessor para obtener el nombre del tipo de diagnóstico
+     */
+    public function getDiagnosisTypeNameAttribute(): string
+    {
+        return self::diagnosisTypeOptions()[$this->diagnosis_type] ?? $this->diagnosis_type;
+    }
+
+    // ========== SCORING MAPS ==========
 
     public static function getAdministrativeScoring(): array
     {
@@ -301,6 +398,8 @@ class BusinessDiagnosis extends Model
         ];
     }
 
+    // ========== CÁLCULOS ==========
+
     /**
      * Calcula el puntaje total del diagnóstico
      */
@@ -396,6 +495,8 @@ class BusinessDiagnosis extends Model
             ];
         }
     }
+
+    // ========== OPCIONES ==========
 
     /**
      * Opciones para tipos de novedad

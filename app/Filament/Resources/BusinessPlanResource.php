@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\SoftDeletingScope;
 // Exportar en excel
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
@@ -91,7 +92,6 @@ class BusinessPlanResource extends Resource
         return static::userCanDelete();
     }
 
-    // Permitir ver registros eliminados
     public static function canRestore($record): bool
     {
         return static::userCanDelete();
@@ -99,7 +99,7 @@ class BusinessPlanResource extends Resource
 
     public static function canForceDelete($record): bool
     {
-        return auth()->user()->hasRole('Admin'); // Solo Admin puede eliminar permanentemente
+        return auth()->user()->hasRole('Admin');
     }
 
     public static function shouldRegisterNavigation(): bool
@@ -193,13 +193,28 @@ class BusinessPlanResource extends Resource
                                     }),
                             ]),
 
-                        Forms\Components\DatePicker::make('creation_date')
-                            ->label('Fecha de Creación del Plan')
-                            ->required()
-                            ->maxDate(now())
-                            ->displayFormat('d/m/Y')
-                            ->native(true)
-                            ->helperText('Fecha en la que se elaboró el plan de negocio'),
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\DatePicker::make('creation_date')
+                                    ->label('Fecha de Creación del Plan')
+                                    ->required()
+                                    ->maxDate(now())
+                                    ->displayFormat('d/m/Y')
+                                    ->native(true)
+                                    ->helperText('Fecha en la que se elaboró el plan de negocio'),
+
+
+                                Forms\Components\Toggle::make('is_prioritized')
+                                    ->label('Priorizado')
+                                    ->helperText('¿Este emprendedor está priorizado para sustentación?')
+                                    ->required()
+                                    ->inline(false)
+                                    ->onIcon('heroicon-m-check-circle')
+                                    ->offIcon('heroicon-m-x-circle')
+                                    ->onColor('success')
+                                    ->offColor('gray')
+                                    ->default(false),
+                            ]),
                     ])
                     ->collapsible()
                     ->persistCollapsed(),
@@ -302,7 +317,7 @@ class BusinessPlanResource extends Resource
                                     ->prefix('$')
                                     ->placeholder('0.00')
                                     ->helperText('Ventas mensuales en pesos colombianos')
-                                    ->maxValue(999999999999.99) // Límite para decimal(15,2)
+                                    ->maxValue(999999999999.99)
                                     ->rules(['numeric', 'min:0', 'max:999999999999.99']),
 
                                 Forms\Components\TextInput::make('monthly_sales_units')
@@ -310,7 +325,7 @@ class BusinessPlanResource extends Resource
                                     ->numeric()
                                     ->placeholder('0')
                                     ->helperText('Cantidad de unidades vendidas por mes')
-                                    ->maxValue(2147483647) // Límite de integer
+                                    ->maxValue(2147483647)
                                     ->rules(['integer', 'min:0', 'max:2147483647']),
 
                                 Forms\Components\Select::make('production_frequency')
@@ -371,7 +386,7 @@ class BusinessPlanResource extends Resource
                                     ->numeric()
                                     ->placeholder('0')
                                     ->helperText('Cantidad de unidades para alcanzar el equilibrio (máx: 2,147,483,647)')
-                                    ->maxValue(2147483647) // ✅ LÍMITE DE INTEGER
+                                    ->maxValue(2147483647)
                                     ->rules(['integer', 'min:0', 'max:2147483647'])
                                     ->validationMessages([
                                         'max' => 'El valor no puede superar 2,147,483,647 unidades.',
@@ -383,7 +398,7 @@ class BusinessPlanResource extends Resource
                                     ->prefix('$')
                                     ->placeholder('0.00')
                                     ->helperText('Valor en pesos para alcanzar el equilibrio')
-                                    ->maxValue(999999999999.99) // Límite para decimal(15,2)
+                                    ->maxValue(999999999999.99)
                                     ->rules(['numeric', 'min:0', 'max:999999999999.99'])
                                     ->validationMessages([
                                         'max' => 'El valor no puede superar $999,999,999,999.99',
@@ -437,9 +452,6 @@ class BusinessPlanResource extends Resource
                     ->collapsible()
                     ->persistCollapsed(),
 
-                // ============================================
-                // SECCIÓN 9: OBSERVACIONES
-                // ============================================
                 Forms\Components\Section::make('Observaciones Adicionales')
                     ->description('Comentarios o información adicional relevante')
                     ->icon('heroicon-o-chat-bubble-left-right')
@@ -454,13 +466,12 @@ class BusinessPlanResource extends Resource
                     ->collapsible()
                     ->persistCollapsed(),
 
-                // ============================================
-                // SECCIÓN 10: ADJUNTAR PLAN DE NEGOCIO
-                // ============================================
-                Forms\Components\Section::make('Documento del Plan de Negocio')
-                    ->description('Adjunta el documento completo del plan de negocio')
+                // ✅ SECCIÓN ACTUALIZADA: DOCUMENTOS Y ARCHIVOS
+                Forms\Components\Section::make('Documentos y Archivos del Plan de Negocio')
+                    ->description('Adjunta todos los documentos requeridos del plan de negocio')
                     ->icon('heroicon-o-document-text')
                     ->schema([
+                        // Plan de Negocio (PDF)
                         Forms\Components\FileUpload::make('business_plan_path')
                             ->label('Plan de Negocio (PDF)')
                             ->directory('business-plans')
@@ -475,9 +486,109 @@ class BusinessPlanResource extends Resource
                             ])
                             ->columnSpanFull(),
 
+                        // ✅ NUEVO: Matriz de Adquisición (PDF o XLSX)
+                        Forms\Components\FileUpload::make('acquisition_matrix_path')
+                            ->label('Matriz de Adquisición (PDF o XLSX)')
+                            ->directory('acquisition-matrices')
+                            ->disk('public')
+                            ->maxSize(10240) // 10 MB
+                            ->acceptedFileTypes([
+                                'application/pdf',
+                                'application/vnd.ms-excel',
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                            ])
+                            ->downloadable()
+                            ->openable()
+                            ->required()
+                            ->helperText('Sube la matriz de adquisición en formato PDF o XLSX (máximo 10MB)')
+                            ->validationMessages([
+                                'required' => 'La matriz de adquisición es obligatoria.',
+                                'max' => 'El archivo no puede superar los 10MB.',
+                            ])
+                            ->columnSpanFull(),
+
+                        // ✅ NUEVO: Modelo de Negocio (PDF)
+                        Forms\Components\FileUpload::make('business_model_path')
+                            ->label('Modelo de Negocio (PDF)')
+                            ->directory('business-models')
+                            ->disk('public')
+                            ->maxSize(10240) // 10 MB
+                            ->acceptedFileTypes(['application/pdf'])
+                            ->downloadable()
+                            ->openable()
+                            ->required()
+                            ->helperText('Sube el modelo de negocio en formato PDF (máximo 10MB)')
+                            ->validationMessages([
+                                'required' => 'El modelo de negocio es obligatorio.',
+                                'max' => 'El archivo no puede superar los 10MB.',
+                            ])
+                            ->columnSpanFull(),
+
+                        // ✅ NUEVO: Logo del Emprendimiento (PNG)
+                        Forms\Components\FileUpload::make('logo_path')
+                            ->label('Logo del Emprendimiento (PNG)')
+                            ->directory('logos')
+                            ->disk('public')
+                            ->image()
+                            ->maxSize(5120) // 5 MB
+                            ->acceptedFileTypes(['image/png'])
+                            ->imageEditor()
+                            ->imageEditorAspectRatios([
+                                '1:1',
+                                '16:9',
+                                '4:3',
+                            ])
+                            ->downloadable()
+                            ->openable()
+                            ->required()
+                            ->helperText('Sube el logo del emprendimiento en formato PNG (máximo 5MB)')
+                            ->validationMessages([
+                                'required' => 'El logo del emprendimiento es obligatorio.',
+                                'max' => 'El archivo no puede superar los 5MB.',
+                            ])
+                            ->columnSpanFull(),
+
+                        // ✅ NUEVO: Video de Fire Pitch (Link de YouTube)
+                        Forms\Components\TextInput::make('fire_pitch_video_url')
+                            ->label('Video de Fire Pitch (Link de YouTube)')
+                            ->url()
+                            ->required()
+                            ->placeholder('https://www.youtube.com/watch?v=...')
+                            ->helperText('Ingresa el enlace del video de Fire Pitch en YouTube')
+                            ->rules([
+                                'required',
+                                'url',
+                                'regex:/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/'
+                            ])
+                            ->validationMessages([
+                                'required' => 'El video de Fire Pitch es obligatorio.',
+                                'url' => 'Debe ser una URL válida.',
+                                'regex' => 'Debe ser un enlace válido de YouTube.',
+                            ])
+                            ->columnSpanFull(),
+
+                        // ✅ NUEVO: Video del Ciclo Productivo (Link de YouTube)
+                        Forms\Components\TextInput::make('production_cycle_video_url')
+                            ->label('Video del Ciclo Productivo (Link de YouTube)')
+                            ->url()
+                            ->required()
+                            ->placeholder('https://www.youtube.com/watch?v=...')
+                            ->helperText('Ingresa el enlace del video del ciclo productivo en YouTube')
+                            ->rules([
+                                'required',
+                                'url',
+                                'regex:/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/'
+                            ])
+                            ->validationMessages([
+                                'required' => 'El video del ciclo productivo es obligatorio.',
+                                'url' => 'Debe ser una URL válida.',
+                                'regex' => 'Debe ser un enlace válido de YouTube.',
+                            ])
+                            ->columnSpanFull(),
+
                         Forms\Components\Placeholder::make('file_info')
                             ->label('Recomendación')
-                            ->content('Para reducir el tamaño del PDF, puedes usar herramientas en línea como SmallPDF, ILovePDF o Adobe Acrobat para comprimir el documento.')
+                            ->content('Para reducir el tamaño de archivos PDF, puedes usar herramientas en línea como SmallPDF, ILovePDF o Adobe Acrobat para comprimir documentos.')
                             ->columnSpanFull(),
                     ])
                     ->collapsible()
@@ -525,6 +636,18 @@ class BusinessPlanResource extends Resource
                     ->placeholder('Sin fecha')
                     ->toggleable(),
 
+                // ✅ NUEVO: Priorizado
+                Tables\Columns\IconColumn::make('is_prioritized')
+                    ->label('Priorizado')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-star')
+                    ->falseIcon('heroicon-o-minus-circle')
+                    ->trueColor('warning')
+                    ->falseColor('gray')
+                    ->sortable()
+                    ->alignCenter()
+                    ->toggleable(),
+
                 Tables\Columns\IconColumn::make('is_capitalized')
                     ->label('Capitalizado')
                     ->boolean()
@@ -551,6 +674,15 @@ class BusinessPlanResource extends Resource
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
 
+                // ✅ NUEVO: Filtro de priorizados
+                Tables\Filters\SelectFilter::make('is_prioritized')
+                    ->label('Priorización')
+                    ->options([
+                        1 => 'Sí priorizado',
+                        0 => 'No priorizado',
+                    ])
+                    ->placeholder('Todos'),
+
                 Tables\Filters\SelectFilter::make('is_capitalized')
                     ->label('Capitalización')
                     ->options([
@@ -558,7 +690,6 @@ class BusinessPlanResource extends Resource
                         0 => 'No capitalizado',
                     ])
                     ->placeholder('Todos'),
-
 
                 Tables\Filters\SelectFilter::make('city_id')
                     ->label('Municipio')
@@ -618,7 +749,7 @@ class BusinessPlanResource extends Resource
                     ->tooltip('Eliminar permanentemente')
                     ->requiresConfirmation()
                     ->modalHeading('¿Eliminar permanentemente?')
-                    ->modalDescription('Esta acción NO se puede deshacer y eliminará el archivo adjunto.')
+                    ->modalDescription('Esta acción NO se puede deshacer y eliminará todos los archivos adjuntos.')
                     ->visible(fn () => auth()->user()->hasRole('Admin')),
             ])
             ->headerActions([
@@ -642,6 +773,9 @@ class BusinessPlanResource extends Resource
                                 Column::make('entrepreneur.city.name')->heading('Municipio'),
                                 Column::make('entrepreneur.business.productiveLine.name')->heading('Línea Productiva'),
                                 Column::make('creation_date')->heading('Fecha del Plan')->formatStateUsing(fn ($state) => $state?->format('d/m/Y')),
+
+                                // ✅ NUEVO CAMPO
+                                Column::make('is_prioritized')->heading('Priorizado para Sustentar')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
 
                                 // === DEFINICIÓN DEL NEGOCIO ===
                                 Column::make('business_definition')->heading('Definición del Negocio'),
@@ -690,7 +824,14 @@ class BusinessPlanResource extends Resource
 
                                 // === OTROS ===
                                 Column::make('observations')->heading('Observaciones'),
-                                Column::make('business_plan_path')->heading('Plan Adjunto')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+
+                                // ✅ ARCHIVOS ADJUNTOS
+                                Column::make('business_plan_path')->heading('Plan de Negocio')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                Column::make('acquisition_matrix_path')->heading('Matriz de Adquisición')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                Column::make('business_model_path')->heading('Modelo de Negocio')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                Column::make('logo_path')->heading('Logo')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                Column::make('fire_pitch_video_url')->heading('Video Fire Pitch')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                Column::make('production_cycle_video_url')->heading('Video Ciclo Productivo')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
 
                                 // === INFORMACIÓN ADICIONAL ===
                                 Column::make('manager.name')->heading('Registrado por'),
@@ -715,12 +856,13 @@ class BusinessPlanResource extends Resource
                                     'manager',
                                 ]))
                                 ->withColumns([
-                                    // === Mismas columnas que arriba ===
+                                    // Mismas columnas que el export action
                                     Column::make('entrepreneur.full_name')->heading('Emprendedor'),
                                     Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
                                     Column::make('entrepreneur.city.name')->heading('Municipio'),
                                     Column::make('entrepreneur.business.productiveLine.name')->heading('Línea Productiva'),
                                     Column::make('creation_date')->heading('Fecha del Plan')->formatStateUsing(fn ($state) => $state?->format('d/m/Y')),
+                                    Column::make('is_prioritized')->heading('Priorizado para Sustentar')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
                                     Column::make('business_definition')->heading('Definición del Negocio'),
                                     Column::make('problems_to_solve')->heading('Problemas a Resolver'),
                                     Column::make('mission')->heading('Misión'),
@@ -751,7 +893,12 @@ class BusinessPlanResource extends Resource
                                     Column::make('direct_competitors')->heading('Competidores Directos'),
                                     Column::make('target_market')->heading('Mercado Objetivo'),
                                     Column::make('observations')->heading('Observaciones'),
-                                    Column::make('business_plan_path')->heading('Plan Adjunto')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+                                    Column::make('business_plan_path')->heading('Plan de Negocio')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                    Column::make('acquisition_matrix_path')->heading('Matriz de Adquisición')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                    Column::make('business_model_path')->heading('Modelo de Negocio')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                    Column::make('logo_path')->heading('Logo')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                    Column::make('fire_pitch_video_url')->heading('Video Fire Pitch')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                    Column::make('production_cycle_video_url')->heading('Video Ciclo Productivo')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
                                     Column::make('manager.name')->heading('Registrado por'),
                                     Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
                                 ]),
@@ -767,7 +914,6 @@ class BusinessPlanResource extends Resource
                         ->visible(fn () => static::userCanDelete()),
                 ]),
             ])
-           // ✅ CORRECTO
             ->modifyQueryUsing(fn ($query) => $query->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]));
@@ -777,8 +923,7 @@ class BusinessPlanResource extends Resource
     {
         $query = parent::getEloquentQuery();
 
-        // Ajusta según tu sistema de roles
-        if (auth()->user()->hasRole(['Admin', 'Viewer'])) { // o hasRole('admin')
+        if (auth()->user()->hasRole(['Admin', 'Viewer'])) {
             return $query;
         }
 
@@ -805,7 +950,6 @@ class BusinessPlanResource extends Resource
     {
         $query = static::getModel()::query();
 
-        // Si no es admin, filtrar solo sus registros
         if (! auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());
         }

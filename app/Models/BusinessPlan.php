@@ -38,11 +38,18 @@ class BusinessPlan extends Model
         'target_market',
         'observations',
         'business_plan_path',
+        'acquisition_matrix_path',
+        'fire_pitch_video_url',
+        'production_cycle_video_url',
+        'business_model_path',
+        'logo_path',
+        'is_prioritized',
     ];
 
     protected $casts = [
         'creation_date' => 'date',
         'is_capitalized' => 'boolean',
+        'is_prioritized' => 'boolean',
         'capitalization_year' => 'integer',
         'monthly_sales_cop' => 'decimal:2',
         'monthly_sales_units' => 'integer',
@@ -60,28 +67,52 @@ class BusinessPlan extends Model
      */
     protected static function booted(): void
     {
-        // Eliminar archivo cuando se actualiza
+        // Eliminar archivos cuando se actualiza
         static::updating(function (BusinessPlan $plan) {
             $original = $plan->getOriginal();
 
-            if ($original['business_plan_path'] && $original['business_plan_path'] !== $plan->business_plan_path) {
-                Storage::disk('public')->delete($original['business_plan_path']);
+            $fileFields = [
+                'business_plan_path',
+                'acquisition_matrix_path',
+                'business_model_path',
+                'logo_path',
+            ];
+
+            foreach ($fileFields as $field) {
+                if ($original[$field] && $original[$field] !== $plan->$field) {
+                    Storage::disk('public')->delete($original[$field]);
+                }
             }
         });
 
-        // Eliminar archivo cuando se elimina (soft delete)
+        // Eliminar archivos cuando se elimina (soft delete)
         static::deleting(function (BusinessPlan $plan) {
-            if ($plan->business_plan_path) {
-                Storage::disk('public')->delete($plan->business_plan_path);
-            }
+            $plan->deleteAllFiles();
         });
 
-        // Eliminar archivo cuando se elimina permanentemente
+        // Eliminar archivos cuando se elimina permanentemente
         static::forceDeleting(function (BusinessPlan $plan) {
-            if ($plan->business_plan_path) {
-                Storage::disk('public')->delete($plan->business_plan_path);
-            }
+            $plan->deleteAllFiles();
         });
+    }
+
+    /**
+     * Eliminar todos los archivos asociados
+     */
+    protected function deleteAllFiles(): void
+    {
+        $fileFields = [
+            'business_plan_path',
+            'acquisition_matrix_path',
+            'business_model_path',
+            'logo_path',
+        ];
+
+        foreach ($fileFields as $field) {
+            if ($this->$field) {
+                Storage::disk('public')->delete($this->$field);
+            }
+        }
     }
 
     /**
@@ -109,6 +140,30 @@ class BusinessPlan extends Model
     }
 
     /**
+     * Verificar si tiene matriz de adquisición
+     */
+    public function hasAcquisitionMatrix(): bool
+    {
+        return !empty($this->acquisition_matrix_path);
+    }
+
+    /**
+     * Verificar si tiene modelo de negocio
+     */
+    public function hasBusinessModel(): bool
+    {
+        return !empty($this->business_model_path);
+    }
+
+    /**
+     * Verificar si tiene logo
+     */
+    public function hasLogo(): bool
+    {
+        return !empty($this->logo_path);
+    }
+
+    /**
      * Obtener URL completa del plan de negocio
      */
     public function getBusinessPlanUrlAttribute(): ?string
@@ -117,7 +172,43 @@ class BusinessPlan extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->business_plan_path);
+        return Storage::url($this->business_plan_path);
+    }
+
+    /**
+     * Obtener URL de la matriz de adquisición
+     */
+    public function getAcquisitionMatrixUrlAttribute(): ?string
+    {
+        if (!$this->acquisition_matrix_path) {
+            return null;
+        }
+
+        return Storage::url($this->acquisition_matrix_path);
+    }
+
+    /**
+     * Obtener URL del modelo de negocio
+     */
+    public function getBusinessModelUrlAttribute(): ?string
+    {
+        if (!$this->business_model_path) {
+            return null;
+        }
+
+        return Storage::url($this->business_model_path);
+    }
+
+    /**
+     * Obtener URL del logo
+     */
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (!$this->logo_path) {
+            return null;
+        }
+
+        return Storage::url($this->logo_path);
     }
 
     /**
@@ -150,6 +241,22 @@ class BusinessPlan extends Model
     public function scopeNotCapitalized($query)
     {
         return $query->where('is_capitalized', false);
+    }
+
+    /**
+     * Scope para planes priorizados
+     */
+    public function scopePrioritized($query)
+    {
+        return $query->where('is_prioritized', true);
+    }
+
+    /**
+     * Scope para planes no priorizados
+     */
+    public function scopeNotPrioritized($query)
+    {
+        return $query->where('is_prioritized', false);
     }
 
     /**

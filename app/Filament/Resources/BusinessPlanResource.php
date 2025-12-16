@@ -484,7 +484,6 @@ class BusinessPlanResource extends Resource
                             ])
                             ->downloadable()
                             ->openable()
-                            ->required()
                             ->helperText('Sube la matriz de adquisición en formato PDF o XLSX (máximo 10MB)')
                             ->validationMessages([
                                 'required' => 'La matriz de adquisición es obligatoria.',
@@ -500,7 +499,6 @@ class BusinessPlanResource extends Resource
                             ->acceptedFileTypes(['application/pdf'])
                             ->downloadable()
                             ->openable()
-                            ->required()
                             ->helperText('Sube el modelo de negocio en formato PDF (máximo 10MB)')
                             ->validationMessages([
                                 'required' => 'El modelo de negocio es obligatorio.',
@@ -523,7 +521,6 @@ class BusinessPlanResource extends Resource
                             ])
                             ->downloadable()
                             ->openable()
-                            ->required()
                             ->helperText('Sube el logo del emprendimiento en formato PNG (máximo 5MB)')
                             ->validationMessages([
                                 'required' => 'El logo del emprendimiento es obligatorio.',
@@ -534,7 +531,6 @@ class BusinessPlanResource extends Resource
                         Forms\Components\TextInput::make('fire_pitch_video_url')
                             ->label('Video de Fire Pitch (Link de YouTube)')
                             ->url()
-                            ->required()
                             ->placeholder('https://www.youtube.com/watch?v=...')
                             ->helperText('Ingresa el enlace del video de Fire Pitch en YouTube')
                             ->rules([
@@ -549,11 +545,9 @@ class BusinessPlanResource extends Resource
                             ])
                             ->columnSpanFull(),
 
-                        // ✅ NUEVO: Video del Ciclo Productivo (Link de YouTube)
                         Forms\Components\TextInput::make('production_cycle_video_url')
                             ->label('Video del Ciclo Productivo (Link de YouTube)')
                             ->url()
-                            ->required()
                             ->placeholder('https://www.youtube.com/watch?v=...')
                             ->helperText('Ingresa el enlace del video del ciclo productivo en YouTube')
                             ->rules([

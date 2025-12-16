@@ -130,44 +130,44 @@ class BusinessDiagnosisResource extends Resource
                                                         : 'Selecciona el emprendedor para realizar el diagnóstico empresarial'
                                                 ),
 
-                                                Forms\Components\Select::make('diagnosis_type')
-    ->label('Tipo de Diagnóstico')
-    ->options(\App\Models\BusinessDiagnosis::diagnosisTypeOptions())
-    ->required()
-    ->default('entry')
-    ->disabled(fn(string $operation): bool => $operation === 'edit')
-    ->helperText(
-        fn(string $operation): string =>
-        $operation === 'edit'
-            ? 'El tipo de diagnóstico no puede ser modificado después de crearlo.'
-            : 'Selecciona si es un diagnóstico de entrada o de salida'
-    )
-    ->live()
-    ->afterStateUpdated(function ($state, $get) {
-        $entrepreneurId = $get('entrepreneur_id');
-        if (!$entrepreneurId || !$state) return;
+                                            Forms\Components\Select::make('diagnosis_type')
+                                                ->label('Tipo de Diagnóstico')
+                                                ->options(\App\Models\BusinessDiagnosis::diagnosisTypeOptions())
+                                                ->required()
+                                                ->default('entry')
+                                                ->disabled(fn(string $operation): bool => $operation === 'edit')
+                                                ->helperText(
+                                                    fn(string $operation): string =>
+                                                    $operation === 'edit'
+                                                        ? 'El tipo de diagnóstico no puede ser modificado después de crearlo.'
+                                                        : 'Selecciona si es un diagnóstico de entrada o de salida'
+                                                )
+                                                ->live()
+                                                ->afterStateUpdated(function ($state, $get) {
+                                                    $entrepreneurId = $get('entrepreneur_id');
+                                                    if (!$entrepreneurId || !$state) return;
 
-        // Verificar si ya existe un diagnóstico de este tipo
-        $exists = \App\Models\BusinessDiagnosis::where('entrepreneur_id', $entrepreneurId)
-            ->where('diagnosis_type', $state)
-            ->whereNull('deleted_at')
-            ->exists();
+                                                    // Verificar si ya existe un diagnóstico de este tipo
+                                                    $exists = \App\Models\BusinessDiagnosis::where('entrepreneur_id', $entrepreneurId)
+                                                        ->where('diagnosis_type', $state)
+                                                        ->whereNull('deleted_at')
+                                                        ->exists();
 
-        if ($exists) {
-            \Filament\Notifications\Notification::make()
-                ->warning()
-                ->title('Diagnóstico existente')
-                ->body(
-                    'Este emprendedor ya tiene un diagnóstico de ' .
-                    ($state === 'entry' ? 'entrada' : 'salida') . 
-                    '. No podrás crear otro del mismo tipo.'
-                )
-                ->persistent()
-                ->send();
-        }
-    })
-    ->native(false),
-                                                
+                                                    if ($exists) {
+                                                        \Filament\Notifications\Notification::make()
+                                                            ->warning()
+                                                            ->title('Diagnóstico existente')
+                                                            ->body(
+                                                                'Este emprendedor ya tiene un diagnóstico de ' .
+                                                                    ($state === 'entry' ? 'entrada' : 'salida') .
+                                                                    '. No podrás crear otro del mismo tipo.'
+                                                            )
+                                                            ->persistent()
+                                                            ->send();
+                                                    }
+                                                })
+                                                ->native(false),
+
                                             Forms\Components\DatePicker::make('diagnosis_date')
                                                 ->label('Fecha del Diagnóstico')
                                                 ->required()
@@ -704,21 +704,21 @@ class BusinessDiagnosisResource extends Resource
                     ->sortable()
                     ->placeholder('Sin ubicación'),
 
-                    Tables\Columns\TextColumn::make('diagnosis_type')
-            ->label('Tipo')
-            ->badge()
-            ->formatStateUsing(fn($state) => match($state) {
-                'entry' => 'Entrada',
-                'exit' => 'Salida',
-                default => 'Sin definir',
-            })
-            ->color(fn($state) => match($state) {
-                'entry' => 'success',
-                'exit' => 'info',
-                default => 'gray',
-            })
-            ->sortable()
-            ->searchable(),
+                Tables\Columns\TextColumn::make('diagnosis_type')
+                    ->label('Tipo')
+                    ->badge()
+                    ->formatStateUsing(fn($state) => match ($state) {
+                        'entry' => 'Entrada',
+                        'exit' => 'Salida',
+                        default => 'Sin definir',
+                    })
+                    ->color(fn($state) => match ($state) {
+                        'entry' => 'success',
+                        'exit' => 'info',
+                        default => 'gray',
+                    })
+                    ->sortable()
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('diagnosis_date')
                     ->label('Fecha Diagnóstico')
@@ -731,12 +731,12 @@ class BusinessDiagnosisResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
 
                 Tables\Filters\SelectFilter::make('diagnosis_type')
-        ->label('Tipo de Diagnóstico')
-        ->options([
-            'entry' => 'Diagnóstico de Entrada',
-            'exit' => 'Diagnóstico de Salida',
-        ])
-        ->placeholder('Todos los tipos'),
+                    ->label('Tipo de Diagnóstico')
+                    ->options([
+                        'entry' => 'Diagnóstico de Entrada',
+                        'exit' => 'Diagnóstico de Salida',
+                    ])
+                    ->placeholder('Todos los tipos'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()

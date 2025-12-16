@@ -289,4 +289,50 @@ class BusinessPlan extends Model
             '2025' => '2025',
         ];
     }
+
+    /**
+    /**
+     * Relación con las evaluaciones
+     */
+    public function evaluations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BusinessPlanEvaluation::class);
+    }
+
+    /**
+     * Evaluaciones de evaluadores
+     */
+    public function evaluatorEvaluations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BusinessPlanEvaluation::class)
+            ->where('evaluator_type', 'evaluator');
+    }
+
+    /**
+     * Evaluaciones de gestores
+     */
+    public function managerEvaluations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BusinessPlanEvaluation::class)
+            ->where('evaluator_type', 'manager');
+    }
+
+    /**
+     * Obtener el puntaje final del plan
+     */
+    public function getFinalScoreAttribute(): array
+    {
+        return BusinessPlanEvaluation::getFinalScore($this->id);
+    }
+
+    /**
+     * Verificar si el plan ha sido completamente evaluado
+     */
+    public function isFullyEvaluated(): bool
+    {
+        $hasEvaluators = $this->evaluatorEvaluations()->exists();
+        $hasManagers = $this->managerEvaluations()->exists();
+
+        return $hasEvaluators && $hasManagers;
+    }
 }

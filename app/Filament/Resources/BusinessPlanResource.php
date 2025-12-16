@@ -466,27 +466,12 @@ class BusinessPlanResource extends Resource
                     ->collapsible()
                     ->persistCollapsed(),
 
-                // ✅ SECCIÓN ACTUALIZADA: DOCUMENTOS Y ARCHIVOS
+
                 Forms\Components\Section::make('Documentos y Archivos del Plan de Negocio')
                     ->description('Adjunta todos los documentos requeridos del plan de negocio')
                     ->icon('heroicon-o-document-text')
                     ->schema([
-                        // Plan de Negocio (PDF)
-                        Forms\Components\FileUpload::make('business_plan_path')
-                            ->label('Plan de Negocio (PDF)')
-                            ->directory('business-plans')
-                            ->disk('public')
-                            ->maxSize(10240) // 10 MB
-                            ->acceptedFileTypes(['application/pdf'])
-                            ->downloadable()
-                            ->openable()
-                            ->helperText('Sube el documento del plan de negocio en formato PDF (máximo 10MB)')
-                            ->validationMessages([
-                                'max' => 'El archivo no puede superar los 10MB.',
-                            ])
-                            ->columnSpanFull(),
 
-                        // ✅ NUEVO: Matriz de Adquisición (PDF o XLSX)
                         Forms\Components\FileUpload::make('acquisition_matrix_path')
                             ->label('Matriz de Adquisición (PDF o XLSX)')
                             ->directory('acquisition-matrices')
@@ -507,7 +492,6 @@ class BusinessPlanResource extends Resource
                             ])
                             ->columnSpanFull(),
 
-                        // ✅ NUEVO: Modelo de Negocio (PDF)
                         Forms\Components\FileUpload::make('business_model_path')
                             ->label('Modelo de Negocio (PDF)')
                             ->directory('business-models')
@@ -524,7 +508,6 @@ class BusinessPlanResource extends Resource
                             ])
                             ->columnSpanFull(),
 
-                        // ✅ NUEVO: Logo del Emprendimiento (PNG)
                         Forms\Components\FileUpload::make('logo_path')
                             ->label('Logo del Emprendimiento (PNG)')
                             ->directory('logos')
@@ -548,7 +531,6 @@ class BusinessPlanResource extends Resource
                             ])
                             ->columnSpanFull(),
 
-                        // ✅ NUEVO: Video de Fire Pitch (Link de YouTube)
                         Forms\Components\TextInput::make('fire_pitch_video_url')
                             ->label('Video de Fire Pitch (Link de YouTube)')
                             ->url()

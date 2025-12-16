@@ -78,6 +78,9 @@ class DashboardPanelProvider extends PanelProvider
                     ->label('Capacitaciones')
                     ->collapsible(),
                 NavigationGroup::make()
+                    ->label('Evaluaciones')
+                    ->collapsible(),
+                NavigationGroup::make()
                     ->label('Gestión Tipos')
                     ->collapsible(),
                 NavigationGroup::make()
@@ -87,6 +90,7 @@ class DashboardPanelProvider extends PanelProvider
                     ->label('CRM')
                     ->icon('heroicon-o-building-office')
                     ->collapsible(),
+
             ]);
     }
 }

@@ -36,8 +36,7 @@ class ManagerBusinessPlanEvaluationResource extends Resource
         // 1. Ya fueron evaluados por al menos 1 evaluador
         // 2. NO son de sus propios emprendedores (no puede evaluar a su gente)
         return parent::getEloquentQuery()
-            ->where('is_prioritized', true)
-            ->whereHas('evaluatorEvaluations') // Ya tiene evaluaciones de evaluadores
+            ->where('is_prioritized', true) // Ya tiene evaluaciones de evaluadores
             ->whereHas('entrepreneur', function ($query) use ($user) {
                 $query->where('manager_id', '!=', $user->id); // NO es su emprendedor
             })

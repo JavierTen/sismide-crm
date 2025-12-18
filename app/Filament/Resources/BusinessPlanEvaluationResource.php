@@ -473,7 +473,7 @@ class BusinessPlanEvaluationResource extends Resource
     <div class="mt-4 grid grid-cols-6 gap-2">
         <div class="border border-gray-300 dark:border-gray-600 p-2 text-center">
             <strong class="text-xs">Escalabilidad</strong>
-            <p class="text-xs mt-1">El negocio tiene la capacidad de crecer exponencialmente.</p>
+            <p class="text-xs mt-1">El negocio tiene la capacidad de crecer exponencialmente. Enfoque hacia la formalización y fortalecimiento de la economía formal.</p>
         </div>
         <div class="border border-gray-300 dark:border-gray-600 p-2 text-center">
             <strong class="text-xs">Tendencias y disrupciones del mercado</strong>

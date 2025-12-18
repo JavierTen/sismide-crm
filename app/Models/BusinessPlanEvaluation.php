@@ -148,7 +148,7 @@ class BusinessPlanEvaluation extends Model
     {
         $evaluatorsAvg = self::getAllEvaluatorsAverage($businessPlanId);
         $managersAvg = self::getAllManagersAverage($businessPlanId);
-        $finalScore = ($evaluatorsAvg * 0.90) + ($managersAvg * 0.10);
+        $finalScore = ($evaluatorsAvg * 0.95) + ($managersAvg * 0.05);
 
         return [
             'evaluators_average' => round($evaluatorsAvg, 2),

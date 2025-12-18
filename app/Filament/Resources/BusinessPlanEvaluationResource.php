@@ -392,7 +392,7 @@ class BusinessPlanEvaluationResource extends Resource
                                 ->content($record->value_proposition ?? 'N/A'),
 
                             Forms\Components\Placeholder::make('requirements_needs')
-                                ->label('Solicitud')
+                                ->label('Plan de inversión')
                                 ->content($record->requirements_needs ?? 'N/A'),
                         ]),
 

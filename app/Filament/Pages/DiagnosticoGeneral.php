@@ -18,11 +18,28 @@ class DiagnosticoGeneral extends Page
     protected static ?int $navigationSort = 4;
 
     /**
-     * Obtener datos de emprendimientos agrupados por municipio
+     * Obtener datos de emprendimientos agrupados por municipio - ENTRADA
      */
-    public function getEntrepreneursDataByCities(): array
+    public function getEntrepreneursDataByCitiesEntry(): array
     {
-        $query = BusinessDiagnosis::with(['entrepreneur.city']);
+        return $this->getEntrepreneursDataByCities('entry');
+    }
+
+    /**
+     * Obtener datos de emprendimientos agrupados por municipio - SALIDA
+     */
+    public function getEntrepreneursDataByCitiesExit(): array
+    {
+        return $this->getEntrepreneursDataByCities('exit');
+    }
+
+    /**
+     * Obtener datos de emprendimientos agrupados por municipio (método reutilizable)
+     */
+    private function getEntrepreneursDataByCities(string $diagnosisType): array
+    {
+        $query = BusinessDiagnosis::with(['entrepreneur.city'])
+            ->where('diagnosis_type', $diagnosisType); // ← FILTRO POR TIPO
 
         if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());

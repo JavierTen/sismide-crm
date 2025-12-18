@@ -65,6 +65,7 @@
                 </div>
             </div>
         </x-filament::section>
+        <br>
 
         {{-- ========== RESUMEN GENERAL SALIDA ========== --}}
         <x-filament::section>
@@ -92,6 +93,7 @@
                 </div>
             </div>
         </x-filament::section>
+        <br>
 
         {{-- ========== GRÁFICOS POR MUNICIPIO (ENTRADA Y SALIDA UNO DEBAJO DEL OTRO) ========== --}}
         @php

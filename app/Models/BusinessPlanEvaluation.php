@@ -144,17 +144,15 @@ class BusinessPlanEvaluation extends Model
     /**
      * Calcular el puntaje final de un plan de negocio
      */
-    public static function getFinalScore(int $businessPlanId): array
+    public static function getFinalScore(int $businessPlanId): float
     {
         $evaluatorsAvg = self::getAllEvaluatorsAverage($businessPlanId);
         $managersAvg = self::getAllManagersAverage($businessPlanId);
-        $finalScore = ($evaluatorsAvg * 0.95) + ($managersAvg * 0.05);
 
-        return [
-            'evaluators_average' => round($evaluatorsAvg, 2),
-            'managers_average' => round($managersAvg, 2),
-            'final_score' => round($finalScore, 2),
-        ];
+        // Ponderación: 90% evaluadores + 10% gestores
+        $finalScore = ($evaluatorsAvg * 0.90) + ($managersAvg * 0.10);
+
+        return round($finalScore, 2);
     }
 
     /**

@@ -182,7 +182,7 @@ class EntrepreneurPathResource extends Resource
                                             ->iconColor('warning')
                                             ->date('d/m/Y')
                                             ->placeholder('Sin fecha')
-                                            ->helperText(fn ($record) => $record->project?->name ?? 'Sin proyecto asignado'),
+                                            ->helperText(fn($record) => $record->project?->name ?? 'Sin proyecto asignado'),
                                     ]),
 
                                 \Filament\Infolists\Components\TextEntry::make('business.description')
@@ -197,7 +197,7 @@ class EntrepreneurPathResource extends Resource
                             ->schema([
                                 \Filament\Infolists\Components\TextEntry::make('visits_count')
                                     ->label('')
-                                    ->state(fn ($record) => $record->visits()->count() . ' visitas')
+                                    ->state(fn($record) => $record->visits()->count() . ' visitas')
                                     ->badge()
                                     ->color('warning'),
 
@@ -242,7 +242,7 @@ class EntrepreneurPathResource extends Resource
                                                     ->icon('heroicon-o-check-circle')
                                                     ->iconColor('info')
                                                     ->badge()
-                                                    ->color(fn ($state) => $state ? 'success' : 'warning')
+                                                    ->color(fn($state) => $state ? 'success' : 'warning')
                                                     ->formatStateUsing(function ($state, $record) {
                                                         $status = $state ? 'Confirmada' : 'Pendiente';
                                                         $city = $record->entrepreneur?->city?->name ?? '';
@@ -324,7 +324,7 @@ class EntrepreneurPathResource extends Resource
                                                     'instagram' => 'Instagram',
                                                 ];
 
-                                                $names = array_map(fn ($s) => $labels[$s] ?? $s, $strategies);
+                                                $names = array_map(fn($s) => $labels[$s] ?? $s, $strategies);
                                                 return implode('  ,  ', $names);
                                             }),
 
@@ -379,7 +379,7 @@ class EntrepreneurPathResource extends Resource
                                                     'hospitals' => 'Hospitales',
                                                 ];
 
-                                                $names = array_map(fn ($c) => $labels[$c] ?? $c, $clients);
+                                                $names = array_map(fn($c) => $labels[$c] ?? $c, $clients);
                                                 return implode('  ,  ', $names);
                                             }),
 
@@ -408,7 +408,7 @@ class EntrepreneurPathResource extends Resource
                             ->schema([
                                 \Filament\Infolists\Components\TextEntry::make('trainings_count')
                                     ->label('')
-                                    ->state(fn ($record) => $record->trainingParticipations()->count() . ' capacitaciones asistidas')
+                                    ->state(fn($record) => $record->trainingParticipations()->count() . ' capacitaciones asistidas')
                                     ->badge()
                                     ->color('success'),
 
@@ -423,7 +423,14 @@ class EntrepreneurPathResource extends Resource
                                                     ->color('primary')
                                                     ->icon('heroicon-o-academic-cap'),
 
-                                                \Filament\Infolists\Components\TextEntry::make('training.training_type')
+                                                \Filament\Infolists\Components\TextEntry::make('training.training_date')
+                                                    ->label('Fecha de Inicio')
+                                                    ->icon('heroicon-o-calendar')
+                                                    ->iconColor('success')
+                                                    ->date('d/m/Y')
+                                                    ->placeholder('Sin fecha'),
+
+                                                \Filament\Infolists\Components\TextEntry::make('training.modality')
                                                     ->label('Tipo')
                                                     ->icon('heroicon-o-tag')
                                                     ->iconColor('info')
@@ -436,76 +443,49 @@ class EntrepreneurPathResource extends Resource
                                                         return $types[$state] ?? ucfirst($state);
                                                     })
                                                     ->badge()
-                                                    ->color(fn ($state) => match($state) {
+                                                    ->color(fn($state) => match ($state) {
                                                         'presencial' => 'success',
                                                         'virtual' => 'info',
                                                         'hibrido' => 'warning',
                                                         default => 'gray'
                                                     }),
 
-                                                \Filament\Infolists\Components\TextEntry::make('training.duration_hours')
+                                                \Filament\Infolists\Components\TextEntry::make('training.intensity_hours')
                                                     ->label('Duración')
                                                     ->icon('heroicon-o-clock')
                                                     ->iconColor('warning')
-                                                    ->formatStateUsing(fn ($state) => $state . ' horas')
+                                                    ->formatStateUsing(fn($state) => $state . ' horas')
                                                     ->placeholder('No especificada'),
 
-                                                \Filament\Infolists\Components\TextEntry::make('training.start_date')
+                                                \Filament\Infolists\Components\TextEntry::make('training.start_time')
                                                     ->label('Fecha de Inicio')
                                                     ->icon('heroicon-o-calendar')
                                                     ->iconColor('success')
-                                                    ->date('d/m/Y')
+                                                    ->date('H:i')
                                                     ->placeholder('Sin fecha'),
 
-                                                \Filament\Infolists\Components\TextEntry::make('training.end_date')
+                                                \Filament\Infolists\Components\TextEntry::make('training.end_time')
                                                     ->label('Fecha de Finalización')
                                                     ->icon('heroicon-o-calendar-days')
                                                     ->iconColor('danger')
-                                                    ->date('d/m/Y')
+                                                    ->date('H:i')
                                                     ->placeholder('Sin fecha'),
 
-                                                \Filament\Infolists\Components\TextEntry::make('training.location')
+                                                \Filament\Infolists\Components\TextEntry::make('training.city.name')
                                                     ->label('Lugar')
                                                     ->icon('heroicon-o-map-pin')
                                                     ->iconColor('primary')
                                                     ->placeholder('No especificado'),
 
-                                                \Filament\Infolists\Components\TextEntry::make('training.instructor')
+                                                \Filament\Infolists\Components\TextEntry::make('training.organizer_name')
                                                     ->label('Instructor')
                                                     ->icon('heroicon-o-user')
                                                     ->iconColor('purple')
                                                     ->placeholder('No especificado'),
 
-                                                \Filament\Infolists\Components\TextEntry::make('training.max_participants')
-                                                    ->label('Cupos')
-                                                    ->icon('heroicon-o-users')
-                                                    ->iconColor('info')
-                                                    ->formatStateUsing(fn ($state) => $state ? $state . ' participantes' : 'No especificado')
-                                                    ->placeholder('No especificado'),
-
-                                                \Filament\Infolists\Components\TextEntry::make('attendance_status')
-                                                    ->label('Estado de Asistencia')
-                                                    ->icon('heroicon-o-check-circle')
-                                                    ->formatStateUsing(function ($state) {
-                                                        $statuses = [
-                                                            'confirmed' => 'Confirmado',
-                                                            'attended' => 'Asistió',
-                                                            'absent' => 'No asistió',
-                                                            'cancelled' => 'Cancelado',
-                                                        ];
-                                                        return $statuses[$state] ?? 'Pendiente';
-                                                    })
-                                                    ->badge()
-                                                    ->color(fn ($state) => match($state) {
-                                                        'attended' => 'success',
-                                                        'confirmed' => 'info',
-                                                        'absent' => 'danger',
-                                                        'cancelled' => 'gray',
-                                                        default => 'warning'
-                                                    }),
                                             ]),
 
-                                        \Filament\Infolists\Components\TextEntry::make('training.description')
+                                        \Filament\Infolists\Components\TextEntry::make('training.objective')
                                             ->label('Descripción')
                                             ->placeholder('Sin descripción')
                                             ->columnSpanFull(),
@@ -513,7 +493,7 @@ class EntrepreneurPathResource extends Resource
                                     ->contained(false)
                                     ->columnSpanFull(),
                             ])
-                            ->visible(fn ($record) => $record->trainingParticipations()->exists())
+                            ->visible(fn($record) => $record->trainingParticipations()->exists())
                             ->collapsed()
                             ->collapsible(),
 
@@ -550,7 +530,7 @@ class EntrepreneurPathResource extends Resource
                                                     ? $char->commerce_evidence_path
                                                     : (json_decode($char->commerce_evidence_path, true) ?? [$char->commerce_evidence_path]);
 
-                                                return collect($files)->map(function($file, $i) {
+                                                return collect($files)->map(function ($file, $i) {
                                                     return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver archivo ' . ($i + 1) . '</a>';
                                                 })->join('<br>');
                                             })
@@ -571,7 +551,7 @@ class EntrepreneurPathResource extends Resource
                                                     ? $char->population_evidence_path
                                                     : (json_decode($char->population_evidence_path, true) ?? [$char->population_evidence_path]);
 
-                                                return collect($files)->map(function($file, $i) {
+                                                return collect($files)->map(function ($file, $i) {
                                                     return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver archivo ' . ($i + 1) . '</a>';
                                                 })->join('<br>');
                                             })
@@ -592,7 +572,7 @@ class EntrepreneurPathResource extends Resource
                                                     ? $char->photo_evidence_path
                                                     : (json_decode($char->photo_evidence_path, true) ?? [$char->photo_evidence_path]);
 
-                                                return collect($files)->map(function($file, $i) {
+                                                return collect($files)->map(function ($file, $i) {
                                                     return '🖼️ <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver foto ' . ($i + 1) . '</a>';
                                                 })->join('<br>');
                                             })
@@ -760,10 +740,10 @@ class EntrepreneurPathResource extends Resource
                                         \Filament\Infolists\Components\TextEntry::make('fair_photo')
                                             ->label('Foto de Participación')
                                             ->formatStateUsing(fn() => 'Ver foto')
-                                            ->url(fn ($record) => $record->participation_photo_path ? Storage::url($record->participation_photo_path) : null, shouldOpenInNewTab: true)
+                                            ->url(fn($record) => $record->participation_photo_path ? Storage::url($record->participation_photo_path) : null, shouldOpenInNewTab: true)
                                             ->color('primary')
                                             ->icon('heroicon-o-photo')
-                                            ->visible(fn ($record) => $record->participation_photo_path),
+                                            ->visible(fn($record) => $record->participation_photo_path),
                                     ])
                                     ->visible(function ($record) {
                                         return \App\Models\FairEvaluation::where('entrepreneur_id', $record->id)
@@ -795,7 +775,7 @@ class EntrepreneurPathResource extends Resource
                                         \Filament\Infolists\Components\TextEntry::make('type')
                                             ->label('Tipo')
                                             ->weight('semibold')
-                                            ->formatStateUsing(fn ($state) => ucfirst($state)),
+                                            ->formatStateUsing(fn($state) => ucfirst($state)),
 
                                         \Filament\Infolists\Components\Grid::make(2)
                                             ->schema([
@@ -810,12 +790,12 @@ class EntrepreneurPathResource extends Resource
 
                                                         if (empty($files)) return null;
 
-                                                        return collect($files)->map(function($file, $i) {
+                                                        return collect($files)->map(function ($file, $i) {
                                                             return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver evidencia ' . ($i + 1) . '</a>';
                                                         })->join('<br>');
                                                     })
                                                     ->html()
-                                                    ->visible(fn ($record) => $record->evidence_files),
+                                                    ->visible(fn($record) => $record->evidence_files),
 
                                                 \Filament\Infolists\Components\TextEntry::make('response_files')
                                                     ->label('Archivos de Respuesta')
@@ -828,12 +808,12 @@ class EntrepreneurPathResource extends Resource
 
                                                         if (empty($files)) return null;
 
-                                                        return collect($files)->map(function($file, $i) {
+                                                        return collect($files)->map(function ($file, $i) {
                                                             return '✅ <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver respuesta ' . ($i + 1) . '</a>';
                                                         })->join('<br>');
                                                     })
                                                     ->html()
-                                                    ->visible(fn ($record) => $record->response_files),
+                                                    ->visible(fn($record) => $record->response_files),
                                             ]),
                                     ])
                                     ->visible(function ($record) {

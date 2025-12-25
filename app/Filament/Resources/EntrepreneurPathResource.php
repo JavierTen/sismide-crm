@@ -402,13 +402,13 @@ class EntrepreneurPathResource extends Resource
                             ->collapsed()
                             ->collapsible(),
 
-                        \Filament\Infolists\Components\Section::make('Mis Capacitaciones')
+                        \Filament\Infolists\Components\Section::make('Capacitaciones')
                             ->icon('heroicon-o-academic-cap')
                             ->iconColor('warning')
                             ->schema([
                                 \Filament\Infolists\Components\TextEntry::make('trainings_count')
                                     ->label('')
-                                    ->state(fn ($record) => $record->trainingParticipations()->count() . ' capacitaciones')
+                                    ->state(fn ($record) => $record->trainingParticipations()->count() . ' capacitaciones asistidas')
                                     ->badge()
                                     ->color('success'),
 

@@ -414,7 +414,7 @@ class EntrepreneurPathResource extends Resource
 
                                 \Filament\Infolists\Components\Grid::make(3)
                                     ->schema([
-                                        \Filament\Infolists\Components\RepeatableEntry::make('char_commerce_files')
+                                        \Filament\Infolists\Components\TextEntry::make('char_commerce')
                                             ->label('Evidencia de Comercio')
                                             ->getStateUsing(function ($record) {
                                                 $char = $record->characterizations()->first();
@@ -424,23 +424,18 @@ class EntrepreneurPathResource extends Resource
                                                     ? $char->commerce_evidence_path
                                                     : (json_decode($char->commerce_evidence_path, true) ?? [$char->commerce_evidence_path]);
 
-                                                return collect($files)->map(fn($file, $i) => ['file' => $file, 'index' => $i + 1])->toArray();
+                                                return collect($files)->map(function($file, $i) {
+                                                    return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver archivo '. '</a>';
+                                                })->join('<br>');
                                             })
-                                            ->schema([
-                                                \Filament\Infolists\Components\TextEntry::make('file')
-                                                    ->label('')
-                                                    ->formatStateUsing(fn($state, $record) => 'Ver archivo ' . $record['index'])
-                                                    ->url(fn($state) => Storage::url($state), shouldOpenInNewTab: true)
-                                                    ->color('primary')
-                                                    ->icon('heroicon-o-arrow-down-tray'),
-                                            ])
-                                            ->contained(false)
+                                            ->html()
+                                            ->placeholder('Sin evidencias')
                                             ->visible(function ($record) {
                                                 $char = $record->characterizations()->first();
                                                 return $char && $char->commerce_evidence_path;
                                             }),
 
-                                        \Filament\Infolists\Components\RepeatableEntry::make('char_population_files')
+                                        \Filament\Infolists\Components\TextEntry::make('char_population')
                                             ->label('Evidencia de Población')
                                             ->getStateUsing(function ($record) {
                                                 $char = $record->characterizations()->first();
@@ -450,23 +445,18 @@ class EntrepreneurPathResource extends Resource
                                                     ? $char->population_evidence_path
                                                     : (json_decode($char->population_evidence_path, true) ?? [$char->population_evidence_path]);
 
-                                                return collect($files)->map(fn($file, $i) => ['file' => $file, 'index' => $i + 1])->toArray();
+                                                return collect($files)->map(function($file, $i) {
+                                                    return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver archivo ' . ($i + 1) . '</a>';
+                                                })->join('<br>');
                                             })
-                                            ->schema([
-                                                \Filament\Infolists\Components\TextEntry::make('file')
-                                                    ->label('')
-                                                    ->formatStateUsing(fn($state, $record) => 'Ver archivo ' . $record['index'])
-                                                    ->url(fn($state) => Storage::url($state), shouldOpenInNewTab: true)
-                                                    ->color('primary')
-                                                    ->icon('heroicon-o-arrow-down-tray'),
-                                            ])
-                                            ->contained(false)
+                                            ->html()
+                                            ->placeholder('Sin evidencias')
                                             ->visible(function ($record) {
                                                 $char = $record->characterizations()->first();
                                                 return $char && $char->population_evidence_path;
                                             }),
 
-                                        \Filament\Infolists\Components\RepeatableEntry::make('char_photo_files')
+                                        \Filament\Infolists\Components\TextEntry::make('char_photo')
                                             ->label('Evidencia Fotográfica')
                                             ->getStateUsing(function ($record) {
                                                 $char = $record->characterizations()->first();
@@ -476,17 +466,12 @@ class EntrepreneurPathResource extends Resource
                                                     ? $char->photo_evidence_path
                                                     : (json_decode($char->photo_evidence_path, true) ?? [$char->photo_evidence_path]);
 
-                                                return collect($files)->map(fn($file, $i) => ['file' => $file, 'index' => $i + 1])->toArray();
+                                                return collect($files)->map(function($file, $i) {
+                                                    return '🖼️ <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver foto ' . ($i + 1) . '</a>';
+                                                })->join('<br>');
                                             })
-                                            ->schema([
-                                                \Filament\Infolists\Components\TextEntry::make('file')
-                                                    ->label('')
-                                                    ->formatStateUsing(fn($state, $record) => 'Ver foto ' . $record['index'])
-                                                    ->url(fn($state) => Storage::url($state), shouldOpenInNewTab: true)
-                                                    ->color('primary')
-                                                    ->icon('heroicon-o-photo'),
-                                            ])
-                                            ->contained(false)
+                                            ->html()
+                                            ->placeholder('Sin fotos')
                                             ->visible(function ($record) {
                                                 $char = $record->characterizations()->first();
                                                 return $char && $char->photo_evidence_path;
@@ -688,44 +673,40 @@ class EntrepreneurPathResource extends Resource
 
                                         \Filament\Infolists\Components\Grid::make(2)
                                             ->schema([
-                                                \Filament\Infolists\Components\RepeatableEntry::make('evidence_files_list')
+                                                \Filament\Infolists\Components\TextEntry::make('evidence_files')
                                                     ->label('Evidencias')
                                                     ->getStateUsing(function ($record) {
-                                                        if (!$record->evidence_files) return [];
+                                                        if (!$record->evidence_files) return null;
+
                                                         $files = is_array($record->evidence_files)
                                                             ? $record->evidence_files
                                                             : (json_decode($record->evidence_files, true) ?? []);
-                                                        return collect($files)->map(fn($file, $i) => ['file' => $file, 'index' => $i + 1])->toArray();
+
+                                                        if (empty($files)) return null;
+
+                                                        return collect($files)->map(function($file, $i) {
+                                                            return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver evidencia ' . ($i + 1) . '</a>';
+                                                        })->join('<br>');
                                                     })
-                                                    ->schema([
-                                                        \Filament\Infolists\Components\TextEntry::make('file')
-                                                            ->label('')
-                                                            ->formatStateUsing(fn($state, $record) => 'Ver evidencia ' . $record['index'])
-                                                            ->url(fn($state) => Storage::url($state), shouldOpenInNewTab: true)
-                                                            ->color('primary')
-                                                            ->icon('heroicon-o-document'),
-                                                    ])
-                                                    ->contained(false)
+                                                    ->html()
                                                     ->visible(fn ($record) => $record->evidence_files),
 
-                                                \Filament\Infolists\Components\RepeatableEntry::make('response_files_list')
+                                                \Filament\Infolists\Components\TextEntry::make('response_files')
                                                     ->label('Archivos de Respuesta')
                                                     ->getStateUsing(function ($record) {
-                                                        if (!$record->response_files) return [];
+                                                        if (!$record->response_files) return null;
+
                                                         $files = is_array($record->response_files)
                                                             ? $record->response_files
                                                             : (json_decode($record->response_files, true) ?? []);
-                                                        return collect($files)->map(fn($file, $i) => ['file' => $file, 'index' => $i + 1])->toArray();
+
+                                                        if (empty($files)) return null;
+
+                                                        return collect($files)->map(function($file, $i) {
+                                                            return '✅ <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver respuesta ' . ($i + 1) . '</a>';
+                                                        })->join('<br>');
                                                     })
-                                                    ->schema([
-                                                        \Filament\Infolists\Components\TextEntry::make('file')
-                                                            ->label('')
-                                                            ->formatStateUsing(fn($state, $record) => 'Ver respuesta ' . $record['index'])
-                                                            ->url(fn($state) => Storage::url($state), shouldOpenInNewTab: true)
-                                                            ->color('primary')
-                                                            ->icon('heroicon-o-document-check'),
-                                                    ])
-                                                    ->contained(false)
+                                                    ->html()
                                                     ->visible(fn ($record) => $record->response_files),
                                             ]),
                                     ])

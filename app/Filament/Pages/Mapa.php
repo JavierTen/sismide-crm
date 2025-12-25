@@ -16,6 +16,14 @@ class Mapa extends Page
     protected static ?int $navigationSort = 2;
 
     /**
+     * Verificar si el usuario puede acceder a esta página
+     */
+    public static function canAccess(): bool
+    {
+        return auth()->user()->can('viewMap');
+    }
+
+    /**
      * Obtener emprendedores con coordenadas
      */
     public function getEntrepreneursWithCoordinates()
@@ -56,6 +64,38 @@ class Mapa extends Page
                     'maturity_level' => $maturityLevel ?? 'Sin diagnóstico',
                     'route' => $route['name'],
                     'route_color' => $route['color'],
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Obtener actores con coordenadas
+     */
+    public function getActorsWithCoordinates()
+    {
+        $query = \App\Models\Actor::with(['city', 'manager'])
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude');
+
+        // Filtrar por gestor si no es Admin
+        if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
+            $query->where('manager_id', auth()->id());
+        }
+
+        return $query->get()
+            ->map(function ($actor) {
+                return [
+                    'latitude' => (float) $actor->latitude,
+                    'longitude' => (float) $actor->longitude,
+                    'name' => $actor->name ?? 'N/A',
+                    'contact_name' => $actor->contact_name ?? 'N/A',
+                    'type' => $actor->type_name ?? 'N/A',
+                    'contact_email' => $actor->contact_email ?? 'N/A',
+                    'contact_phone' => $actor->contact_phone ?? 'N/A',
+                    'city' => $actor->city?->name ?? 'N/A',
+                    'manager' => $actor->manager?->name ?? 'N/A',
                 ];
             })
             ->values()

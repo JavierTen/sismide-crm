@@ -85,7 +85,8 @@ class FairEvaluation extends Model
         'deleted_at' => 'datetime',
     ];
 
-    // Relaciones
+    // ========== RELACIONES ==========
+
     public function entrepreneur(): BelongsTo
     {
         return $this->belongsTo(Entrepreneur::class);
@@ -101,7 +102,8 @@ class FairEvaluation extends Model
         return $this->belongsTo(User::class, 'manager_id');
     }
 
-    // Constantes para los enums
+    // ========== CONSTANTES PARA ENUMS ==========
+
     public const ORGANIZATION_RATING_OPTIONS = [
         'excellent' => 'Excelente',
         'good' => 'Buena',
@@ -129,7 +131,8 @@ class FairEvaluation extends Model
         'more_than_1m' => 'Más de $1.000.000',
     ];
 
-    // Scopes
+    // ========== SCOPES ==========
+
     public function scopeByManager($query, $managerId)
     {
         return $query->where('manager_id', $managerId);
@@ -155,7 +158,8 @@ class FairEvaluation extends Model
         return $query->where('established_productive_chain', true);
     }
 
-    // Accessors
+    // ========== ACCESSORS ==========
+
     public function getOrganizationRatingNameAttribute(): string
     {
         return self::ORGANIZATION_RATING_OPTIONS[$this->organization_rating] ?? $this->organization_rating;

@@ -84,7 +84,7 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
         return 'https://ui-avatars.com/api/?name='.urlencode($name).'&color=7F9CF5&background=EBF4FF';
     }
 
-    // ... relaciones básicas
+    // ========== RELACIONES ==========
 
     public function documentType()
     {
@@ -213,5 +213,13 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
     public function businessPlan()
     {
         return $this->hasOne(BusinessPlan::class);
+    }
+
+    /**
+     * Relación con las evaluaciones de ferias
+     */
+    public function fairEvaluations(): HasMany
+    {
+        return $this->hasMany(\App\Models\FairEvaluation::class);
     }
 }

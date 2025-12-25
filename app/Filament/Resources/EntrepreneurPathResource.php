@@ -458,18 +458,18 @@ class EntrepreneurPathResource extends Resource
                                                     ->placeholder('No especificada'),
 
                                                 \Filament\Infolists\Components\TextEntry::make('training.start_time')
-                                                    ->label('Fecha de Inicio')
+                                                    ->label('Hora de Inicio')
                                                     ->icon('heroicon-o-calendar')
                                                     ->iconColor('success')
                                                     ->date('H:i')
-                                                    ->placeholder('Sin fecha'),
+                                                    ->placeholder('Sin hora'),
 
                                                 \Filament\Infolists\Components\TextEntry::make('training.end_time')
-                                                    ->label('Fecha de Finalización')
+                                                    ->label('Hora de Finalización')
                                                     ->icon('heroicon-o-calendar-days')
                                                     ->iconColor('danger')
                                                     ->date('H:i')
-                                                    ->placeholder('Sin fecha'),
+                                                    ->placeholder('Sin hora'),
 
                                                 \Filament\Infolists\Components\TextEntry::make('training.city.name')
                                                     ->label('Lugar')

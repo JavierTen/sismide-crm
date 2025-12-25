@@ -55,38 +55,6 @@ class EntrepreneurPathResource extends Resource
         return false;
     }
 
-    /**
-     * Renderizar botones de archivos
-     */
-    private static function renderFileButtons($files, string $label = 'Ver archivo'): string
-    {
-        if (!$files) {
-            return 'Sin evidencia';
-        }
-
-        if (!is_array($files)) {
-            $files = json_decode($files, true) ?? [$files];
-        }
-
-        if (empty($files)) {
-            return 'Sin evidencia';
-        }
-
-        $html = '<div class="space-y-2">';
-
-        foreach ($files as $index => $file) {
-            $url = Storage::url($file);
-
-            $html .= '<a href="' . $url . '" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition">';
-            $html .= '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>';
-            $html .= '<span>' . $label . ' ' . ($index + 1) . '</span>';
-            $html .= '</a>';
-        }
-
-        $html .= '</div>';
-        return $html;
-    }
-
     public static function table(Table $table): Table
     {
         return $table
@@ -446,49 +414,79 @@ class EntrepreneurPathResource extends Resource
 
                                 \Filament\Infolists\Components\Grid::make(3)
                                     ->schema([
-                                        \Filament\Infolists\Components\TextEntry::make('char_commerce')
+                                        \Filament\Infolists\Components\RepeatableEntry::make('char_commerce_files')
                                             ->label('Evidencia de Comercio')
-                                            ->formatStateUsing(function ($state, $record) {
+                                            ->getStateUsing(function ($record) {
                                                 $char = $record->characterizations()->first();
-                                                if (!$char || !$char->commerce_evidence_path) {
-                                                    return 'Sin evidencia';
-                                                }
-                                                return new \Illuminate\Support\HtmlString(
-                                                    self::renderFileButtons($char->commerce_evidence_path)
-                                                );
+                                                if (!$char || !$char->commerce_evidence_path) return [];
+
+                                                $files = is_array($char->commerce_evidence_path)
+                                                    ? $char->commerce_evidence_path
+                                                    : (json_decode($char->commerce_evidence_path, true) ?? [$char->commerce_evidence_path]);
+
+                                                return collect($files)->map(fn($file, $i) => ['file' => $file, 'index' => $i + 1])->toArray();
                                             })
+                                            ->schema([
+                                                \Filament\Infolists\Components\TextEntry::make('file')
+                                                    ->label('')
+                                                    ->formatStateUsing(fn($state, $record) => 'Ver archivo ' . $record['index'])
+                                                    ->url(fn($state) => Storage::url($state), shouldOpenInNewTab: true)
+                                                    ->color('primary')
+                                                    ->icon('heroicon-o-arrow-down-tray'),
+                                            ])
+                                            ->contained(false)
                                             ->visible(function ($record) {
                                                 $char = $record->characterizations()->first();
                                                 return $char && $char->commerce_evidence_path;
                                             }),
 
-                                        \Filament\Infolists\Components\TextEntry::make('char_population')
+                                        \Filament\Infolists\Components\RepeatableEntry::make('char_population_files')
                                             ->label('Evidencia de Población')
-                                            ->formatStateUsing(function ($state, $record) {
+                                            ->getStateUsing(function ($record) {
                                                 $char = $record->characterizations()->first();
-                                                if (!$char || !$char->population_evidence_path) {
-                                                    return 'Sin evidencia';
-                                                }
-                                                return new \Illuminate\Support\HtmlString(
-                                                    self::renderFileButtons($char->population_evidence_path)
-                                                );
+                                                if (!$char || !$char->population_evidence_path) return [];
+
+                                                $files = is_array($char->population_evidence_path)
+                                                    ? $char->population_evidence_path
+                                                    : (json_decode($char->population_evidence_path, true) ?? [$char->population_evidence_path]);
+
+                                                return collect($files)->map(fn($file, $i) => ['file' => $file, 'index' => $i + 1])->toArray();
                                             })
+                                            ->schema([
+                                                \Filament\Infolists\Components\TextEntry::make('file')
+                                                    ->label('')
+                                                    ->formatStateUsing(fn($state, $record) => 'Ver archivo ' . $record['index'])
+                                                    ->url(fn($state) => Storage::url($state), shouldOpenInNewTab: true)
+                                                    ->color('primary')
+                                                    ->icon('heroicon-o-arrow-down-tray'),
+                                            ])
+                                            ->contained(false)
                                             ->visible(function ($record) {
                                                 $char = $record->characterizations()->first();
                                                 return $char && $char->population_evidence_path;
                                             }),
 
-                                        \Filament\Infolists\Components\TextEntry::make('char_photo')
+                                        \Filament\Infolists\Components\RepeatableEntry::make('char_photo_files')
                                             ->label('Evidencia Fotográfica')
-                                            ->formatStateUsing(function ($state, $record) {
+                                            ->getStateUsing(function ($record) {
                                                 $char = $record->characterizations()->first();
-                                                if (!$char || !$char->photo_evidence_path) {
-                                                    return 'Sin evidencia';
-                                                }
-                                                return new \Illuminate\Support\HtmlString(
-                                                    self::renderFileButtons($char->photo_evidence_path)
-                                                );
+                                                if (!$char || !$char->photo_evidence_path) return [];
+
+                                                $files = is_array($char->photo_evidence_path)
+                                                    ? $char->photo_evidence_path
+                                                    : (json_decode($char->photo_evidence_path, true) ?? [$char->photo_evidence_path]);
+
+                                                return collect($files)->map(fn($file, $i) => ['file' => $file, 'index' => $i + 1])->toArray();
                                             })
+                                            ->schema([
+                                                \Filament\Infolists\Components\TextEntry::make('file')
+                                                    ->label('')
+                                                    ->formatStateUsing(fn($state, $record) => 'Ver foto ' . $record['index'])
+                                                    ->url(fn($state) => Storage::url($state), shouldOpenInNewTab: true)
+                                                    ->color('primary')
+                                                    ->icon('heroicon-o-photo'),
+                                            ])
+                                            ->contained(false)
                                             ->visible(function ($record) {
                                                 $char = $record->characterizations()->first();
                                                 return $char && $char->photo_evidence_path;
@@ -527,15 +525,13 @@ class EntrepreneurPathResource extends Resource
                                     ->schema([
                                         \Filament\Infolists\Components\TextEntry::make('bp_file')
                                             ->label('Plan de Negocio')
-                                            ->formatStateUsing(function ($state, $record) {
+                                            ->formatStateUsing(fn() => 'Ver plan de negocio')
+                                            ->url(function ($record) {
                                                 $bp = $record->businessPlan;
-                                                if (!$bp || !$bp->business_plan_path) {
-                                                    return null;
-                                                }
-                                                return new \Illuminate\Support\HtmlString(
-                                                    self::renderFileButtons([$bp->business_plan_path], 'Ver plan')
-                                                );
-                                            })
+                                                return $bp && $bp->business_plan_path ? Storage::url($bp->business_plan_path) : null;
+                                            }, shouldOpenInNewTab: true)
+                                            ->color('primary')
+                                            ->icon('heroicon-o-document-text')
                                             ->visible(function ($record) {
                                                 $bp = $record->businessPlan;
                                                 return $bp && $bp->business_plan_path;
@@ -543,15 +539,13 @@ class EntrepreneurPathResource extends Resource
 
                                         \Filament\Infolists\Components\TextEntry::make('bp_matrix')
                                             ->label('Matriz de Adquisición')
-                                            ->formatStateUsing(function ($state, $record) {
+                                            ->formatStateUsing(fn() => 'Ver matriz')
+                                            ->url(function ($record) {
                                                 $bp = $record->businessPlan;
-                                                if (!$bp || !$bp->acquisition_matrix_path) {
-                                                    return null;
-                                                }
-                                                return new \Illuminate\Support\HtmlString(
-                                                    self::renderFileButtons([$bp->acquisition_matrix_path], 'Ver matriz')
-                                                );
-                                            })
+                                                return $bp && $bp->acquisition_matrix_path ? Storage::url($bp->acquisition_matrix_path) : null;
+                                            }, shouldOpenInNewTab: true)
+                                            ->color('primary')
+                                            ->icon('heroicon-o-table-cells')
                                             ->visible(function ($record) {
                                                 $bp = $record->businessPlan;
                                                 return $bp && $bp->acquisition_matrix_path;
@@ -559,15 +553,13 @@ class EntrepreneurPathResource extends Resource
 
                                         \Filament\Infolists\Components\TextEntry::make('bp_model')
                                             ->label('Modelo de Negocio')
-                                            ->formatStateUsing(function ($state, $record) {
+                                            ->formatStateUsing(fn() => 'Ver modelo')
+                                            ->url(function ($record) {
                                                 $bp = $record->businessPlan;
-                                                if (!$bp || !$bp->business_model_path) {
-                                                    return null;
-                                                }
-                                                return new \Illuminate\Support\HtmlString(
-                                                    self::renderFileButtons([$bp->business_model_path], 'Ver modelo')
-                                                );
-                                            })
+                                                return $bp && $bp->business_model_path ? Storage::url($bp->business_model_path) : null;
+                                            }, shouldOpenInNewTab: true)
+                                            ->color('primary')
+                                            ->icon('heroicon-o-chart-bar')
                                             ->visible(function ($record) {
                                                 $bp = $record->businessPlan;
                                                 return $bp && $bp->business_model_path;
@@ -575,15 +567,13 @@ class EntrepreneurPathResource extends Resource
 
                                         \Filament\Infolists\Components\TextEntry::make('bp_logo')
                                             ->label('Logo')
-                                            ->formatStateUsing(function ($state, $record) {
+                                            ->formatStateUsing(fn() => 'Ver logo')
+                                            ->url(function ($record) {
                                                 $bp = $record->businessPlan;
-                                                if (!$bp || !$bp->logo_path) {
-                                                    return null;
-                                                }
-                                                return new \Illuminate\Support\HtmlString(
-                                                    self::renderFileButtons([$bp->logo_path], 'Ver logo')
-                                                );
-                                            })
+                                                return $bp && $bp->logo_path ? Storage::url($bp->logo_path) : null;
+                                            }, shouldOpenInNewTab: true)
+                                            ->color('primary')
+                                            ->icon('heroicon-o-photo')
                                             ->visible(function ($record) {
                                                 $bp = $record->businessPlan;
                                                 return $bp && $bp->logo_path;
@@ -591,17 +581,13 @@ class EntrepreneurPathResource extends Resource
 
                                         \Filament\Infolists\Components\TextEntry::make('bp_fire_pitch')
                                             ->label('Fire Pitch Video')
-                                            ->formatStateUsing(function ($state, $record) {
+                                            ->formatStateUsing(fn() => 'Ver video')
+                                            ->url(function ($record) {
                                                 $bp = $record->businessPlan;
-                                                if (!$bp || !$bp->fire_pitch_video_url) {
-                                                    return null;
-                                                }
-                                                $html = '<a href="' . $bp->fire_pitch_video_url . '" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition">';
-                                                $html .= '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-                                                $html .= '<span>Ver video</span>';
-                                                $html .= '</a>';
-                                                return new \Illuminate\Support\HtmlString($html);
-                                            })
+                                                return $bp && $bp->fire_pitch_video_url ? $bp->fire_pitch_video_url : null;
+                                            }, shouldOpenInNewTab: true)
+                                            ->color('primary')
+                                            ->icon('heroicon-o-play-circle')
                                             ->visible(function ($record) {
                                                 $bp = $record->businessPlan;
                                                 return $bp && $bp->fire_pitch_video_url;
@@ -609,17 +595,13 @@ class EntrepreneurPathResource extends Resource
 
                                         \Filament\Infolists\Components\TextEntry::make('bp_production_cycle')
                                             ->label('Ciclo de Producción Video')
-                                            ->formatStateUsing(function ($state, $record) {
+                                            ->formatStateUsing(fn() => 'Ver video')
+                                            ->url(function ($record) {
                                                 $bp = $record->businessPlan;
-                                                if (!$bp || !$bp->production_cycle_video_url) {
-                                                    return null;
-                                                }
-                                                $html = '<a href="' . $bp->production_cycle_video_url . '" target="_blank" class="inline-flex items-center gap-2 px-3 py-2 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition">';
-                                                $html .= '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-                                                $html .= '<span>Ver video</span>';
-                                                $html .= '</a>';
-                                                return new \Illuminate\Support\HtmlString($html);
-                                            })
+                                                return $bp && $bp->production_cycle_video_url ? $bp->production_cycle_video_url : null;
+                                            }, shouldOpenInNewTab: true)
+                                            ->color('primary')
+                                            ->icon('heroicon-o-play-circle')
                                             ->visible(function ($record) {
                                                 $bp = $record->businessPlan;
                                                 return $bp && $bp->production_cycle_video_url;
@@ -666,14 +648,10 @@ class EntrepreneurPathResource extends Resource
 
                                         \Filament\Infolists\Components\TextEntry::make('fair_photo')
                                             ->label('Foto de Participación')
-                                            ->formatStateUsing(function ($state, $record) {
-                                                if (!$record->participation_photo_path) {
-                                                    return null;
-                                                }
-                                                return new \Illuminate\Support\HtmlString(
-                                                    self::renderFileButtons([$record->participation_photo_path], 'Ver foto')
-                                                );
-                                            })
+                                            ->formatStateUsing(fn() => 'Ver foto')
+                                            ->url(fn ($record) => $record->participation_photo_path ? Storage::url($record->participation_photo_path) : null, shouldOpenInNewTab: true)
+                                            ->color('primary')
+                                            ->icon('heroicon-o-photo')
                                             ->visible(fn ($record) => $record->participation_photo_path),
                                     ])
                                     ->visible(function ($record) {
@@ -710,28 +688,44 @@ class EntrepreneurPathResource extends Resource
 
                                         \Filament\Infolists\Components\Grid::make(2)
                                             ->schema([
-                                                \Filament\Infolists\Components\TextEntry::make('pqrf_evidence')
+                                                \Filament\Infolists\Components\RepeatableEntry::make('evidence_files_list')
                                                     ->label('Evidencias')
-                                                    ->formatStateUsing(function ($state, $record) {
-                                                        if (!$record->evidence_files) {
-                                                            return null;
-                                                        }
-                                                        return new \Illuminate\Support\HtmlString(
-                                                            self::renderFileButtons($record->evidence_files, 'Ver evidencia')
-                                                        );
+                                                    ->getStateUsing(function ($record) {
+                                                        if (!$record->evidence_files) return [];
+                                                        $files = is_array($record->evidence_files)
+                                                            ? $record->evidence_files
+                                                            : (json_decode($record->evidence_files, true) ?? []);
+                                                        return collect($files)->map(fn($file, $i) => ['file' => $file, 'index' => $i + 1])->toArray();
                                                     })
+                                                    ->schema([
+                                                        \Filament\Infolists\Components\TextEntry::make('file')
+                                                            ->label('')
+                                                            ->formatStateUsing(fn($state, $record) => 'Ver evidencia ' . $record['index'])
+                                                            ->url(fn($state) => Storage::url($state), shouldOpenInNewTab: true)
+                                                            ->color('primary')
+                                                            ->icon('heroicon-o-document'),
+                                                    ])
+                                                    ->contained(false)
                                                     ->visible(fn ($record) => $record->evidence_files),
 
-                                                \Filament\Infolists\Components\TextEntry::make('pqrf_response')
+                                                \Filament\Infolists\Components\RepeatableEntry::make('response_files_list')
                                                     ->label('Archivos de Respuesta')
-                                                    ->formatStateUsing(function ($state, $record) {
-                                                        if (!$record->response_files) {
-                                                            return null;
-                                                        }
-                                                        return new \Illuminate\Support\HtmlString(
-                                                            self::renderFileButtons($record->response_files, 'Ver respuesta')
-                                                        );
+                                                    ->getStateUsing(function ($record) {
+                                                        if (!$record->response_files) return [];
+                                                        $files = is_array($record->response_files)
+                                                            ? $record->response_files
+                                                            : (json_decode($record->response_files, true) ?? []);
+                                                        return collect($files)->map(fn($file, $i) => ['file' => $file, 'index' => $i + 1])->toArray();
                                                     })
+                                                    ->schema([
+                                                        \Filament\Infolists\Components\TextEntry::make('file')
+                                                            ->label('')
+                                                            ->formatStateUsing(fn($state, $record) => 'Ver respuesta ' . $record['index'])
+                                                            ->url(fn($state) => Storage::url($state), shouldOpenInNewTab: true)
+                                                            ->color('primary')
+                                                            ->icon('heroicon-o-document-check'),
+                                                    ])
+                                                    ->contained(false)
                                                     ->visible(fn ($record) => $record->response_files),
                                             ]),
                                     ])

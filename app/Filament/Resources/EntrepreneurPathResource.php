@@ -35,9 +35,20 @@ class EntrepreneurPathResource extends Resource
                 'characterizations.economicActivity',
                 'characterizations.manager',
                 'businessPlan',
+                'trainingParticipations.training',
                 'fairEvaluations.fair',
                 'pqrfs',
             ]);
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('listEntrepreneurPaths');
+    }
+
+    public static function canView($record): bool
+    {
+        return auth()->user()->can('listEntrepreneurPaths');
     }
 
     public static function canCreate(): bool
@@ -180,7 +191,7 @@ class EntrepreneurPathResource extends Resource
                                     ->columnSpanFull(),
                             ]),
 
-                        \Filament\Infolists\Components\Section::make('Mis Visitas')
+                        \Filament\Infolists\Components\Section::make('Visitas')
                             ->icon('heroicon-o-clipboard-document-list')
                             ->iconColor('warning')
                             ->schema([
@@ -245,7 +256,7 @@ class EntrepreneurPathResource extends Resource
                             ->collapsed()
                             ->collapsible(),
 
-                        \Filament\Infolists\Components\Section::make('Mi Caracterización')
+                        \Filament\Infolists\Components\Section::make('Caracterización')
                             ->icon('heroicon-o-clipboard-document-check')
                             ->iconColor('warning')
                             ->schema([
@@ -391,6 +402,121 @@ class EntrepreneurPathResource extends Resource
                             ->collapsed()
                             ->collapsible(),
 
+                        \Filament\Infolists\Components\Section::make('Mis Capacitaciones')
+                            ->icon('heroicon-o-academic-cap')
+                            ->iconColor('warning')
+                            ->schema([
+                                \Filament\Infolists\Components\TextEntry::make('trainings_count')
+                                    ->label('')
+                                    ->state(fn ($record) => $record->trainingParticipations()->count() . ' capacitaciones')
+                                    ->badge()
+                                    ->color('success'),
+
+                                \Filament\Infolists\Components\RepeatableEntry::make('trainingParticipations')
+                                    ->label('')
+                                    ->schema([
+                                        \Filament\Infolists\Components\Grid::make(3)
+                                            ->schema([
+                                                \Filament\Infolists\Components\TextEntry::make('training.name')
+                                                    ->label('Nombre de la Capacitación')
+                                                    ->weight('semibold')
+                                                    ->color('primary')
+                                                    ->icon('heroicon-o-academic-cap'),
+
+                                                \Filament\Infolists\Components\TextEntry::make('training.training_type')
+                                                    ->label('Tipo')
+                                                    ->icon('heroicon-o-tag')
+                                                    ->iconColor('info')
+                                                    ->formatStateUsing(function ($state) {
+                                                        $types = [
+                                                            'presencial' => 'Presencial',
+                                                            'virtual' => 'Virtual',
+                                                            'hibrido' => 'Híbrido',
+                                                        ];
+                                                        return $types[$state] ?? ucfirst($state);
+                                                    })
+                                                    ->badge()
+                                                    ->color(fn ($state) => match($state) {
+                                                        'presencial' => 'success',
+                                                        'virtual' => 'info',
+                                                        'hibrido' => 'warning',
+                                                        default => 'gray'
+                                                    }),
+
+                                                \Filament\Infolists\Components\TextEntry::make('training.duration_hours')
+                                                    ->label('Duración')
+                                                    ->icon('heroicon-o-clock')
+                                                    ->iconColor('warning')
+                                                    ->formatStateUsing(fn ($state) => $state . ' horas')
+                                                    ->placeholder('No especificada'),
+
+                                                \Filament\Infolists\Components\TextEntry::make('training.start_date')
+                                                    ->label('Fecha de Inicio')
+                                                    ->icon('heroicon-o-calendar')
+                                                    ->iconColor('success')
+                                                    ->date('d/m/Y')
+                                                    ->placeholder('Sin fecha'),
+
+                                                \Filament\Infolists\Components\TextEntry::make('training.end_date')
+                                                    ->label('Fecha de Finalización')
+                                                    ->icon('heroicon-o-calendar-days')
+                                                    ->iconColor('danger')
+                                                    ->date('d/m/Y')
+                                                    ->placeholder('Sin fecha'),
+
+                                                \Filament\Infolists\Components\TextEntry::make('training.location')
+                                                    ->label('Lugar')
+                                                    ->icon('heroicon-o-map-pin')
+                                                    ->iconColor('primary')
+                                                    ->placeholder('No especificado'),
+
+                                                \Filament\Infolists\Components\TextEntry::make('training.instructor')
+                                                    ->label('Instructor')
+                                                    ->icon('heroicon-o-user')
+                                                    ->iconColor('purple')
+                                                    ->placeholder('No especificado'),
+
+                                                \Filament\Infolists\Components\TextEntry::make('training.max_participants')
+                                                    ->label('Cupos')
+                                                    ->icon('heroicon-o-users')
+                                                    ->iconColor('info')
+                                                    ->formatStateUsing(fn ($state) => $state ? $state . ' participantes' : 'No especificado')
+                                                    ->placeholder('No especificado'),
+
+                                                \Filament\Infolists\Components\TextEntry::make('attendance_status')
+                                                    ->label('Estado de Asistencia')
+                                                    ->icon('heroicon-o-check-circle')
+                                                    ->formatStateUsing(function ($state) {
+                                                        $statuses = [
+                                                            'confirmed' => 'Confirmado',
+                                                            'attended' => 'Asistió',
+                                                            'absent' => 'No asistió',
+                                                            'cancelled' => 'Cancelado',
+                                                        ];
+                                                        return $statuses[$state] ?? 'Pendiente';
+                                                    })
+                                                    ->badge()
+                                                    ->color(fn ($state) => match($state) {
+                                                        'attended' => 'success',
+                                                        'confirmed' => 'info',
+                                                        'absent' => 'danger',
+                                                        'cancelled' => 'gray',
+                                                        default => 'warning'
+                                                    }),
+                                            ]),
+
+                                        \Filament\Infolists\Components\TextEntry::make('training.description')
+                                            ->label('Descripción')
+                                            ->placeholder('Sin descripción')
+                                            ->columnSpanFull(),
+                                    ])
+                                    ->contained(false)
+                                    ->columnSpanFull(),
+                            ])
+                            ->visible(fn ($record) => $record->trainingParticipations()->exists())
+                            ->collapsed()
+                            ->collapsible(),
+
                         \Filament\Infolists\Components\Section::make('Documentos y Evidencias')
                             ->icon('heroicon-o-folder-open')
                             ->iconColor('warning')
@@ -425,7 +551,7 @@ class EntrepreneurPathResource extends Resource
                                                     : (json_decode($char->commerce_evidence_path, true) ?? [$char->commerce_evidence_path]);
 
                                                 return collect($files)->map(function($file, $i) {
-                                                    return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver archivo '. '</a>';
+                                                    return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver archivo ' . ($i + 1) . '</a>';
                                                 })->join('<br>');
                                             })
                                             ->html()

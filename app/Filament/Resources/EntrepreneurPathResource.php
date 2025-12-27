@@ -277,12 +277,11 @@ class EntrepreneurPathResource extends Resource
 
                                     \Filament\Infolists\Components\Grid::make(2)
                                         ->schema([
-                                            \Filament\Infolists\Components\TextEntry::make('characterizations.0.economicActivity.name')
+                                            \Filament\Infolists\Components\TextEntry::make('characterizations.entrepreneur.business.economicActivity.name')
                                                 ->label('Actividad Económica')
                                                 ->icon('heroicon-o-briefcase')
                                                 ->iconColor('primary')
-                                                ->placeholder('Sin actividad económica')
-                                                ->helperText('Sector secundario'),
+                                                ->placeholder('Sin actividad económica'),
 
                                             \Filament\Infolists\Components\TextEntry::make('characterizations.0.employees_generated')
                                                 ->label('Empleos Generados')

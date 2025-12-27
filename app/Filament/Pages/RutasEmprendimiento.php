@@ -21,6 +21,14 @@ class RutasEmprendimiento extends Page
     protected static ?int $navigationSort = 3;
 
     /**
+     * Verificar si el usuario puede acceder a esta página
+     */
+    public static function canAccess(): bool
+    {
+        return auth()->user()->can('viewEntrepreneurshipRadar');
+    }
+
+    /**
      * Obtener datos para las rutas - ENTRADA
      */
     public function getRoutesDataEntry(): array

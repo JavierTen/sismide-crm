@@ -18,6 +18,14 @@ class DiagnosticoGeneral extends Page
     protected static ?int $navigationSort = 4;
 
     /**
+     * Verificar si el usuario puede acceder a esta página
+     */
+    public static function canAccess(): bool
+    {
+        return auth()->user()->can('viewGeneralDiagnosis');
+    }
+
+    /**
      * Obtener datos de emprendimientos agrupados por municipio - ENTRADA
      */
     public function getEntrepreneursDataByCitiesEntry(): array

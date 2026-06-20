@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +27,11 @@ class BusinessPlanEvaluation extends Model
         'score' => 'decimal:2',
         'question_number' => 'integer',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new YearColumnScope('created_at'));
+    }
 
     /**
      * Relación con el plan de negocio

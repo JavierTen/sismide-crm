@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -50,6 +51,8 @@ class Characterization extends Model
     protected static function boot()
     {
         parent::boot();
+
+        static::addGlobalScope(new YearColumnScope('created_at'));
 
         // Evento antes de actualizar
         static::updating(function ($characterization) {

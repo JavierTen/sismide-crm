@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,11 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 class Fair extends Model
 {
     use SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new YearColumnScope('created_at'));
+    }
 
     protected $fillable = [
         // Información General

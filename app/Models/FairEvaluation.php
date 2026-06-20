@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,6 +45,8 @@ class FairEvaluation extends Model
     protected static function boot()
     {
         parent::boot();
+
+        static::addGlobalScope(new YearColumnScope('created_at'));
 
         // Al actualizar: eliminar foto antigua si se cambió
         static::updating(function ($fairEvaluation) {

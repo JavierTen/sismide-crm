@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -67,6 +68,8 @@ class BusinessPlan extends Model
      */
     protected static function booted(): void
     {
+        static::addGlobalScope(new YearColumnScope('created_at'));
+
         // Eliminar archivos cuando se actualiza
         static::updating(function (BusinessPlan $plan) {
             $original = $plan->getOriginal();

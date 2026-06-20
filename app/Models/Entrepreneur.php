@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
 use Filament\Panel;
@@ -56,6 +57,11 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
         'admission_date' => 'date',
         'password' => 'hashed',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new YearColumnScope('created_at'));
+    }
 
     /**
      * Método REQUERIDO por HasName interface

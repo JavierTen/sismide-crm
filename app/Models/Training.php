@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -43,6 +44,8 @@ class Training extends Model
 
     protected static function booted(): void
     {
+        static::addGlobalScope(new YearColumnScope('created_at'));
+
         static::updating(function (Training $training) {
             $originalTraining = $training->getOriginal();
 

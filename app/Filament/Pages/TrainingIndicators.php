@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Training;
 use App\Models\TrainingParticipation;
+use App\Support\YearContext;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\DB;
 
@@ -57,11 +58,14 @@ class TrainingIndicators extends Page
 
     public function getParticipationByTraining(): array
     {
+        $year = YearContext::effectiveYear();
+
         $participations = DB::table('training_participations')
             ->join('trainings', 'training_participations.training_id', '=', 'trainings.id')
             ->whereNull('training_participations.deleted_at')
             ->whereNull('trainings.deleted_at')
             ->where('attended', true)
+            ->when($year !== null, fn ($q) => $q->whereYear('training_participations.created_at', $year))
             ->select('trainings.name', DB::raw('count(*) as total'))
             ->groupBy('training_participations.training_id', 'trainings.name')
             ->orderByDesc('total')

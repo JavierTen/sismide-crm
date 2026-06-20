@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,6 +46,8 @@ class BusinessDiagnosis extends Model
 
     protected static function booted()
     {
+        static::addGlobalScope(new YearColumnScope('created_at'));
+
         // Calcular puntaje antes de guardar
         static::saving(function ($diagnosis) {
             $diagnosis->total_score = $diagnosis->calculateTotalScore();

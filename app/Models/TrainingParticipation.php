@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,11 @@ class TrainingParticipation extends Model
     protected $casts = [
         'attended' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new YearColumnScope('created_at'));
+    }
 
     /**
      * Relación con la capacitación

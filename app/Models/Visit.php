@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,6 +12,11 @@ class Visit extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'visits';
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new YearColumnScope('created_at'));
+    }
 
     protected $fillable = [
         'entrepreneur_id',

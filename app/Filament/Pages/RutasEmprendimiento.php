@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use App\Models\BusinessDiagnosis;
 use App\Models\City;
+use App\Support\YearContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 
@@ -33,7 +34,9 @@ class RutasEmprendimiento extends Page
      */
     public function getRoutesDataEntry(): array
     {
-        return cache()->remember('routes_data_entry', now()->addMinutes(10), function () {
+        $cacheKey = 'routes_data_entry_' . (YearContext::effectiveYear() ?? 'all');
+
+        return cache()->remember($cacheKey, now()->addMinutes(10), function () {
             $ruta1 = BusinessDiagnosis::whereNotNull('total_score')
                 ->where('diagnosis_type', 'entry') // ← FILTRO ENTRADA
                 ->whereIn('maturity_level', [
@@ -81,7 +84,9 @@ class RutasEmprendimiento extends Page
      */
     public function getRoutesDataExit(): array
     {
-        return cache()->remember('routes_data_exit', now()->addMinutes(10), function () {
+        $cacheKey = 'routes_data_exit_' . (YearContext::effectiveYear() ?? 'all');
+
+        return cache()->remember($cacheKey, now()->addMinutes(10), function () {
             $ruta1 = BusinessDiagnosis::whereNotNull('total_score')
                 ->where('diagnosis_type', 'exit') // ← FILTRO SALIDA
                 ->whereIn('maturity_level', [
@@ -129,7 +134,10 @@ class RutasEmprendimiento extends Page
      */
     public function getRadarDataByCityEntry(): array
     {
-        return cache()->remember('radar_data_by_city_entry', now()->addMinutes(10), function () {
+        $year = YearContext::effectiveYear();
+        $cacheKey = 'radar_data_by_city_entry_' . ($year ?? 'all');
+
+        return cache()->remember($cacheKey, now()->addMinutes(10), function () use ($year) {
             $results = DB::table('business_diagnoses as bd')
                 ->join('entrepreneurs as e', 'bd.entrepreneur_id', '=', 'e.id')
                 ->join('businesses as b', 'e.id', '=', 'b.entrepreneur_id')
@@ -140,6 +148,7 @@ class RutasEmprendimiento extends Page
                 ->where('bd.diagnosis_type', 'entry') // ← FILTRO ENTRADA
                 ->whereNotNull('bd.total_score')
                 ->whereNotNull('bd.maturity_level')
+                ->when($year !== null, fn ($q) => $q->whereYear('bd.created_at', $year))
                 ->select(
                     'c.name as city_name',
                     'bd.total_score',
@@ -156,7 +165,10 @@ class RutasEmprendimiento extends Page
      */
     public function getRadarDataByCityExit(): array
     {
-        return cache()->remember('radar_data_by_city_exit', now()->addMinutes(10), function () {
+        $year = YearContext::effectiveYear();
+        $cacheKey = 'radar_data_by_city_exit_' . ($year ?? 'all');
+
+        return cache()->remember($cacheKey, now()->addMinutes(10), function () use ($year) {
             $results = DB::table('business_diagnoses as bd')
                 ->join('entrepreneurs as e', 'bd.entrepreneur_id', '=', 'e.id')
                 ->join('businesses as b', 'e.id', '=', 'b.entrepreneur_id')
@@ -167,6 +179,7 @@ class RutasEmprendimiento extends Page
                 ->where('bd.diagnosis_type', 'exit') // ← FILTRO SALIDA
                 ->whereNotNull('bd.total_score')
                 ->whereNotNull('bd.maturity_level')
+                ->when($year !== null, fn ($q) => $q->whereYear('bd.created_at', $year))
                 ->select(
                     'c.name as city_name',
                     'bd.total_score',

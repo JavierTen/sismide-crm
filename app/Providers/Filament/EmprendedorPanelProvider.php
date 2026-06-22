@@ -5,7 +5,6 @@ namespace App\Providers\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -39,9 +38,6 @@ class EmprendedorPanelProvider extends PanelProvider
             )
             ->discoverResources(in: app_path('Filament/Emprendedor/Resources'), for: 'App\\Filament\\Emprendedor\\Resources')
             ->discoverPages(in: app_path('Filament/Emprendedor/Pages'), for: 'App\\Filament\\Emprendedor\\Pages')
-            ->pages([
-                Pages\Dashboard2::class,
-            ])
             ->discoverWidgets(in: app_path('Filament/Emprendedor/Widgets'), for: 'App\\Filament\\Emprendedor\\Widgets')
             ->widgets([])
             ->middleware([

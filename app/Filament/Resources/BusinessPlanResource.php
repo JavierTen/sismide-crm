@@ -806,8 +806,8 @@ class BusinessPlanResource extends Resource
                                 Column::make('acquisition_matrix_path')->heading('Matriz de Adquisición')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
                                 Column::make('business_model_path')->heading('Modelo de Negocio')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
                                 Column::make('logo_path')->heading('Logo')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('fire_pitch_video_url')->heading('Video Fire Pitch')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('production_cycle_video_url')->heading('Video Ciclo Productivo')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                Column::make('fire_pitch_video_url')->heading('Video Fire Pitch'),
+                                Column::make('production_cycle_video_url')->heading('Video Ciclo Productivo'),
 
                                 // === INFORMACIÓN ADICIONAL ===
                                 Column::make('manager.name')->heading('Registrado por'),
@@ -873,8 +873,8 @@ class BusinessPlanResource extends Resource
                                     Column::make('acquisition_matrix_path')->heading('Matriz de Adquisición')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
                                     Column::make('business_model_path')->heading('Modelo de Negocio')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
                                     Column::make('logo_path')->heading('Logo')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('fire_pitch_video_url')->heading('Video Fire Pitch')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('production_cycle_video_url')->heading('Video Ciclo Productivo')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
+                                    Column::make('fire_pitch_video_url')->heading('Video Fire Pitch'),
+                                    Column::make('production_cycle_video_url')->heading('Video Ciclo Productivo'),
                                     Column::make('manager.name')->heading('Registrado por'),
                                     Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
                                 ]),

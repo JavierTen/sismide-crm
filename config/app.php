@@ -169,6 +169,7 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\Filament\DashboardPanelProvider::class,
         App\Providers\Filament\EmprendedorPanelProvider::class,
+        App\Providers\Filament\EjePanelProvider::class,
         App\Providers\RouteServiceProvider::class,
     ])->toArray(),
 

@@ -25,6 +25,7 @@ class EmprendedorInfoWidget extends Widget
     {
         return $this->getEntrepreneur()
             ->visits()
+            ->withoutGlobalScope(\App\Scopes\YearColumnScope::class)
             ->with(['manager'])
             ->orderBy('visit_date', 'desc')
             ->orderBy('visit_time', 'desc')
@@ -36,6 +37,7 @@ class EmprendedorInfoWidget extends Widget
     {
         return $this->getEntrepreneur()
             ->characterizations()
+            ->withoutGlobalScope(\App\Scopes\YearColumnScope::class)
             ->with(['manager', 'economicActivity', 'population'])
             ->orderBy('characterization_date', 'desc')
             ->get();
@@ -45,6 +47,7 @@ class EmprendedorInfoWidget extends Widget
     {
         return $this->getEntrepreneur()
             ->characterizations()
+            ->withoutGlobalScope(\App\Scopes\YearColumnScope::class)
             ->with(['manager', 'economicActivity', 'population'])
             ->latest('characterization_date')
             ->first();
@@ -54,7 +57,8 @@ class EmprendedorInfoWidget extends Widget
     {
         $entrepreneur = $this->getEntrepreneur();
 
-        $diagnosis = BusinessDiagnosis::where('entrepreneur_id', $entrepreneur->id)
+        $diagnosis = BusinessDiagnosis::withoutGlobalScope(\App\Scopes\YearColumnScope::class)
+            ->where('entrepreneur_id', $entrepreneur->id)
             ->with(['entrepreneur.business', 'manager'])
             ->latest()
             ->first();

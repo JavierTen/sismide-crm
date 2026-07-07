@@ -16,6 +16,7 @@ class Business extends Model
         'business_name',
         'description',
         'creation_date',
+        'has_chamber_of_commerce',
         'status',
         'phone',
         'email',
@@ -40,7 +41,7 @@ class Business extends Model
         'creation_date' => 'date',
         'deleted_at' => 'datetime',
         'village_id' => 'integer',
-        'cohort' => 'integer',
+        'cohort' => 'string',
     ];
 
     protected static function booted(): void

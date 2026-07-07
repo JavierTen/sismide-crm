@@ -30,6 +30,7 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
         'marital_status_id',
         'birth_date',
         'phone',
+        'phone_2',
         'address',
         'email',
         'city_id',

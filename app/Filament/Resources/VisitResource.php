@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -167,6 +168,35 @@ class VisitResource extends Resource
                                             ->reactive(),
                                     ]),
 
+                                Forms\Components\Placeholder::make('alerta_historial_visita')
+                                    ->label('')
+                                    ->content(function ($get) {
+                                        $entrepreneurId = $get('entrepreneur_id');
+                                        if (! $entrepreneurId) return '';
+
+                                        $doc = \App\Models\Entrepreneur::find($entrepreneurId)?->document_number;
+                                        if (! $doc) return '';
+
+                                        $years = \App\Models\Entrepreneur::withoutGlobalScope(\App\Scopes\YearColumnScope::class)
+                                            ->where('document_number', $doc)
+                                            ->whereYear('created_at', '<', now()->year)
+                                            ->selectRaw('YEAR(created_at) as year')
+                                            ->distinct()
+                                            ->orderBy('year')
+                                            ->pluck('year')
+                                            ->toArray();
+
+                                        if (empty($years)) return '';
+
+                                        return new \Illuminate\Support\HtmlString(
+                                            '<div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">'
+                                            . '<p class="font-semibold">Emprendedor con historial previo</p>'
+                                            . '<p class="mt-0.5">Este emprendedor ya participó en vigencia(s) anterior(es): <strong>' . implode(', ', $years) . '</strong>.</p>'
+                                            . '</div>'
+                                        );
+                                    })
+                                    ->reactive()
+                                    ->columnSpanFull(),
 
                                 Forms\Components\Select::make('visit_type')
                                     ->label('Tipo de visita')
@@ -315,6 +345,68 @@ class VisitResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->placeholder('Sin fecha'),
+
+                Tables\Columns\BadgeColumn::make('visit_result')
+                    ->label('Estado')
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'aceptada'    => 'Aceptada',
+                        'no_aceptada' => 'No aceptada',
+                        'sin_persona' => 'Sin persona',
+                        null, ''      => 'Programada',
+                        default       => $state,
+                    })
+                    ->color(fn ($state) => match ($state) {
+                        'aceptada'    => 'success',
+                        'no_aceptada' => 'danger',
+                        'sin_persona' => 'warning',
+                        default       => 'gray',
+                    })
+                    ->action(
+                        Tables\Actions\Action::make('ver_resultado_visita')
+                            ->modalHeading('Resultado de la visita')
+                            ->modalSubmitAction(false)
+                            ->modalCancelActionLabel('Cerrar')
+                            ->fillForm(fn ($record) => [
+                                'visit_result'          => $record->visit_result,
+                                'topics_and_commitment' => $record->topics_and_commitment,
+                                'evidence_path'         => $record->evidence_path,
+                            ])
+                            ->form([
+                                Forms\Components\Placeholder::make('sin_resultado_info')
+                                    ->label('')
+                                    ->content(new \Illuminate\Support\HtmlString(
+                                        '<div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">'
+                                        . 'Esta visita aún no tiene resultado registrado.'
+                                        . '</div>'
+                                    ))
+                                    ->visible(fn ($get) => ! $get('visit_result')),
+
+                                Forms\Components\Select::make('visit_result')
+                                    ->label('Resultado de la visita')
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->options([
+                                        'aceptada'    => 'Visita aceptada',
+                                        'no_aceptada' => 'Visita no aceptada',
+                                        'sin_persona' => 'No había nadie en la unidad productiva',
+                                    ])
+                                    ->visible(fn ($get) => (bool) $get('visit_result')),
+
+                                Forms\Components\Textarea::make('topics_and_commitment')
+                                    ->label('Temas tratados y compromisos')
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->rows(5)
+                                    ->visible(fn ($get) => (bool) $get('visit_result')),
+
+                                Forms\Components\FileUpload::make('evidence_path')
+                                    ->label('Evidencias adjuntas')
+                                    ->disabled()
+                                    ->dehydrated(false)
+                                    ->multiple()
+                                    ->visible(fn ($get) => $get('visit_result') === 'aceptada' && ! empty($get('evidence_path'))),
+                            ])
+                    ),
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
@@ -336,6 +428,69 @@ class VisitResource extends Resource
                             static::userCanEdit() &&
                             (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
                     ),
+
+                Tables\Actions\Action::make('confirmar_visita')
+                    ->label('')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->tooltip('Confirmar resultado de visita')
+                    ->visible(
+                        fn ($record) =>
+                            ! $record->trashed() &&
+                            ! $record->visit_result &&
+                            (auth()->user()->hasRole(['Admin']) || $record->manager_id === auth()->id())
+                    )
+                    ->modalHeading('Confirmar resultado de visita')
+                    ->modalSubmitActionLabel('Guardar resultado')
+                    ->form([
+                        Forms\Components\Select::make('visit_result')
+                            ->label('Resultado de la visita')
+                            ->required()
+                            ->live()
+                            ->options([
+                                'aceptada'    => 'Visita aceptada',
+                                'no_aceptada' => 'Visita no aceptada',
+                                'sin_persona' => 'No había nadie en la unidad productiva',
+                            ])
+                            ->placeholder('Seleccione el resultado'),
+
+                        Forms\Components\Textarea::make('topics_and_commitment')
+                            ->label('Temas tratados y compromisos')
+                            ->required()
+                            ->rows(5)
+                            ->helperText('Escriba mínimo 50 palabras describiendo los temas tratados y compromisos adquiridos.')
+                            ->placeholder('Describa detalladamente los temas abordados durante la visita y los compromisos acordados con el emprendedor...')
+                            ->rules([
+                                fn () => function ($attribute, $value, $fail) {
+                                    $count = str_word_count(strip_tags($value ?? ''));
+                                    if ($count < 50) {
+                                        $fail("Debe escribir mínimo 50 palabras. Actualmente tiene {$count}.");
+                                    }
+                                },
+                            ]),
+
+                        Forms\Components\FileUpload::make('evidence_path')
+                            ->label('Evidencia de la visita')
+                            ->multiple()
+                            ->acceptedFileTypes(['image/*', 'application/pdf', '.doc', '.docx'])
+                            ->maxSize(10240)
+                            ->directory('visitas/evidencias')
+                            ->visible(fn ($get) => $get('visit_result') === 'aceptada')
+                            ->helperText('Adjunte el acta de compromiso u otros soportes de la visita (PDF, imágenes, Word).'),
+                    ])
+                    ->action(function (Visit $record, array $data): void {
+                        $record->update([
+                            'visit_result'          => $data['visit_result'],
+                            'topics_and_commitment' => $data['topics_and_commitment'],
+                            'evidence_path'         => $data['evidence_path'] ?? null,
+                        ]);
+
+                        Notification::make()
+                            ->title('Visita confirmada')
+                            ->body('El resultado de la visita quedó registrado correctamente.')
+                            ->success()
+                            ->send();
+                    }),
 
                 Tables\Actions\DeleteAction::make()
                     ->label('')
@@ -398,6 +553,14 @@ class VisitResource extends Resource
                                 Column::make('visit_time')->heading('Hora de Visita'),
 
                                 // === RESULTADO Y REAGENDAMIENTO ===
+                                Column::make('visit_result')->heading('Resultado')->formatStateUsing(fn($state) => match ($state) {
+                                    'aceptada'    => 'Visita aceptada',
+                                    'no_aceptada' => 'Visita no aceptada',
+                                    'sin_persona' => 'No había nadie en la unidad productiva',
+                                    null, ''      => 'Programada',
+                                    default       => $state,
+                                }),
+                                Column::make('topics_and_commitment')->heading('Temas tratados y compromisos'),
                                 Column::make('strengthened')->heading('Se ha fortalecido')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
                                 Column::make('rescheduled')->heading('Reagendada')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
                                 Column::make('reschedule_reason')->heading('Motivo de Reagendamiento'),
@@ -453,6 +616,14 @@ class VisitResource extends Resource
                                     Column::make('visit_time')->heading('Hora de Visita'),
 
                                     // === RESULTADO Y REAGENDAMIENTO ===
+                                    Column::make('visit_result')->heading('Resultado')->formatStateUsing(fn($state) => match ($state) {
+                                        'aceptada'    => 'Visita aceptada',
+                                        'no_aceptada' => 'Visita no aceptada',
+                                        'sin_persona' => 'No había nadie en la unidad productiva',
+                                        null, ''      => 'Programada',
+                                        default       => $state,
+                                    }),
+                                    Column::make('topics_and_commitment')->heading('Temas tratados y compromisos'),
                                     Column::make('strengthened')->heading('Se ha fortalecido')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
                                     Column::make('rescheduled')->heading('Reagendada')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
                                     Column::make('reschedule_reason')->heading('Motivo de Reagendamiento'),

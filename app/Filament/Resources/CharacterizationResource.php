@@ -138,7 +138,12 @@ class CharacterizationResource extends Resource
                                     ? 'El emprendedor asignado no puede ser modificado.'
                                     : 'Selecciona el emprendedor para autocompletar información relacionada'
                             )
-                            ->unique(table: 'characterizations', column: 'entrepreneur_id', ignoreRecord: true),
+                            ->unique(
+                                table: 'characterizations',
+                                column: 'entrepreneur_id',
+                                ignoreRecord: true,
+                                modifyRuleUsing: fn ($rule) => $rule->whereYear('created_at', now()->year),
+                            ),
 
                         Forms\Components\Grid::make(3)
                             ->schema([
@@ -226,6 +231,37 @@ class CharacterizationResource extends Resource
                                         return $entrepreneur?->population?->name ?? 'Sin población asignada';
                                     }),
                             ]),
+
+                        Forms\Components\Placeholder::make('alerta_historial_caracterizacion')
+                            ->label('')
+                            ->content(function ($get) {
+                                $entrepreneurId = $get('entrepreneur_id');
+                                if (! $entrepreneurId) return '';
+
+                                $doc = \App\Models\Entrepreneur::find($entrepreneurId)?->document_number;
+                                if (! $doc) return '';
+
+                                $years = \App\Models\Entrepreneur::withoutGlobalScope(\App\Scopes\YearColumnScope::class)
+                                    ->where('document_number', $doc)
+                                    ->whereYear('created_at', '<', now()->year)
+                                    ->selectRaw('YEAR(created_at) as year')
+                                    ->distinct()
+                                    ->orderBy('year')
+                                    ->pluck('year')
+                                    ->toArray();
+
+                                if (empty($years)) return '';
+
+                                return new \Illuminate\Support\HtmlString(
+                                    '<div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">'
+                                    . '<p class="font-semibold">Emprendedor con historial previo</p>'
+                                    . '<p class="mt-0.5">Este emprendedor ya participó en vigencia(s) anterior(es): <strong>' . implode(', ', $years) . '</strong>.</p>'
+                                    . '</div>'
+                                );
+                            })
+                            ->live()
+                            ->columnSpanFull(),
+
                     ])
                     ->collapsible()
                     ->persistCollapsed(),

@@ -28,13 +28,17 @@ class Visit extends Model
         'rescheduled',
         'original_visit_id',
         'reschedule_reason',
+        'visit_result',
+        'topics_and_commitment',
+        'evidence_path',
     ];
 
     protected $casts = [
-        'visit_date' => 'date',
-        'visit_time' => 'string', // guarda en DB como time; úsalo como string o Carbon según necesidad
-        'strengthened' => 'boolean',
-        'rescheduled'  => 'boolean',
+        'visit_date'    => 'date',
+        'visit_time'    => 'string',
+        'strengthened'  => 'boolean',
+        'rescheduled'   => 'boolean',
+        'evidence_path' => 'array',
     ];
 
     public function entrepreneur()

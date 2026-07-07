@@ -113,6 +113,37 @@ class EntrepreneurResource extends Resource
                         Forms\Components\Tabs\Tab::make('Emprendedor')
                             ->icon('heroicon-o-user')
                             ->schema([
+                                Forms\Components\Placeholder::make('alerta_historial_emprendedor')
+                                    ->label('')
+                                    ->content(function ($get, $record) {
+                                        $doc = trim((string) ($record?->document_number ?? $get('document_number')));
+                                        if (empty($doc)) {
+                                            return '';
+                                        }
+
+                                        $years = \App\Models\Entrepreneur::withoutGlobalScope(\App\Scopes\YearColumnScope::class)
+                                            ->where('document_number', $doc)
+                                            ->whereYear('created_at', '<', now()->year)
+                                            ->when($record, fn ($q) => $q->where('id', '!=', $record->id))
+                                            ->selectRaw('YEAR(created_at) as year')
+                                            ->distinct()
+                                            ->orderBy('year')
+                                            ->pluck('year')
+                                            ->toArray();
+
+                                        if (empty($years)) {
+                                            return '';
+                                        }
+
+                                        return new \Illuminate\Support\HtmlString(
+                                            '<div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">'
+                                            . '<p class="font-semibold">Emprendedor con historial previo</p>'
+                                            . '<p class="mt-0.5">Este emprendedor ya participó en vigencia(s) anterior(es): <strong>' . implode(', ', $years) . '</strong>.</p>'
+                                            . '</div>'
+                                        );
+                                    })
+                                    ->columnSpanFull(),
+
                                 Forms\Components\Section::make('Información Personal')
                                     ->description('Datos básicos del emprendedor')
                                     ->icon('heroicon-o-user')
@@ -136,18 +167,28 @@ class EntrepreneurResource extends Resource
                                             ->numeric()
                                             ->required()
                                             ->placeholder('Ej: 12345678')
-                                            ->unique(ignoreRecord: true),
+                                            ->live(onBlur: true)
+                                            ->unique(
+                                                ignoreRecord: true,
+                                                modifyRuleUsing: fn ($rule) => $rule->whereYear('created_at', now()->year),
+                                            ),
 
                                         Forms\Components\TextInput::make('full_name')
                                             ->label('Nombre Completo')
                                             ->maxLength(100)
                                             ->required()
-                                            ->placeholder('Nombres y apellidos completos')
+                                            ->placeholder('EJ: PEDRO JOSE GARCIA LOPEZ')
                                             ->columnSpanFull()
-                                            ->rule('regex:/^[\pL\s]+$/u')
-                                            ->validationMessages([
-                                                'regex' => 'El nombre solo puede contener letras y espacios.',
-                                            ]),
+                                            ->extraInputAttributes(['style' => 'text-transform:uppercase'])
+                                            ->helperText('Solo letras y espacios, sin tildes ni puntos. Se guardará en mayúsculas.')
+                                            ->dehydrateStateUsing(function (?string $state): ?string {
+                                                if (! $state) return $state;
+                                                $map = ['á'=>'A','é'=>'E','í'=>'I','ó'=>'O','ú'=>'U','ü'=>'U','ñ'=>'N',
+                                                        'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ü'=>'U','Ñ'=>'N'];
+                                                $str = strtr($state, $map);
+                                                $str = preg_replace('/[^A-Za-z\s]/u', '', $str);
+                                                return mb_strtoupper(trim(preg_replace('/\s+/', ' ', $str)));
+                                            }),
 
                                         Forms\Components\Select::make('gender_id')
                                             ->label('Género')
@@ -193,7 +234,14 @@ class EntrepreneurResource extends Resource
                                             ->tel()
                                             ->required()
                                             ->maxLength(50)
-                                            ->placeholder('Ej: +57 300 123 4567')
+                                            ->placeholder('Ej: 300 123 4567')
+                                            ->regex('/^[\+]?[0-9\s\-\(\)]+$/'),
+
+                                        Forms\Components\TextInput::make('phone_2')
+                                            ->label('Teléfono 2')
+                                            ->tel()
+                                            ->maxLength(50)
+                                            ->placeholder('Ej: 301 987 6543')
                                             ->regex('/^[\+]?[0-9\s\-\(\)]+$/'),
 
                                         Forms\Components\TextInput::make('email')
@@ -202,7 +250,10 @@ class EntrepreneurResource extends Resource
                                             ->required()
                                             ->maxLength(100)
                                             ->placeholder('usuario@ejemplo.com')
-                                            ->unique(ignoreRecord: true),
+                                            ->unique(
+                                                ignoreRecord: true,
+                                                modifyRuleUsing: fn ($rule) => $rule->whereYear('created_at', now()->year),
+                                            ),
                                     ])
                                     ->columns(2)
                                     ->collapsible()
@@ -255,18 +306,35 @@ class EntrepreneurResource extends Resource
                                             ->label('Nombre del Emprendimiento')
                                             ->maxLength(100)
                                             ->required()
-                                            ->placeholder('Nombre comercial del negocio'),
+                                            ->placeholder('EJ: PANADERIA ARTESANAL EL BUEN PAN')
+                                            ->extraInputAttributes(['style' => 'text-transform:uppercase'])
+                                            ->helperText('Solo letras y espacios, sin tildes ni puntos. Se guardará en mayúsculas.')
+                                            ->dehydrateStateUsing(function (?string $state): ?string {
+                                                if (! $state) return $state;
+                                                $map = ['á'=>'A','é'=>'E','í'=>'I','ó'=>'O','ú'=>'U','ü'=>'U','ñ'=>'N',
+                                                        'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ü'=>'U','Ñ'=>'N'];
+                                                $str = strtr($state, $map);
+                                                $str = preg_replace('/[^A-Za-z\s]/u', '', $str);
+                                                return mb_strtoupper(trim(preg_replace('/\s+/', ' ', $str)));
+                                            }),
+
+                                        Forms\Components\Toggle::make('has_chamber_of_commerce')
+                                            ->label('¿Tiene Cámara de Comercio?')
+                                            ->live()
+                                            ->inline(false)
+                                            ->default(false),
 
                                         Forms\Components\DatePicker::make('creation_date')
-                                            ->label('Fecha de creación')
-                                            ->required()
+                                            ->label('Fecha de Cámara de Comercio')
+                                            ->required(fn ($get) => (bool) $get('has_chamber_of_commerce'))
+                                            ->visible(fn ($get) => (bool) $get('has_chamber_of_commerce'))
                                             ->maxDate(now())
                                             ->displayFormat('d/m/Y')
                                             ->native(true),
 
                                         Forms\Components\Textarea::make('business_description')
                                             ->label('Descripción del Emprendimiento')
-                                            ->placeholder('Describe brevemente el emprendimiento')
+                                            ->placeholder('El emprendimiento se dedica a la elaboración y comercialización de productos de panadería artesanal. Nació como una iniciativa familiar hace tres años con el propósito de ofrecer productos frescos y de alta calidad a los habitantes del municipio. Actualmente participan cuatro integrantes de la familia en las áreas de producción, ventas y distribución. Atendemos principalmente a hogares, cafeterías y pequeños comercios. Elaboramos panes, tortas, galletas y productos personalizados para eventos. Nuestro diferencial es el uso de ingredientes naturales, recetas tradicionales y la atención personalizada. Contamos con un taller propio y realizamos ventas tanto en el punto físico como por pedidos a domicilio a través de redes sociales')
                                             ->required()
                                             ->rows(3)
                                             ->columnSpanFull(),
@@ -297,7 +365,7 @@ class EntrepreneurResource extends Resource
                                             ->placeholder('Seleccione una actividad económica'),
 
                                         Forms\Components\Select::make('productive_line_id')
-                                            ->label('Linea Productiva')
+                                            ->label('Línea Productiva')
                                             ->options(function () {
                                                 return \App\Models\ProductiveLine::active()
                                                     ->orderBy('name')
@@ -306,10 +374,10 @@ class EntrepreneurResource extends Resource
                                             ->searchable()
                                             ->required()
                                             ->preload()
-                                            ->placeholder('Seleccione una linea productiva'),
+                                            ->placeholder('Seleccione una línea productiva'),
 
                                         Forms\Components\Select::make('code_ciiu')
-                                            ->label('Codigo CIUU')
+                                            ->label('Código CIUU')
                                             ->options(function () {
                                                 return \App\Models\CiiuCode::active()
                                                     ->orderBy('code')
@@ -318,8 +386,10 @@ class EntrepreneurResource extends Resource
                                             })
                                             ->searchable()
                                             ->preload()
-                                            ->required()
-                                            ->placeholder('Seleccione el tipo de documento'),
+                                            ->required(fn ($get) => (bool) $get('has_chamber_of_commerce'))
+                                            ->disabled(fn ($get) => ! (bool) $get('has_chamber_of_commerce'))
+                                            ->dehydrated(fn ($get) => (bool) $get('has_chamber_of_commerce'))
+                                            ->placeholder('Solo si tiene Cámara de Comercio'),
 
                                         Forms\Components\Select::make('marsital_statusS')
                                             ->label('Proyecto')
@@ -332,6 +402,7 @@ class EntrepreneurResource extends Resource
                                         Forms\Components\Select::make('cohort')
                                             ->label('Cohorte')
                                             ->options([
+                                                'nuevo' => 'Emprendedor nuevo',
                                                 '1' => '1',
                                                 '2' => '2',
                                                 '3' => '3',
@@ -372,7 +443,7 @@ class EntrepreneurResource extends Resource
                                                     ->placeholder('Seleccione un departamento'),
 
                                                 Forms\Components\Select::make('city_id')
-                                                    ->label('Ciudad')
+                                                    ->label('Municipio')
                                                     ->required()
                                                     ->searchable()
                                                     ->preload()
@@ -390,7 +461,7 @@ class EntrepreneurResource extends Resource
                                                         $set('ward_id', null);
                                                         $set('village_id', null);
                                                     })
-                                                    ->placeholder('Seleccione una ciudad'),
+                                                    ->placeholder('Seleccione un municipio'),
 
                                                 Forms\Components\Select::make('ward_id')
                                                     ->label('Corregimiento')
@@ -537,6 +608,7 @@ class EntrepreneurResource extends Resource
                             $business = $record->business;
 
                             $data['business_name'] = $business->business_name;
+                            $data['has_chamber_of_commerce'] = (bool) $business->has_chamber_of_commerce;
                             $data['creation_date'] = $business->creation_date;
                             $data['business_description'] = $business->description;
                             $data['entrepreneurship_stage_id'] = $business->entrepreneurship_stage_id;

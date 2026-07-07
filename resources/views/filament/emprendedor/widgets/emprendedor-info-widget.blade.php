@@ -578,9 +578,9 @@
             $characterizations = $this->getCharacterizations();
             $totalFiles = 0;
             foreach ($characterizations as $char) {
-                $totalFiles += count($char->commerce_evidence_path ?? []);
-                $totalFiles += count($char->population_evidence_path ?? []);
-                $totalFiles += count($char->photo_evidence_path ?? []);
+                $totalFiles += is_array($char->commerce_evidence_path) ? count($char->commerce_evidence_path) : 0;
+                $totalFiles += is_array($char->population_evidence_path) ? count($char->population_evidence_path) : 0;
+                $totalFiles += is_array($char->photo_evidence_path) ? count($char->photo_evidence_path) : 0;
             }
         @endphp
 

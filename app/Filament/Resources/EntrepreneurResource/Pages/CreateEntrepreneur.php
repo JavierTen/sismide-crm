@@ -50,6 +50,7 @@ class CreateEntrepreneur extends CreateRecord
             'marital_status_id' => $data['marital_status_id'] ?? null,
             'birth_date' => $data['birth_date'],
             'phone' => $data['phone'],
+            'phone_2' => $data['phone_2'] ?? null,
             'address' => $data['address'] ?? null,
             'email' => $data['email'],
             'city_id' => $data['city_id'],
@@ -75,7 +76,10 @@ class CreateEntrepreneur extends CreateRecord
             'entrepreneur_id' => $entrepreneurId,
             'business_name' => $data['business_name'],
             'description' => $data['business_description'] ?? null,
-            'creation_date' => $data['creation_date'] ?? null,
+            'has_chamber_of_commerce' => $data['has_chamber_of_commerce'] ?? false,
+            'creation_date' => ($data['has_chamber_of_commerce'] ?? false)
+                ? ($data['creation_date'] ?? now()->toDateString())
+                : now()->toDateString(),
             'status' => 'Active',
             'phone' => $data['business_phone'],
             'email' => $data['business_email'],

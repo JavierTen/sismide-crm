@@ -48,6 +48,7 @@ class EditEntrepreneur extends EditRecord
             $data = array_merge($data, [
                 // Datos básicos del emprendimiento
                 'business_name' => $business->business_name,
+                'has_chamber_of_commerce' => (bool) $business->has_chamber_of_commerce,
                 'business_description' => $business->description,
                 'creation_date' => $business->creation_date,
 
@@ -122,6 +123,7 @@ class EditEntrepreneur extends EditRecord
             'marital_status_id' => $data['marital_status_id'] ?? null,
             'birth_date' => $data['birth_date'],
             'phone' => $data['phone'],
+            'phone_2' => $data['phone_2'] ?? null,
             'address' => $data['address'] ?? null,
             'email' => $data['email'],
             'city_id' => $data['entrepreneur_city_id'] ?? $data['city_id'], // Solo si tienes ubicación separada del emprendedor
@@ -145,7 +147,10 @@ class EditEntrepreneur extends EditRecord
             'entrepreneur_id' => $entrepreneurId,
             'business_name' => $data['business_name'],
             'description' => $data['business_description'] ?? null,
-            'creation_date' => $data['creation_date'] ?? null,
+            'has_chamber_of_commerce' => $data['has_chamber_of_commerce'] ?? false,
+            'creation_date' => ($data['has_chamber_of_commerce'] ?? false)
+                ? ($data['creation_date'] ?? now()->toDateString())
+                : now()->toDateString(),
             'status' => 'Active',
             'phone' => $data['business_phone'],
             'email' => $data['business_email'],

@@ -111,8 +111,19 @@ class CharacterizationResource extends Resource
 
     public static function form(Form $form): Form
     {
+        $entrepreneurData = function ($get, string $relation, string $field, string $default = '----') {
+            $id = $get('entrepreneur_id');
+            if (! $id) return $default;
+            $e = \App\Models\Entrepreneur::with([
+                'business.economicActivity', 'business.productiveLine',
+                'city', 'manager', 'gender', 'maritalStatus', 'educationLevel', 'project',
+            ])->find($id);
+            return data_get($e, $field) ?? $default;
+        };
+
         return $form
             ->schema([
+                // ─── a. Información del Emprendedor ───────────────────────
                 Forms\Components\Section::make('Información del Emprendedor')
                     ->description('Selecciona el emprendedor y visualiza sus datos principales')
                     ->icon('heroicon-o-user')
@@ -147,89 +158,50 @@ class CharacterizationResource extends Resource
 
                         Forms\Components\Grid::make(3)
                             ->schema([
-                                Forms\Components\Placeholder::make('business_name')
-                                    ->label('Emprendimiento')
-                                    ->content(function ($get) {
-                                        $entrepreneurId = $get('entrepreneur_id');
-                                        if (! $entrepreneurId) {
-                                            return '----';
-                                        }
-
-                                        $entrepreneur = \App\Models\Entrepreneur::with('business')->find($entrepreneurId);
-
-                                        return $entrepreneur?->business?->business_name ?? 'Sin emprendimiento';
-                                    }),
-
-                                Forms\Components\Placeholder::make('city_name')
+                                Forms\Components\Placeholder::make('_doc_number')
+                                    ->label('Número de Documento')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'document_number')),
+                                Forms\Components\Placeholder::make('_full_name')
+                                    ->label('Nombre Completo')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'full_name')),
+                                Forms\Components\Placeholder::make('_business_name')
+                                    ->label('Nombre del Emprendimiento')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'business.business_name')),
+                                Forms\Components\Placeholder::make('_business_description')
+                                    ->label('Descripción del Emprendimiento')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'business.description')),
+                                Forms\Components\Placeholder::make('_gender')
+                                    ->label('Género')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'gender.name')),
+                                Forms\Components\Placeholder::make('_entrepreneurship_stage')
+                                    ->label('Etapa del Emprendimiento')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'business.entrepreneurshipStage.name')),
+                                Forms\Components\Placeholder::make('_marital_status')
+                                    ->label('Estado Civil')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'maritalStatus.name')),
+                                Forms\Components\Placeholder::make('_education_level')
+                                    ->label('Nivel Educativo')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'educationLevel.name')),
+                                Forms\Components\Placeholder::make('_phone')
+                                    ->label('Teléfono')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'phone')),
+                                Forms\Components\Placeholder::make('_city')
                                     ->label('Municipio')
-                                    ->content(function ($get) {
-                                        $entrepreneurId = $get('entrepreneur_id');
-                                        if (! $entrepreneurId) {
-                                            return '----';
-                                        }
-
-                                        $entrepreneur = \App\Models\Entrepreneur::with('city')->find($entrepreneurId);
-
-                                        return $entrepreneur?->city?->name ?? 'Sin ubicación';
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'city.name')),
+                                Forms\Components\Placeholder::make('_project')
+                                    ->label('Ruta')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'project.name')),
+                                Forms\Components\Placeholder::make('_admission_date')
+                                    ->label('Fecha de Registro')
+                                    ->content(function ($get) use ($entrepreneurData) {
+                                        $id = $get('entrepreneur_id');
+                                        if (! $id) return '----';
+                                        $date = \App\Models\Entrepreneur::find($id)?->admission_date;
+                                        return $date ? \Carbon\Carbon::parse($date)->format('d/m/Y') : '----';
                                     }),
-
-                                Forms\Components\Placeholder::make('manager_name')
+                                Forms\Components\Placeholder::make('_manager')
                                     ->label('Gestor Asignado')
-                                    ->content(function ($get) {
-                                        $entrepreneurId = $get('entrepreneur_id');
-                                        if (! $entrepreneurId) {
-                                            return '----';
-                                        }
-
-                                        $entrepreneur = \App\Models\Entrepreneur::with('manager')->find($entrepreneurId);
-
-                                        return $entrepreneur?->manager?->name ?? 'Sin gestor asignado';
-                                    }),
-                            ]),
-
-                        Forms\Components\DatePicker::make('characterization_date')
-                            ->label('Fecha de Caracterización')
-                            ->required()
-                            ->maxDate(now())
-                            ->displayFormat('d/m/Y')
-                            ->native(true),
-                    ])
-                    ->collapsible()
-                    ->persistCollapsed(),
-
-                Forms\Components\Section::make('Información Económica')
-                    ->description('Datos sobre la actividad económica y población del emprendedor')
-                    ->icon('heroicon-o-banknotes')
-                    ->schema([
-                        Forms\Components\Grid::make(2)
-                            ->schema([
-                                Forms\Components\Placeholder::make('economic_activity')
-                                    ->label('Actividad Económica')
-                                    ->content(function ($get) {
-                                        $entrepreneurId = $get('entrepreneur_id');
-                                        if (! $entrepreneurId) {
-                                            return '----';
-                                        }
-
-                                        $entrepreneur = \App\Models\Entrepreneur::with('business.economicActivity')
-                                            ->find($entrepreneurId);
-
-                                        return $entrepreneur?->business?->economicActivity?->name ?? 'Sin actividad económica';
-                                    }),
-
-                                Forms\Components\Placeholder::make('vulnerable_population')
-                                    ->label('Población Vulnerable')
-                                    ->content(function ($get) {
-                                        $entrepreneurId = $get('entrepreneur_id');
-                                        if (! $entrepreneurId) {
-                                            return '----';
-                                        }
-
-                                        $entrepreneur = \App\Models\Entrepreneur::with('population')
-                                            ->find($entrepreneurId);
-
-                                        return $entrepreneur?->population?->name ?? 'Sin población asignada';
-                                    }),
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'manager.name')),
                             ]),
 
                         Forms\Components\Placeholder::make('alerta_historial_caracterizacion')
@@ -237,21 +209,14 @@ class CharacterizationResource extends Resource
                             ->content(function ($get) {
                                 $entrepreneurId = $get('entrepreneur_id');
                                 if (! $entrepreneurId) return '';
-
                                 $doc = \App\Models\Entrepreneur::find($entrepreneurId)?->document_number;
                                 if (! $doc) return '';
-
                                 $years = \App\Models\Entrepreneur::withoutGlobalScope(\App\Scopes\YearColumnScope::class)
                                     ->where('document_number', $doc)
                                     ->whereYear('created_at', '<', now()->year)
                                     ->selectRaw('YEAR(created_at) as year')
-                                    ->distinct()
-                                    ->orderBy('year')
-                                    ->pluck('year')
-                                    ->toArray();
-
+                                    ->distinct()->orderBy('year')->pluck('year')->toArray();
                                 if (empty($years)) return '';
-
                                 return new \Illuminate\Support\HtmlString(
                                     '<div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">'
                                     . '<p class="font-semibold">Emprendedor con historial previo</p>'
@@ -262,10 +227,73 @@ class CharacterizationResource extends Resource
                             ->live()
                             ->columnSpanFull(),
 
+                        Forms\Components\DatePicker::make('characterization_date')
+                            ->label('Fecha de Caracterización')
+                            ->required()
+                            ->default(now())
+                            ->maxDate(now())
+                            ->displayFormat('d/m/Y')
+                            ->native(true),
                     ])
                     ->collapsible()
                     ->persistCollapsed(),
 
+                // ─── b. Información Económica ──────────────────────────────
+                Forms\Components\Section::make('Información Económica')
+                    ->description('Actividad económica, línea productiva y población')
+                    ->icon('heroicon-o-banknotes')
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\Placeholder::make('_economic_activity')
+                                    ->label('Actividad Económica')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'business.economicActivity.name')),
+                                Forms\Components\Placeholder::make('_productive_line')
+                                    ->label('Línea Productiva')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'business.productiveLine.name')),
+                                Forms\Components\Placeholder::make('_population')
+                                    ->label('Población Vulnerable')
+                                    ->content(fn ($get) => $entrepreneurData($get, '', 'population.name')),
+                            ]),
+                    ])
+                    ->collapsible()
+                    ->persistCollapsed(),
+
+                // ─── c. Estado del Emprendimiento ─────────────────────────
+                Forms\Components\Section::make('Estado del Emprendimiento')
+                    ->description('Estado actual y nivel de madurez del emprendimiento')
+                    ->icon('heroicon-o-chart-bar')
+                    ->schema([
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\Select::make('business_current_state')
+                                    ->label('Estado actual del negocio')
+                                    ->required()
+                                    ->options([
+                                        'idea'           => 'Idea de negocio',
+                                        'en_creacion'    => 'Emprendimiento en creación',
+                                        'en_marcha'      => 'En marcha',
+                                        'formalizado'    => 'Formalizado',
+                                    ])
+                                    ->placeholder('Seleccione el estado actual'),
+
+                                Forms\Components\Select::make('maturity_level')
+                                    ->label('Nivel de madurez del emprendimiento')
+                                    ->required()
+                                    ->options([
+                                        'idea'          => 'Idea',
+                                        'validacion'    => 'Validación',
+                                        'crecimiento'   => 'Crecimiento',
+                                        'consolidacion' => 'Consolidación',
+                                        'escalamiento'  => 'Escalamiento',
+                                    ])
+                                    ->placeholder('Seleccione el nivel de madurez'),
+                            ]),
+                    ])
+                    ->collapsible()
+                    ->persistCollapsed(),
+
+                // ─── d. Características del Negocio ───────────────────────
                 Forms\Components\Section::make('Características del Negocio')
                     ->description('Información específica sobre el emprendimiento')
                     ->icon('heroicon-o-building-storefront')
@@ -274,118 +302,267 @@ class CharacterizationResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('business_type')
                                     ->label('Tipo de Negocio')
+                                    ->required()
                                     ->options([
-                                        'individual' => 'Individual',
+                                        'individual'  => 'Individual',
                                         'associative' => 'Asociativo',
                                     ])
-                                    ->placeholder('Seleccione el tipo de negocio')
-                                    ->helperText('Modalidad de organización del emprendimiento'),
+                                    ->placeholder('Seleccione el tipo de negocio'),
 
                                 Forms\Components\Select::make('business_age')
                                     ->label('Antigüedad del Negocio')
+                                    ->required()
                                     ->options([
-                                        'over_6_months' => 'Más de 6 meses',
+                                        'lt_6_months'    => 'Menos de 6 meses',
+                                        'over_6_months'  => 'Más de 6 meses',
                                         'over_12_months' => 'Más de 12 meses',
                                         'over_24_months' => 'Más de 24 meses',
                                     ])
-                                    ->placeholder('Seleccione la antigüedad')
-                                    ->helperText('Tiempo que lleva funcionando el negocio'),
+                                    ->placeholder('Seleccione la antigüedad'),
+                            ]),
 
-                                Forms\Components\CheckboxList::make('clients')
-                                    ->label('Clientela Actual y Potencial')
-                                    ->options([
-                                        'community' => 'Comunidad en general',
-                                        'public_entities' => 'Entidades públicas',
-                                        'private_entities' => 'Entidades privadas',
-                                        'schools' => 'Colegios',
-                                        'hospitals' => 'Hospitales',
-                                    ])
-                                    ->columns(2)
-                                    ->helperText('Seleccione todos los tipos de clientes que apliquen')
-                                    ->columnSpanFull(),
+                        Forms\Components\CheckboxList::make('clients')
+                            ->label('Mercado')
+                            ->helperText('Seleccione todos los tipos de clientes a los que actualmente vende.')
+                            ->required()
+                            ->options([
+                                'consumidor_final'   => 'Personas en general (consumidor final)',
+                                'empresas_privadas'  => 'Empresas privadas',
+                                'entidades_publicas' => 'Entidades públicas',
+                                'emprendedores'      => 'Emprendedores',
+                                'comercios'          => 'Comercios (tiendas, supermercados, misceláneas, etc.)',
+                                'restaurantes'       => 'Restaurantes, hoteles y cafeterías',
+                                'instituciones_edu'  => 'Instituciones educativas',
+                                'instituciones_salud'=> 'Instituciones de salud',
+                                'ong'                => 'Organizaciones sin ánimo de lucro',
+                                'asociaciones'       => 'Asociaciones o cooperativas',
+                                'productores_agro'   => 'Productores agropecuarios',
+                                'turistas'           => 'Turistas',
+                                'internacionales'    => 'Clientes internacionales',
+                                'otro'               => 'Otro ¿Cuál?',
+                            ])
+                            ->columns(2)
+                            ->live()
+                            ->columnSpanFull(),
 
-                                Forms\Components\CheckboxList::make('promotion_strategies')
-                                    ->label('Estrategias de Promoción')
-                                    ->options([
-                                        'word_of_mouth' => 'Voz a voz',
-                                        'whatsapp' => 'WhatsApp',
-                                        'facebook' => 'Facebook',
-                                        'instagram' => 'Instagram',
-                                    ])
-                                    ->columns(2)
-                                    ->helperText('Marque todas las estrategias que utiliza')
-                                    ->columnSpanFull(),
+                        Forms\Components\TextInput::make('clients_other')
+                            ->label('Especifique el otro tipo de cliente')
+                            ->required(fn ($get) => in_array('otro', (array) $get('clients')))
+                            ->visible(fn ($get) => in_array('otro', (array) $get('clients')))
+                            ->columnSpanFull(),
 
-                                Forms\Components\Select::make('average_monthly_sales')
-                                    ->label('Ventas Mensuales Promedio')
-                                    ->options([
-                                        'lt_500000' => 'Menos de $500.000',
-                                        '500k_1m' => '$500.001 — $1.000.000',
-                                        '1m_2m' => '$1.001.000 — $2.000.000',
-                                        '2m_5m' => '$2.001.000 — $5.000.000',
-                                        'gt_5m' => 'Más de $5.001.000',
-                                    ])
-                                    ->placeholder('Seleccione rango de ventas')
-                                    ->helperText('Ingreso promedio mensual del negocio'),
+                        Forms\Components\CheckboxList::make('promotion_strategies')
+                            ->label('Estrategias de promoción y comercialización')
+                            ->helperText('Marque todos los medios que utiliza para dar a conocer o vender sus productos o servicios.')
+                            ->required()
+                            ->options([
+                                'voz_a_voz'          => 'Voz a voz',
+                                'referidos'          => 'Referidos',
+                                'whatsapp'           => 'WhatsApp',
+                                'facebook'           => 'Facebook',
+                                'instagram'          => 'Instagram',
+                                'tiktok'             => 'TikTok',
+                                'youtube'            => 'YouTube',
+                                'pagina_web'         => 'Página web',
+                                'google_business'    => 'Google Business Profile',
+                                'marketplace'        => 'Marketplace',
+                                'ecommerce'          => 'Plataformas de comercio electrónico',
+                                'ferias'             => 'Ferias y eventos comerciales',
+                                'volantes'           => 'Volantes o material impreso',
+                                'avisos'             => 'Avisos o letreros',
+                                'radio'              => 'Radio',
+                                'television'         => 'Televisión',
+                                'correo'             => 'Correo electrónico',
+                                'llamadas'           => 'Llamadas telefónicas',
+                                'alianzas'           => 'Alianzas comerciales',
+                                'ninguna'            => 'Ninguna',
+                                'otra'               => 'Otra ¿Cuál?',
+                            ])
+                            ->columns(2)
+                            ->live()
+                            ->columnSpanFull(),
 
-                                Forms\Components\Select::make('employees_generated')
-                                    ->label('Empleos Generados')
-                                    ->options([
-                                        'up_to_2' => 'Hasta 2 empleados',
-                                        '3_to_4' => '3 a 4 empleados',
-                                        'more_than_5' => 'Más de 5 empleados',
-                                    ])
-                                    ->placeholder('Seleccione cantidad de empleos')
-                                    ->helperText('Número de personas empleadas por el emprendimiento'),
+                        Forms\Components\TextInput::make('promotion_strategies_other')
+                            ->label('Especifique la otra estrategia')
+                            ->required(fn ($get) => in_array('otra', (array) $get('promotion_strategies')))
+                            ->visible(fn ($get) => in_array('otra', (array) $get('promotion_strategies')))
+                            ->columnSpanFull(),
+
+                        Forms\Components\Select::make('market_coverage')
+                            ->label('Cobertura del mercado')
+                            ->helperText('¿Cuál es el alcance actual de su mercado?')
+                            ->required()
+                            ->options([
+                                'local'          => 'Local',
+                                'municipal'      => 'Municipal',
+                                'regional'       => 'Regional',
+                                'nacional'       => 'Nacional',
+                                'internacional'  => 'Internacional',
+                            ])
+                            ->placeholder('Seleccione la cobertura'),
+
+                        Forms\Components\Select::make('average_monthly_sales')
+                            ->label('Ventas Mensuales Promedio')
+                            ->helperText('Ingrese el promedio aproximado de ventas mensuales del emprendimiento.')
+                            ->required()
+                            ->options([
+                                'lt_500000' => 'Menos de $500.000',
+                                '500k_1m'   => '$500.001 — $1.000.000',
+                                '1m_2m'     => '$1.001.000 — $2.000.000',
+                                '2m_5m'     => '$2.001.000 — $5.000.000',
+                                'gt_5m'     => 'Más de $5.001.000',
+                            ])
+                            ->placeholder('Seleccione rango de ventas'),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('direct_jobs')
+                                    ->label('Empleos directos generados')
+                                    ->helperText('Personas que trabajan de manera permanente y reciben remuneración. Inclúyase si trabaja de forma permanente en el negocio.')
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->integer()
+                                    ->placeholder('0'),
+
+                                Forms\Components\TextInput::make('indirect_jobs')
+                                    ->label('Empleos indirectos generados')
+                                    ->helperText('Personas que obtienen ingresos de forma ocasional (transportadores, proveedores, contratistas o personal temporal).')
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->integer()
+                                    ->placeholder('0'),
                             ]),
                     ])
                     ->collapsible()
                     ->persistCollapsed(),
 
+                // ─── e. Formalización y Registros ─────────────────────────
                 Forms\Components\Section::make('Formalización y Registros')
                     ->description('Estado de formalización del emprendimiento')
                     ->icon('heroicon-o-document-check')
                     ->schema([
-                        Forms\Components\Grid::make(3)
+                        Forms\Components\Toggle::make('has_commercial_registration')
+                            ->label('¿Cuenta con Registro Mercantil?')
+                            ->live()
+                            ->inline(false)
+                            ->onColor('success')->offColor('gray'),
+
+                        Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\Toggle::make('has_accounting_records')
-                                    ->label('Registros Contables')
-                                    ->helperText('¿Lleva registros de ingresos y gastos?')
-                                    ->required()
-                                    ->inline(false)
-                                    ->onIcon('heroicon-m-check-circle')
-                                    ->offIcon('heroicon-m-x-circle')
-                                    ->onColor('success')
-                                    ->offColor('gray'),
+                                Forms\Components\TextInput::make('mercantile_registration_number')
+                                    ->label('Número de matrícula mercantil')
+                                    ->required(fn ($get) => (bool) $get('has_commercial_registration'))
+                                    ->visible(fn ($get) => (bool) $get('has_commercial_registration')),
 
-                                Forms\Components\Toggle::make('has_commercial_registration')
-                                    ->label('Registro Mercantil')
-                                    ->helperText('¿Tiene registro mercantil vigente?')
-                                    ->required()
-                                    ->inline(false)
-                                    ->onIcon('heroicon-m-check-circle')
-                                    ->offIcon('heroicon-m-x-circle')
-                                    ->onColor('success')
-                                    ->offColor('gray'),
-
-                                Forms\Components\Toggle::make('family_in_drummond')
-                                    ->label('Familiar en Drummond')
-                                    ->helperText('¿Tiene familiares trabajando en Drummond?')
-                                    ->required()
-                                    ->inline(false)
-                                    ->onIcon('heroicon-m-check-circle')
-                                    ->offIcon('heroicon-m-x-circle')
-                                    ->onColor('success')
-                                    ->offColor('gray'),
+                                Forms\Components\DatePicker::make('mercantile_registration_expiry')
+                                    ->label('Fecha de vencimiento')
+                                    ->required(fn ($get) => (bool) $get('has_commercial_registration'))
+                                    ->visible(fn ($get) => (bool) $get('has_commercial_registration'))
+                                    ->displayFormat('d/m/Y')
+                                    ->native(true),
                             ]),
+
+                        Forms\Components\Toggle::make('has_accounting_records')
+                            ->label('¿Lleva registros contables?')
+                            ->live()
+                            ->inline(false)
+                            ->onColor('success')->offColor('gray'),
+
+                        Forms\Components\Select::make('accounting_method')
+                            ->label('¿Cómo lleva los registros contables?')
+                            ->required(fn ($get) => (bool) $get('has_accounting_records'))
+                            ->visible(fn ($get) => (bool) $get('has_accounting_records'))
+                            ->live()
+                            ->options([
+                                'cuaderno'          => 'Cuaderno',
+                                'excel'             => 'Excel',
+                                'software_contable' => 'Software contable',
+                                'app_movil'         => 'Aplicación móvil',
+                                'otro'              => 'Otro ¿Cuál?',
+                            ])
+                            ->placeholder('Seleccione el método'),
+
+                        Forms\Components\TextInput::make('accounting_method_other')
+                            ->label('Especifique el método')
+                            ->required(fn ($get) => $get('accounting_method') === 'otro')
+                            ->visible(fn ($get) => $get('accounting_method') === 'otro'),
+
+                        Forms\Components\Toggle::make('has_business_bank_account')
+                            ->label('¿Cuenta con una cuenta bancaria empresarial?')
+                            ->live()
+                            ->inline(false)
+                            ->onColor('success')->offColor('gray'),
+
+                        Forms\Components\TextInput::make('bank_name')
+                            ->label('Nombre de la entidad financiera')
+                            ->required(fn ($get) => (bool) $get('has_business_bank_account'))
+                            ->visible(fn ($get) => (bool) $get('has_business_bank_account')),
+
+                        Forms\Components\Select::make('has_operation_licenses')
+                            ->label('¿Cuenta con los permisos o licencias requeridas para operar?')
+                            ->required()
+                            ->live()
+                            ->options([
+                                'si'       => 'Sí',
+                                'no'       => 'No',
+                                'no_aplica'=> 'No aplica',
+                            ])
+                            ->placeholder('Seleccione una opción'),
+
+                        Forms\Components\Textarea::make('licenses_description')
+                            ->label('¿Cuáles permisos o licencias poseen?')
+                            ->required(fn ($get) => $get('has_operation_licenses') === 'si')
+                            ->visible(fn ($get) => $get('has_operation_licenses') === 'si')
+                            ->rows(3),
+
+                        Forms\Components\Toggle::make('family_in_drummond')
+                            ->label('¿Tiene familiares trabajando en Drummond?')
+                            ->live()
+                            ->inline(false)
+                            ->onColor('success')->offColor('gray'),
+
+                        Forms\Components\Select::make('drummond_family_relationship')
+                            ->label('Parentesco')
+                            ->required(fn ($get) => (bool) $get('family_in_drummond'))
+                            ->visible(fn ($get) => (bool) $get('family_in_drummond'))
+                            ->options([
+                                'padre'    => 'Padre',
+                                'madre'    => 'Madre',
+                                'hermano'  => 'Hermano(a)',
+                                'hijo'     => 'Hijo(a)',
+                                'conyuge'  => 'Cónyuge',
+                                'otro'     => 'Otro',
+                            ])
+                            ->placeholder('Seleccione el parentesco'),
                     ])
                     ->collapsible()
                     ->persistCollapsed(),
 
-                Forms\Components\Section::make('Georreferenciación')
-                    ->description('Ubicación exacta del emprendimiento')
+                // ─── f. Infraestructura y Georreferenciación ──────────────
+                Forms\Components\Section::make('Infraestructura y Georreferenciación')
+                    ->description('Lugar de operación y ubicación exacta del emprendimiento')
                     ->icon('heroicon-o-map-pin')
                     ->schema([
+                        Forms\Components\Select::make('activity_location')
+                            ->label('Lugar donde desarrolla su actividad económica')
+                            ->required()
+                            ->options([
+                                'en_mi_vivienda'         => 'En mi vivienda',
+                                'local_propio'           => 'Local propio',
+                                'local_arrendado'        => 'Local arrendado',
+                                'espacio_compartido'     => 'Espacio compartido',
+                                'sin_establecimiento'    => 'Sin establecimiento fijo',
+                                'otro'                   => 'Otro',
+                            ])
+                            ->placeholder('Seleccione el lugar'),
+
+                        Forms\Components\Toggle::make('is_own_property')
+                            ->label('¿El inmueble donde funciona el emprendimiento es propio?')
+                            ->inline(false)
+                            ->onColor('success')->offColor('gray'),
+
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('latitude')
@@ -406,69 +583,280 @@ class CharacterizationResource extends Resource
                                     ->helperText('Coordenada de longitud GPS')
                                     ->rules(['numeric', 'between:-180,180']),
                             ]),
-
-                        Forms\Components\Placeholder::make('coordinates_info')
-                            ->label('Información')
-                            ->content('Las coordenadas GPS deben ser obtenidas en el lugar exacto del emprendimiento. Use una aplicación GPS o Google Maps para obtener las coordenadas precisas.')
-                            ->columnSpanFull(),
                     ])
                     ->collapsible()
                     ->persistCollapsed(),
 
-                Forms\Components\Section::make('Evidencias Fotográficas')
-                    ->description('Documentos y fotografías de soporte')
-                    ->icon('heroicon-o-camera')
+                // ─── g. Impacto Social ────────────────────────────────────
+                Forms\Components\Section::make('Impacto Social')
+                    ->description('Alcance social del emprendimiento')
+                    ->icon('heroicon-o-users')
                     ->schema([
-                        Forms\Components\Grid::make(1)
+                        Forms\Components\Grid::make(2)
                             ->schema([
-                                Forms\Components\FileUpload::make('commerce_evidence_path')
-                                    ->label('Evidencia del Comercio')
-                                    ->directory('characterizations/commerce')
-                                    ->disk('public')
-                                    ->maxSize(5120)
-                                    ->downloadable()
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])
-                                    ->helperText('Fotografías del establecimiento o documento (máximo 5MB)')
-                                    ->imageResizeMode('contain')
-                                    ->imageResizeTargetWidth('1920')
-                                    ->imageResizeTargetHeight('1080')
-                                    ->validationMessages([
-                                        'max' => 'El archivo no puede superar los 5MB.',
-                                    ]),
+                                Forms\Components\TextInput::make('economic_dependents')
+                                    ->label('¿Cuántas personas dependen económicamente de este emprendimiento?')
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->integer()
+                                    ->placeholder('0'),
 
-                                Forms\Components\FileUpload::make('population_evidence_path')
-                                    ->label('Evidencia de Población Vulnerable')
-                                    ->directory('characterizations/population')
-                                    ->disk('public')
-                                    ->maxSize(5120)
-                                    ->downloadable()
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])
-                                    ->helperText('Documentos que certifican la condición de población vulnerable (máximo 5MB)')
-                                    ->imageResizeMode('contain')
-                                    ->imageResizeTargetWidth('1920')
-                                    ->imageResizeTargetHeight('1080')
-                                    ->validationMessages([
-                                        'max' => 'El archivo no puede superar los 5MB.',
-                                    ]),
-
-                                Forms\Components\FileUpload::make('photo_evidence_path')
-                                    ->label('Fotografía Georeferenciación')
-                                    ->directory('characterizations/georeference')
-                                    ->disk('public')
-                                    ->maxSize(5120)
-                                    ->downloadable()
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
-                                    ->helperText('Foto de la ubicación exacta del emprendimiento (máximo 5MB)')
-                                    ->imageResizeMode('contain')
-                                    ->imageResizeTargetWidth('1920')
-                                    ->imageResizeTargetHeight('1080')
-                                    ->validationMessages([
-                                        'max' => 'El archivo no puede superar los 5MB.',
-                                    ]),
+                                Forms\Components\TextInput::make('benefited_families')
+                                    ->label('¿Cuántas familias se benefician directamente del emprendimiento?')
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->integer()
+                                    ->placeholder('0'),
                             ]),
                     ])
                     ->collapsible()
                     ->persistCollapsed(),
+
+                // ─── h. Información Financiera ────────────────────────────
+                Forms\Components\Section::make('Información Financiera')
+                    ->description('Situación financiera del emprendimiento')
+                    ->icon('heroicon-o-currency-dollar')
+                    ->schema([
+                        Forms\Components\Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('monthly_costs')
+                                    ->label('Costos mensuales estimados')
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->prefix('$')
+                                    ->placeholder('0'),
+
+                                Forms\Components\TextInput::make('monthly_expenses')
+                                    ->label('Gastos mensuales estimados')
+                                    ->required()
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->prefix('$')
+                                    ->placeholder('0'),
+
+                                Forms\Components\TextInput::make('monthly_profit')
+                                    ->label('Utilidad mensual estimada')
+                                    ->required()
+                                    ->numeric()
+                                    ->prefix('$')
+                                    ->placeholder('0'),
+                            ]),
+
+                        Forms\Components\Toggle::make('has_active_credits')
+                            ->label('¿Tiene créditos vigentes?')
+                            ->live()
+                            ->inline(false)
+                            ->onColor('success')->offColor('gray'),
+
+                        Forms\Components\Grid::make(2)
+                            ->schema([
+                                Forms\Components\TextInput::make('credit_entity')
+                                    ->label('Entidad financiera')
+                                    ->required(fn ($get) => (bool) $get('has_active_credits'))
+                                    ->visible(fn ($get) => (bool) $get('has_active_credits')),
+
+                                Forms\Components\TextInput::make('credit_amount')
+                                    ->label('Valor del crédito aprobado')
+                                    ->required(fn ($get) => (bool) $get('has_active_credits'))
+                                    ->visible(fn ($get) => (bool) $get('has_active_credits'))
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->prefix('$'),
+                            ]),
+
+                        Forms\Components\Toggle::make('has_family_employees')
+                            ->label('¿Tiene familiares contratados?')
+                            ->live()
+                            ->inline(false)
+                            ->onColor('success')->offColor('gray'),
+
+                        Forms\Components\TextInput::make('family_employees_count')
+                            ->label('¿Cuántos?')
+                            ->required(fn ($get) => (bool) $get('has_family_employees'))
+                            ->visible(fn ($get) => (bool) $get('has_family_employees'))
+                            ->numeric()
+                            ->minValue(0)
+                            ->integer(),
+
+                        Forms\Components\Toggle::make('hires_women')
+                            ->label('¿Contrata mujeres?')
+                            ->live()
+                            ->inline(false)
+                            ->onColor('success')->offColor('gray'),
+
+                        Forms\Components\TextInput::make('women_employees_count')
+                            ->label('¿Cuántas mujeres trabajan actualmente?')
+                            ->required(fn ($get) => (bool) $get('hires_women'))
+                            ->visible(fn ($get) => (bool) $get('hires_women'))
+                            ->numeric()
+                            ->minValue(0)
+                            ->integer(),
+                    ])
+                    ->collapsible()
+                    ->persistCollapsed(),
+
+                // ─── j. Producción y Operación ────────────────────────────
+                Forms\Components\Section::make('Producción y Operación')
+                    ->description('Capacidad operativa del emprendimiento')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->schema([
+                        Forms\Components\TextInput::make('monthly_production_capacity')
+                            ->label('Capacidad de producción mensual')
+                            ->required()
+                            ->placeholder('Ej: 500 unidades, 200 kg, 50 servicios...'),
+
+                        Forms\Components\Textarea::make('equipment_and_tools')
+                            ->label('Equipos y herramientas disponibles')
+                            ->required()
+                            ->rows(3)
+                            ->placeholder('Liste los principales equipos y herramientas con que cuenta el emprendimiento.'),
+
+                        Forms\Components\Textarea::make('main_suppliers')
+                            ->label('Principales proveedores')
+                            ->required()
+                            ->rows(3)
+                            ->placeholder('Mencione los principales proveedores de materias primas o insumos.'),
+                    ])
+                    ->collapsible()
+                    ->persistCollapsed(),
+
+                // ─── k. Innovación y Tecnología ───────────────────────────
+                Forms\Components\Section::make('Innovación y Tecnología')
+                    ->description('Capacidad tecnológica e innovación del emprendimiento')
+                    ->icon('heroicon-o-light-bulb')
+                    ->schema([
+                        Forms\Components\Select::make('tech_capacity_level')
+                            ->label('Nivel de capacidad tecnológica')
+                            ->required()
+                            ->options([
+                                'baja'  => 'Baja',
+                                'media' => 'Media',
+                                'alta'  => 'Alta',
+                            ])
+                            ->placeholder('Seleccione el nivel'),
+
+                        Forms\Components\Toggle::make('has_innovation')
+                            ->label('¿Ha implementado componentes de innovación?')
+                            ->live()
+                            ->inline(false)
+                            ->onColor('success')->offColor('gray'),
+
+                        Forms\Components\Textarea::make('innovation_description')
+                            ->label('Describa cuáles')
+                            ->required(fn ($get) => (bool) $get('has_innovation'))
+                            ->visible(fn ($get) => (bool) $get('has_innovation'))
+                            ->rows(3),
+
+                        Forms\Components\CheckboxList::make('digital_tools')
+                            ->label('¿Ha implementado herramientas de transformación digital?')
+                            ->helperText('Seleccione todas las que apliquen.')
+                            ->options([
+                                'redes_sociales'     => 'Redes sociales',
+                                'ecommerce'          => 'Comercio electrónico',
+                                'facturacion_elec'   => 'Facturación electrónica',
+                                'software_admin'     => 'Software administrativo',
+                                'crm'                => 'CRM',
+                                'ia'                 => 'Inteligencia Artificial',
+                                'otro'               => 'Otro',
+                            ])
+                            ->columns(2),
+                    ])
+                    ->collapsible()
+                    ->persistCollapsed(),
+
+                // ─── l. Diagnóstico del Emprendimiento ────────────────────
+                Forms\Components\Section::make('Diagnóstico del Emprendimiento')
+                    ->description('Dificultades y necesidades de fortalecimiento identificadas')
+                    ->icon('heroicon-o-magnifying-glass')
+                    ->schema([
+                        Forms\Components\Textarea::make('main_difficulties')
+                            ->label('Principales dificultades identificadas')
+                            ->required()
+                            ->rows(4)
+                            ->placeholder('Describa las principales dificultades que enfrenta el emprendimiento.'),
+
+                        Forms\Components\CheckboxList::make('strengthening_needs')
+                            ->label('Necesidades de fortalecimiento')
+                            ->helperText('Seleccione todas las que apliquen.')
+                            ->required()
+                            ->options([
+                                'comercial'            => 'Comercial',
+                                'financiero'           => 'Financiero',
+                                'administrativo'       => 'Administrativo',
+                                'contable'             => 'Contable',
+                                'produccion'           => 'Producción',
+                                'tecnologia'           => 'Tecnología',
+                                'marketing'            => 'Marketing',
+                                'formalizacion'        => 'Formalización',
+                                'innovacion'           => 'Innovación',
+                                'acceso_financiacion'  => 'Acceso a financiación',
+                                'talento_humano'       => 'Talento humano',
+                                'otro'                 => 'Otro',
+                            ])
+                            ->columns(2),
+                    ])
+                    ->collapsible()
+                    ->persistCollapsed(),
+
+                // ─── Evidencias Fotográficas ──────────────────────────────
+                Forms\Components\Section::make('Evidencias Fotográficas')
+                    ->description('Documentos y fotografías de soporte')
+                    ->icon('heroicon-o-camera')
+                    ->schema([
+                        Forms\Components\FileUpload::make('commerce_evidence_path')
+                            ->label('Evidencia del Comercio')
+                            ->directory('characterizations/commerce')
+                            ->disk('public')
+                            ->multiple()
+                            ->maxSize(5120)
+                            ->downloadable()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])
+                            ->helperText('Fotografías del establecimiento o documento (máximo 5MB)'),
+
+                        Forms\Components\FileUpload::make('population_evidence_path')
+                            ->label('Evidencia de Población Vulnerable')
+                            ->directory('characterizations/population')
+                            ->disk('public')
+                            ->multiple()
+                            ->maxSize(5120)
+                            ->downloadable()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])
+                            ->helperText('Documentos que certifican la condición de población vulnerable (máximo 5MB)'),
+
+                        Forms\Components\FileUpload::make('photo_evidence_path')
+                            ->label('Fotografía Georeferenciación')
+                            ->directory('characterizations/georeference')
+                            ->disk('public')
+                            ->multiple()
+                            ->maxSize(5120)
+                            ->downloadable()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])
+                            ->helperText('Foto de la ubicación exacta del emprendimiento (máximo 5MB)'),
+                    ])
+                    ->collapsible()
+                    ->persistCollapsed(),
+
+                // ─── m. Habeas Data ───────────────────────────────────────
+                Forms\Components\Section::make('Habeas Data')
+                    ->description('Autorización para el tratamiento de datos personales')
+                    ->icon('heroicon-o-shield-check')
+                    ->schema([
+                        Forms\Components\Checkbox::make('habeas_data_accepted')
+                            ->label('Autorizo el tratamiento de mis datos personales de conformidad con la Ley 1581 de 2012 y demás normas que la modifiquen o sustituyan. Declaro que la información suministrada es veraz y autorizo su recolección, almacenamiento, uso, actualización y tratamiento por parte de la entidad ejecutora del proyecto y sus aliados, exclusivamente para fines relacionados con la ejecución, seguimiento, evaluación, generación de indicadores, elaboración de informes y demás actividades propias del programa de emprendimiento, de acuerdo con la Política de Tratamiento de Datos Personales vigente.')
+                            ->required()
+                            ->validationMessages([
+                                'required' => 'Debe aceptar la autorización de tratamiento de datos para continuar.',
+                                'accepted' => 'Debe aceptar la autorización de tratamiento de datos para continuar.',
+                            ])
+                            ->rules(['accepted']),
+                    ])
+                    ->collapsible(false),
+
+                Forms\Components\Hidden::make('manager_id')
+                    ->default(auth()->id()),
             ])
             ->columns(1);
     }

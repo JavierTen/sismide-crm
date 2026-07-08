@@ -13,6 +13,12 @@ class CreateCharacterization extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['manager_id'] = auth()->id();
+
+        if (! empty($data['habeas_data_accepted'])) {
+            $data['habeas_data_accepted_at'] = now();
+            $data['habeas_data_manager_id']  = auth()->id();
+        }
+
         return $data;
     }
 

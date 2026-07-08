@@ -153,7 +153,9 @@ class CharacterizationResource extends Resource
                                 table: 'characterizations',
                                 column: 'entrepreneur_id',
                                 ignoreRecord: true,
-                                modifyRuleUsing: fn ($rule) => $rule->whereYear('created_at', now()->year),
+                                modifyRuleUsing: fn ($rule) => $rule->where(
+                                    fn ($query) => $query->whereYear('created_at', now()->year)
+                                ),
                             ),
 
                         Forms\Components\Grid::make(3)
@@ -193,11 +195,11 @@ class CharacterizationResource extends Resource
                                     ->content(fn ($get) => $entrepreneurData($get, '', 'project.name')),
                                 Forms\Components\Placeholder::make('_admission_date')
                                     ->label('Fecha de Registro')
-                                    ->content(function ($get) use ($entrepreneurData) {
+                                    ->content(function ($get) {
                                         $id = $get('entrepreneur_id');
                                         if (! $id) return '----';
-                                        $date = \App\Models\Entrepreneur::find($id)?->admission_date;
-                                        return $date ? \Carbon\Carbon::parse($date)->format('d/m/Y') : '----';
+                                        $date = \App\Models\Entrepreneur::find($id)?->created_at;
+                                        return $date ? $date->format('d/m/Y') : '----';
                                     }),
                                 Forms\Components\Placeholder::make('_manager')
                                     ->label('Gestor Asignado')

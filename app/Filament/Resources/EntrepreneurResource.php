@@ -170,7 +170,7 @@ class EntrepreneurResource extends Resource
                                             ->live(onBlur: true)
                                             ->unique(
                                                 ignoreRecord: true,
-                                                modifyRuleUsing: fn ($rule) => $rule->whereYear('created_at', now()->year),
+                                                modifyRuleUsing: fn ($rule) => $rule->where(fn ($q) => $q->whereYear('created_at', now()->year)),
                                             ),
 
                                         Forms\Components\TextInput::make('full_name')
@@ -252,7 +252,7 @@ class EntrepreneurResource extends Resource
                                             ->placeholder('usuario@ejemplo.com')
                                             ->unique(
                                                 ignoreRecord: true,
-                                                modifyRuleUsing: fn ($rule) => $rule->whereYear('created_at', now()->year),
+                                                modifyRuleUsing: fn ($rule) => $rule->where(fn ($q) => $q->whereYear('created_at', now()->year)),
                                             ),
                                     ])
                                     ->columns(2)

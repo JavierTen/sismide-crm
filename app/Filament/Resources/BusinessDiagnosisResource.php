@@ -112,10 +112,17 @@ class BusinessDiagnosisResource extends Resource
                                                 ->relationship(
                                                     'entrepreneur',
                                                     'full_name',
-                                                    fn($query) => $query->when(
-                                                        !auth()->user()->hasRole('Admin'),
-                                                        fn($q) => $q->where('manager_id', auth()->id())
-                                                    )
+                                                    function ($query) {
+                                                        $year = \App\Support\YearContext::effectiveYear() ?? now()->year;
+                                                        $query->whereHas('characterizations', fn ($q) =>
+                                                            $q->withoutGlobalScope(\App\Scopes\YearColumnScope::class)
+                                                              ->whereYear('created_at', $year)
+                                                        )
+                                                        ->when(
+                                                            ! auth()->user()->hasRole('Admin'),
+                                                            fn ($q) => $q->where('manager_id', auth()->id())
+                                                        );
+                                                    }
                                                 )
                                                 ->searchable()
                                                 ->preload()
@@ -128,7 +135,20 @@ class BusinessDiagnosisResource extends Resource
                                                     $operation === 'edit'
                                                         ? 'El emprendedor asignado no puede ser modificado.'
                                                         : 'Selecciona el emprendedor para realizar el diagnóstico empresarial'
-                                                ),
+                                                )
+                                                ->rules([
+                                                    fn () => function ($attribute, $value, $fail) {
+                                                        if (! $value) return;
+                                                        $year = \App\Support\YearContext::effectiveYear() ?? now()->year;
+                                                        $exists = \App\Models\Characterization::withoutGlobalScope(\App\Scopes\YearColumnScope::class)
+                                                            ->where('entrepreneur_id', $value)
+                                                            ->whereYear('created_at', $year)
+                                                            ->exists();
+                                                        if (! $exists) {
+                                                            $fail("Este emprendedor no tiene una caracterización registrada en el año {$year}. Debe caracterizarlo primero.");
+                                                        }
+                                                    },
+                                                ]),
 
                                             Forms\Components\Select::make('diagnosis_type')
                                                 ->label('Tipo de Diagnóstico')
@@ -404,21 +424,8 @@ class BusinessDiagnosisResource extends Resource
                                         ->visible(fn ($get) => $get('financial_section.knows_margin') === 'yes')
                                         ->placeholder('Ej: 35%'),
 
-                                    Forms\Components\Radio::make('financial_section.profit_margin')
-                                        ->label('5. ¿Cuál es el margen de ganancia de productos o servicios?')
-                                        ->options([
-                                            '10_20'         => 'Entre el 10% y el 20%',
-                                            '20_30'         => 'Entre el 20% y 30%',
-                                            '30_40'         => 'Entre el 30% y el 40%',
-                                            '40_50'         => 'Entre el 40% y 50%',
-                                            'gt_50'         => 'Mayor al 50%',
-                                            'no_se'         => 'No lo sé',
-                                            'not_applicable'=> 'No lo hago o No Aplica',
-                                        ])
-                                        ->required(),
-
                                     Forms\Components\Radio::make('financial_section.external_financing')
-                                        ->label('6. ¿Cómo manejas la financiación y búsqueda de recursos externos?')
+                                        ->label('5. ¿Cómo manejas la financiación y búsqueda de recursos externos?')
                                         ->options([
                                             'no_external' => 'No busco financiación externa',
                                             'formal_financing' => 'Busco activamente opciones de financiación formales',
@@ -429,7 +436,7 @@ class BusinessDiagnosisResource extends Resource
                                         ->required(),
 
                                     Forms\Components\Radio::make('financial_section.budget_planning')
-                                        ->label('7. ¿Cómo planifica su presupuesto financiero?')
+                                        ->label('6. ¿Cómo planifica su presupuesto financiero?')
                                         ->options([
                                             'irregular_intuitive' => 'Hago presupuestos de manera irregular o intuitiva',
                                             'basic_planning' => 'Realizo una planeación financiera y presupuestación básica',
@@ -440,7 +447,7 @@ class BusinessDiagnosisResource extends Resource
                                         ->required(),
 
                                     Forms\Components\Radio::make('financial_section.business_investments')
-                                        ->label('8. ¿Cómo manejas las inversiones en tu negocio?')
+                                        ->label('7. ¿Cómo manejas las inversiones en tu negocio?')
                                         ->options([
                                             'no_planned' => 'No realizo inversiones planificadas',
                                             'basic_immediate' => 'Realizo inversiones básicas basadas en necesidades inmediatas',
@@ -450,7 +457,7 @@ class BusinessDiagnosisResource extends Resource
                                         ->required(),
 
                                     Forms\Components\Radio::make('financial_section.payment_methods')
-                                        ->label('9. ¿Qué métodos de pago utiliza frecuentemente?')
+                                        ->label('8. ¿Qué métodos de pago utiliza frecuentemente?')
                                         ->options([
                                             'digital_transfer' => 'Transferencia digital',
                                             'pos_terminal' => 'Datáfono',
@@ -460,7 +467,7 @@ class BusinessDiagnosisResource extends Resource
                                         ->required(),
 
                                     Forms\Components\Radio::make('financial_section.accounts_management')
-                                        ->label('10. ¿Cómo se manejan las cuentas por cobrar y por pagar?')
+                                        ->label('9. ¿Cómo se manejan las cuentas por cobrar y por pagar?')
                                         ->options([
                                             'no_specific_record' => 'No llevo un registro específico de cuentas por cobrar/pagar',
                                             'basic_informal' => 'Realizo un seguimiento básico e informal de estas cuentas',
@@ -470,7 +477,7 @@ class BusinessDiagnosisResource extends Resource
                                         ->required(),
 
                                     Forms\Components\Radio::make('financial_section.tax_obligations')
-                                        ->label('11. ¿Su unidad productiva cumple con sus obligaciones tributarias?')
+                                        ->label('10. ¿Su unidad productiva cumple con sus obligaciones tributarias?')
                                         ->options([
                                             'no_knowledge'    => 'No tengo conocimiento claro sobre mis obligaciones tributarias',
                                             'basic_compliance'=> 'Cumplo con las obligaciones tributarias básicas',

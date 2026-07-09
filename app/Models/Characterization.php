@@ -47,7 +47,6 @@ class Characterization extends Model
         'drummond_family_relationship',
         // f. Infraestructura
         'activity_location',
-        'is_own_property',
         'latitude',
         'longitude',
         // g. Impacto Social
@@ -102,7 +101,7 @@ class Characterization extends Model
         'has_innovation'               => 'boolean',
         'habeas_data_accepted'         => 'boolean',
         'habeas_data_accepted_at'      => 'datetime',
-        'is_own_property'              => 'boolean',
+
         'family_in_drummond'           => 'boolean',
         'mercantile_registration_expiry' => 'date',
         'commerce_evidence_path'       => 'array',

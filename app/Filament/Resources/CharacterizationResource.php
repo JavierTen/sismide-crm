@@ -560,11 +560,6 @@ class CharacterizationResource extends Resource
                             ])
                             ->placeholder('Seleccione el lugar'),
 
-                        Forms\Components\Toggle::make('is_own_property')
-                            ->label('¿El inmueble donde funciona el emprendimiento es propio?')
-                            ->inline(false)
-                            ->onColor('success')->offColor('gray'),
-
                         Forms\Components\Grid::make(2)
                             ->schema([
                                 Forms\Components\TextInput::make('latitude')
@@ -581,9 +576,16 @@ class CharacterizationResource extends Resource
                                     ->numeric()
                                     ->required()
                                     ->step(0.00000001)
-                                    ->placeholder('Ej: -73.1227')
-                                    ->helperText('Coordenada de longitud GPS')
-                                    ->rules(['numeric', 'between:-180,180']),
+                                    ->prefix('-')
+                                    ->placeholder('73.1227')
+                                    ->helperText('Coordenada de longitud GPS (negativa en Colombia)')
+                                    ->afterStateHydrated(fn ($component, $state) =>
+                                        $component->state($state !== null ? abs((float) $state) : null)
+                                    )
+                                    ->dehydrateStateUsing(fn ($state) =>
+                                        $state !== null && $state !== '' ? -abs((float) $state) : null
+                                    )
+                                    ->rules(['numeric', 'between:0,180']),
                             ]),
                     ])
                     ->collapsible()
@@ -626,25 +628,34 @@ class CharacterizationResource extends Resource
                                 Forms\Components\TextInput::make('monthly_costs')
                                     ->label('Costos mensuales estimados')
                                     ->required()
-                                    ->numeric()
+                                    ->inputMode('numeric')
                                     ->minValue(0)
                                     ->prefix('$')
-                                    ->placeholder('0'),
+                                    ->placeholder('0')
+                                    ->afterStateHydrated(fn ($component, $state) => $component->state($state !== null ? (int) $state : null))
+                                    ->extraInputAttributes(['oninput' => "this.value=this.value.replace(/[^0-9]/g,'')"])
+                                    ->rules(['integer', 'min:0']),
 
                                 Forms\Components\TextInput::make('monthly_expenses')
                                     ->label('Gastos mensuales estimados')
                                     ->required()
-                                    ->numeric()
+                                    ->inputMode('numeric')
                                     ->minValue(0)
                                     ->prefix('$')
-                                    ->placeholder('0'),
+                                    ->placeholder('0')
+                                    ->afterStateHydrated(fn ($component, $state) => $component->state($state !== null ? (int) $state : null))
+                                    ->extraInputAttributes(['oninput' => "this.value=this.value.replace(/[^0-9]/g,'')"])
+                                    ->rules(['integer', 'min:0']),
 
                                 Forms\Components\TextInput::make('monthly_profit')
                                     ->label('Utilidad mensual estimada')
                                     ->required()
-                                    ->numeric()
+                                    ->inputMode('numeric')
                                     ->prefix('$')
-                                    ->placeholder('0'),
+                                    ->placeholder('0')
+                                    ->afterStateHydrated(fn ($component, $state) => $component->state($state !== null ? (int) $state : null))
+                                    ->extraInputAttributes(['oninput' => "this.value=this.value.replace(/[^0-9]/g,'')"])
+                                    ->rules(['integer', 'min:0']),
                             ]),
 
                         Forms\Components\Toggle::make('has_active_credits')
@@ -664,9 +675,12 @@ class CharacterizationResource extends Resource
                                     ->label('Valor del crédito aprobado')
                                     ->required(fn ($get) => (bool) $get('has_active_credits'))
                                     ->visible(fn ($get) => (bool) $get('has_active_credits'))
-                                    ->numeric()
+                                    ->inputMode('numeric')
                                     ->minValue(0)
-                                    ->prefix('$'),
+                                    ->prefix('$')
+                                    ->afterStateHydrated(fn ($component, $state) => $component->state($state !== null ? (int) $state : null))
+                                    ->extraInputAttributes(['oninput' => "this.value=this.value.replace(/[^0-9]/g,'')"])
+                                    ->rules(['integer', 'min:0']),
                             ]),
 
                         Forms\Components\Toggle::make('has_family_employees')
@@ -833,6 +847,7 @@ class CharacterizationResource extends Resource
                             ->directory('characterizations/georeference')
                             ->disk('public')
                             ->multiple()
+                            ->required()
                             ->maxSize(5120)
                             ->downloadable()
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg'])

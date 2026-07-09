@@ -391,21 +391,29 @@ class BusinessDiagnosisResource extends Resource
                                     Forms\Components\Radio::make('financial_section.knows_margin')
                                         ->label('4. ¿Conoces el porcentaje de tu margen de ganancia?')
                                         ->options([
-                                            'yes' => 'Sí',
-                                            'no' => 'No',
-                                            'not_applicable' => 'No lo hago o No Aplica'
+                                            'yes'           => 'Sí',
+                                            'no'            => 'No',
+                                            'not_applicable'=> 'No aplica',
                                         ])
+                                        ->live()
                                         ->required(),
+
+                                    Forms\Components\TextInput::make('financial_section.knows_margin_description')
+                                        ->label('¿Cuál es el porcentaje de su margen de ganancia?')
+                                        ->required(fn ($get) => $get('financial_section.knows_margin') === 'yes')
+                                        ->visible(fn ($get) => $get('financial_section.knows_margin') === 'yes')
+                                        ->placeholder('Ej: 35%'),
 
                                     Forms\Components\Radio::make('financial_section.profit_margin')
                                         ->label('5. ¿Cuál es el margen de ganancia de productos o servicios?')
                                         ->options([
-                                            '10_20' => 'Entre el 10% y el 20%',
-                                            '20_30' => 'Entre el 20% y 30%',
-                                            '30_40' => 'Entre el 30% y el 40%',
-                                            '40_50' => 'Entre el 40% y 50%',
-                                            'gt_50' => 'Mayor al 50%',
-                                            'not_applicable' => 'No lo hago o No Aplica'
+                                            '10_20'         => 'Entre el 10% y el 20%',
+                                            '20_30'         => 'Entre el 20% y 30%',
+                                            '30_40'         => 'Entre el 30% y el 40%',
+                                            '40_50'         => 'Entre el 40% y 50%',
+                                            'gt_50'         => 'Mayor al 50%',
+                                            'no_se'         => 'No lo sé',
+                                            'not_applicable'=> 'No lo hago o No Aplica',
                                         ])
                                         ->required(),
 
@@ -464,12 +472,19 @@ class BusinessDiagnosisResource extends Resource
                                     Forms\Components\Radio::make('financial_section.tax_obligations')
                                         ->label('11. ¿Su unidad productiva cumple con sus obligaciones tributarias?')
                                         ->options([
-                                            'no_knowledge' => 'No tengo conocimiento claro sobre mis obligaciones tributarias',
-                                            'basic_compliance' => 'Cumplo con las obligaciones tributarias básicas',
-                                            'planned_review' => 'Planifico y reviso periódicamente mis responsabilidades tributarias',
-                                            'not_applicable' => 'No lo hago o No Aplica'
+                                            'no_knowledge'    => 'No tengo conocimiento claro sobre mis obligaciones tributarias',
+                                            'basic_compliance'=> 'Cumplo con las obligaciones tributarias básicas',
+                                            'planned_review'  => 'Planifico y reviso periódicamente mis responsabilidades tributarias',
+                                            'not_applicable'  => 'No lo hago o No Aplica',
                                         ])
+                                        ->live()
                                         ->required(),
+
+                                    Forms\Components\TextInput::make('financial_section.tax_obligations_description')
+                                        ->label('¿Cuáles obligaciones tributarias cumple actualmente?')
+                                        ->required(fn ($get) => in_array($get('financial_section.tax_obligations'), ['basic_compliance', 'planned_review']))
+                                        ->visible(fn ($get) => in_array($get('financial_section.tax_obligations'), ['basic_compliance', 'planned_review']))
+                                        ->placeholder('Describa las obligaciones tributarias que cumple'),
                                 ])
                                 ->columns(1),
                         ]),
@@ -503,12 +518,19 @@ class BusinessDiagnosisResource extends Resource
                                     Forms\Components\Radio::make('production_section.raw_materials_optimization')
                                         ->label('3. ¿Cómo optimizas el uso de materias primas y recursos?')
                                         ->options([
-                                            'no_attention' => 'No presto atención específica al uso de materias primas',
-                                            'basic_system' => 'Tengo un sistema básico para optimizar el uso de materias primas',
+                                            'no_attention'      => 'No presto atención específica al uso de materias primas',
+                                            'basic_system'      => 'Tengo un sistema básico para optimizar el uso de materias primas',
                                             'efficient_management' => 'Realizo una gestión eficiente y planificada de materias primas',
-                                            'not_applicable' => 'No lo hago o No Aplica'
+                                            'not_applicable'    => 'No lo hago o No Aplica',
                                         ])
+                                        ->live()
                                         ->required(),
+
+                                    Forms\Components\TextInput::make('production_section.raw_materials_suppliers')
+                                        ->label('¿Cuáles son sus principales proveedores de materias primas, insumos o recursos?')
+                                        ->required(fn ($get) => in_array($get('production_section.raw_materials_optimization'), ['basic_system', 'efficient_management']))
+                                        ->visible(fn ($get) => in_array($get('production_section.raw_materials_optimization'), ['basic_system', 'efficient_management']))
+                                        ->placeholder('Nombre los principales proveedores'),
 
                                     Forms\Components\Radio::make('production_section.innovation')
                                         ->label('4. ¿Cómo manejas la innovación en tus procesos productivos?')
@@ -688,21 +710,25 @@ class BusinessDiagnosisResource extends Resource
                                     Forms\Components\Textarea::make('general_observations')
                                         ->label('Observaciones Generales (Descripción detallada, realizar un mini DOFA)')
                                         ->required()
-                                        ->rows(6)
-                                        ->placeholder('Incluya:\n• Fortalezas identificadas\n• Oportunidades de mejora\n• Debilidades encontradas\n• Amenazas del entorno\n• Recomendaciones específicas')
-                                        ->helperText('Desarrolle un análisis DOFA básico del emprendimiento'),
-                                ]),
-
-                            Forms\Components\Section::make('Plan de Trabajo')
-                                ->schema([
-                                    Forms\Components\CheckboxList::make('work_sections')
-                                        ->label('Escoger al menos 2 secciones a trabajar con el emprendedor')
-                                        ->options(BusinessDiagnosis::workSectionOptions())
-                                        ->required()
-                                        ->minItems(2)
-                                        ->maxItems(5)
-                                        ->columns(1)
-                                        ->helperText('Seleccione mínimo 2 secciones prioritarias para el plan de fortalecimiento'),
+                                        ->rows(8)
+                                        ->placeholder(
+                                            "Desarrolle un análisis DOFA básico del emprendimiento. Incluya:\n" .
+                                            "• Fortalezas: aspectos positivos internos del negocio (habilidades, recursos, ventajas competitivas)\n" .
+                                            "• Debilidades: aspectos internos que representan limitaciones o áreas de mejora\n" .
+                                            "• Oportunidades: factores externos favorables que el emprendedor puede aprovechar\n" .
+                                            "• Amenazas: factores externos que pueden afectar negativamente al negocio\n" .
+                                            "• Recomendaciones específicas: acciones concretas sugeridas para el fortalecimiento\n\n" .
+                                            "Mínimo 50 palabras."
+                                        )
+                                        ->helperText('Mínimo 50 palabras. Desarrolle un análisis DOFA completo del emprendimiento.')
+                                        ->rules([
+                                            fn () => function ($attribute, $value, $fail) {
+                                                $wordCount = str_word_count(strip_tags($value ?? ''));
+                                                if ($wordCount < 50) {
+                                                    $fail("Las observaciones deben tener al menos 50 palabras. Actualmente tiene {$wordCount}.");
+                                                }
+                                            },
+                                        ]),
                                 ]),
                         ]),
                 ])

@@ -229,11 +229,12 @@ class BusinessDiagnosis extends Model
                 'not_applicable' => 0,
             ],
             'profit_margin' => [
-                '10_20' => 1,
-                '20_30' => 2,
-                '30_40' => 3,
-                '40_50' => 4,
-                'gt_50' => 5,
+                '10_20'          => 1,
+                '20_30'          => 2,
+                '30_40'          => 3,
+                '40_50'          => 4,
+                'gt_50'          => 5,
+                'no_se'          => 1,
                 'not_applicable' => 0,
             ],
             'external_financing' => [

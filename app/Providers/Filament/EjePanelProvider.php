@@ -24,7 +24,7 @@ class EjePanelProvider extends PanelProvider
         return $panel
             ->id('eje')
             ->path('eje')
-            ->login()
+            ->login(\App\Filament\Eje\Pages\Auth\Login::class)
             ->brandName('Proyecto Eje')
             ->brandLogo(asset('img/logo.png'))
             ->brandLogoHeight('100%')
@@ -45,6 +45,7 @@ class EjePanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                \App\Http\Middleware\EjePanelAccess::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

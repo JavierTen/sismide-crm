@@ -102,7 +102,13 @@ class StudentResource extends Resource
                         Forms\Components\TextInput::make('document_number')
                             ->label('Documento de identidad')
                             ->placeholder('Ej: 1065432109')
-                            ->numeric()
+                            ->inputMode('numeric')
+                            ->maxLength(20)
+                            ->regex('/^[0-9]+$/')
+                            ->extraInputAttributes([
+                                'maxlength' => '20',
+                                'oninput'   => "this.value=this.value.replace(/[^0-9]/g,'').slice(0,20)",
+                            ])
                             ->required(),
 
                         Forms\Components\TextInput::make('age')
@@ -136,8 +142,13 @@ class StudentResource extends Resource
                             ->label('Teléfono')
                             ->placeholder('Ej: 3001234567')
                             ->tel()
-                            ->numeric()
-                            ->maxLength(20),
+                            ->inputMode('numeric')
+                            ->maxLength(10)
+                            ->regex('/^[0-9]{10}$/')
+                            ->extraInputAttributes([
+                                'maxlength' => '10',
+                                'oninput'   => "this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)",
+                            ]),
 
                         Forms\Components\TextInput::make('email')
                             ->label('Correo')
@@ -160,8 +171,13 @@ class StudentResource extends Resource
                             ->label('Teléfono acudiente')
                             ->placeholder('Ej: 3007654321')
                             ->tel()
-                            ->numeric()
-                            ->maxLength(20),
+                            ->inputMode('numeric')
+                            ->maxLength(10)
+                            ->regex('/^[0-9]{10}$/')
+                            ->extraInputAttributes([
+                                'maxlength' => '10',
+                                'oninput'   => "this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)",
+                            ]),
                     ])
                     ->columns(2),
             ]);

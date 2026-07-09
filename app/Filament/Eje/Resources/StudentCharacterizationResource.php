@@ -221,6 +221,7 @@ class StudentCharacterizationResource extends Resource
                                             ->label('Documento firmado por el acudiente')
                                             ->directory('student-characterizations/authorizations')
                                             ->disk('public')
+                                            ->required()
                                             ->maxSize(5120)
                                             ->downloadable()
                                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])

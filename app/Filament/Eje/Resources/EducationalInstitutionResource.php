@@ -81,8 +81,13 @@ class EducationalInstitutionResource extends Resource
                             ->label('Teléfono')
                             ->placeholder('Ej: 3001234567')
                             ->tel()
-                            ->numeric()
-                            ->maxLength(20),
+                            ->inputMode('numeric')
+                            ->maxLength(10)
+                            ->regex('/^[0-9]{10}$/')
+                            ->extraInputAttributes([
+                                'maxlength' => '10',
+                                'oninput'   => "this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)",
+                            ]),
 
                         Forms\Components\TextInput::make('email')
                             ->label('Correo')

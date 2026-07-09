@@ -50,7 +50,10 @@ class User extends Authenticatable implements FilamentUser
     // Método requerido por FilamentUser
     public function canAccessPanel(Panel $panel): bool
     {
-        // Permitir acceso si tiene cualquier rol activo
+        if ($panel->getId() === 'eje') {
+            return true;
+        }
+
         return $this->roles()->count() > 0;
     }
 

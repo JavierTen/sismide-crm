@@ -160,7 +160,7 @@ class EditEntrepreneur extends EditRecord
             'ward_id' => $data['ward_id'] ?? null,
             'village_id' => $data['village_id'] ?? null,
             'georeferencing' => $data['georeferencing'] ?? null,
-            'ciiu_code_id' => $data['code_ciiu'],
+            'ciiu_code_id' => $data['code_ciiu'] ?? null,
             'entrepreneurship_stage_id' => $data['entrepreneurship_stage_id'],
             'productive_line_id' => $data['productive_line_id'],
             'economic_activity_id' => $data['economic_activity_id'],

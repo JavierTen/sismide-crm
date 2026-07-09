@@ -164,9 +164,14 @@ class EntrepreneurResource extends Resource
                                         Forms\Components\TextInput::make('document_number')
                                             ->label('Número de Documento')
                                             ->maxLength(20)
-                                            ->numeric()
+                                            ->inputMode('numeric')
+                                            ->regex('/^[0-9]+$/')
                                             ->required()
                                             ->placeholder('Ej: 12345678')
+                                            ->extraInputAttributes([
+                                                'maxlength'  => '20',
+                                                'oninput'    => "this.value=this.value.replace(/[^0-9]/g,'').slice(0,20)",
+                                            ])
                                             ->live(onBlur: true)
                                             ->unique(
                                                 ignoreRecord: true,
@@ -233,16 +238,24 @@ class EntrepreneurResource extends Resource
                                             ->label('Teléfono')
                                             ->tel()
                                             ->required()
-                                            ->maxLength(50)
-                                            ->placeholder('Ej: 300 123 4567')
-                                            ->regex('/^[\+]?[0-9\s\-\(\)]+$/'),
+                                            ->maxLength(10)
+                                            ->placeholder('Ej: 3001234567')
+                                            ->regex('/^[0-9]{10}$/')
+                                            ->extraInputAttributes([
+                                                'maxlength' => '10',
+                                                'oninput'   => "this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)",
+                                            ]),
 
                                         Forms\Components\TextInput::make('phone_2')
                                             ->label('Teléfono 2')
                                             ->tel()
-                                            ->maxLength(50)
-                                            ->placeholder('Ej: 301 987 6543')
-                                            ->regex('/^[\+]?[0-9\s\-\(\)]+$/'),
+                                            ->maxLength(10)
+                                            ->placeholder('Ej: 3019876543')
+                                            ->regex('/^[0-9]{10}$/')
+                                            ->extraInputAttributes([
+                                                'maxlength' => '10',
+                                                'oninput'   => "this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)",
+                                            ]),
 
                                         Forms\Components\TextInput::make('email')
                                             ->label('Correo Electrónico')
@@ -542,8 +555,13 @@ class EntrepreneurResource extends Resource
                                             ->label('Teléfono del Negocio')
                                             ->tel()
                                             ->required()
-                                            ->maxLength(50)
-                                            ->placeholder('Teléfono comercial'),
+                                            ->maxLength(10)
+                                            ->placeholder('Teléfono comercial')
+                                            ->regex('/^[0-9]{10}$/')
+                                            ->extraInputAttributes([
+                                                'maxlength' => '10',
+                                                'oninput'   => "this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)",
+                                            ]),
 
                                         Forms\Components\TextInput::make('business_email')
                                             ->label('Email del Negocio')

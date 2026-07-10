@@ -350,7 +350,17 @@ class EntrepreneurResource extends Resource
                                             ->placeholder('El emprendimiento se dedica a la elaboración y comercialización de productos de panadería artesanal. Nació como una iniciativa familiar hace tres años con el propósito de ofrecer productos frescos y de alta calidad a los habitantes del municipio. Actualmente participan cuatro integrantes de la familia en las áreas de producción, ventas y distribución. Atendemos principalmente a hogares, cafeterías y pequeños comercios. Elaboramos panes, tortas, galletas y productos personalizados para eventos. Nuestro diferencial es el uso de ingredientes naturales, recetas tradicionales y la atención personalizada. Contamos con un taller propio y realizamos ventas tanto en el punto físico como por pedidos a domicilio a través de redes sociales')
                                             ->required()
                                             ->rows(3)
-                                            ->columnSpanFull(),
+                                            ->columnSpanFull()
+                                            ->live(debounce: 300)
+                                            ->hint(fn ($state) => str_word_count(strip_tags($state ?? '')) . ' / 20 palabras')
+                                            ->hintColor(fn ($state) => str_word_count(strip_tags($state ?? '')) >= 20 ? 'success' : 'danger')
+                                            ->rules([
+                                                fn () => function ($attribute, $value, $fail) {
+                                                    if (str_word_count(strip_tags($value ?? '')) < 20) {
+                                                        $fail('La descripción debe tener al menos 20 palabras.');
+                                                    }
+                                                },
+                                            ]),
 
                                         Forms\Components\Select::make('entrepreneurship_stage_id')
                                             ->label('Etapa del Emprendimiento')

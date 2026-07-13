@@ -264,6 +264,7 @@ class BusinessDiagnosisResource extends Resource
                                         ->schema([
                                             Forms\Components\Placeholder::make('total_score')
                                                 ->label('Puntaje Total')
+                                                ->visible(fn () => auth()->user()->can('viewDiagnosisScore'))
                                                 ->content(function ($record, string $operation) {
                                                     if ($operation === 'create') {
                                                         return 'Se calculará al guardar';
@@ -274,6 +275,7 @@ class BusinessDiagnosisResource extends Resource
 
                                             Forms\Components\Placeholder::make('maturity_level')
                                                 ->label('Nivel de Madurez Empresarial')
+                                                ->visible(fn () => auth()->user()->can('viewDiagnosisScore'))
                                                 ->content(function ($record, string $operation) {
                                                     if ($operation === 'create') {
                                                         return 'Por evaluar - Se calculará al completar el diagnóstico';
@@ -873,10 +875,12 @@ class BusinessDiagnosisResource extends Resource
                                 Column::make('diagnosis_date')
                                     ->heading('Fecha Diagnóstico')
                                     ->formatStateUsing(fn($state) => $state ? $state->format('d/m/Y') : ''),
-                                Column::make('total_score')
-                                    ->heading('Puntaje Total'),
-                                Column::make('maturity_level')
-                                    ->heading('Nivel de Madurez'),
+                                ...(auth()->user()->can('viewDiagnosisScore') ? [
+                                    Column::make('total_score')
+                                        ->heading('Puntaje Total'),
+                                    Column::make('maturity_level')
+                                        ->heading('Nivel de Madurez'),
+                                ] : []),
                                 Column::make('work_sections')
                                     ->heading('Secciones de Trabajo')
                                     ->formatStateUsing(function ($state) {
@@ -935,10 +939,12 @@ class BusinessDiagnosisResource extends Resource
                                     Column::make('diagnosis_date')
                                         ->heading('Fecha Diagnóstico')
                                         ->formatStateUsing(fn($state) => $state ? $state->format('d/m/Y') : ''),
-                                    Column::make('total_score')
-                                        ->heading('Puntaje Total'),
-                                    Column::make('maturity_level')
-                                        ->heading('Nivel de Madurez'),
+                                    ...(auth()->user()->can('viewDiagnosisScore') ? [
+                                        Column::make('total_score')
+                                            ->heading('Puntaje Total'),
+                                        Column::make('maturity_level')
+                                            ->heading('Nivel de Madurez'),
+                                    ] : []),
                                     Column::make('work_sections')
                                         ->heading('Secciones de Trabajo')
                                         ->formatStateUsing(function ($state) {

@@ -352,12 +352,12 @@ class EntrepreneurResource extends Resource
                                             ->rows(3)
                                             ->columnSpanFull()
                                             ->live(debounce: 300)
-                                            ->hint(fn ($state) => str_word_count(strip_tags($state ?? '')) . ' / 20 palabras')
-                                            ->hintColor(fn ($state) => str_word_count(strip_tags($state ?? '')) >= 20 ? 'success' : 'danger')
+                                            ->hint(fn ($state) => str_word_count(strip_tags($state ?? '')) . ' / 35 palabras')
+                                            ->hintColor(fn ($state) => str_word_count(strip_tags($state ?? '')) >= 35 ? 'success' : 'danger')
                                             ->rules([
                                                 fn () => function ($attribute, $value, $fail) {
-                                                    if (str_word_count(strip_tags($value ?? '')) < 20) {
-                                                        $fail('La descripción debe tener al menos 20 palabras.');
+                                                    if (str_word_count(strip_tags($value ?? '')) < 35) {
+                                                        $fail('La descripción debe tener al menos 35 palabras.');
                                                     }
                                                 },
                                             ]),

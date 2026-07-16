@@ -8,6 +8,8 @@ use App\Models\Entrepreneur;
 
 class DynamicGenderCardsWidget extends BaseWidget
 {
+    protected static bool $isDiscoverable = false;
+
     protected function getStats(): array
     {
         $genderStats = $this->getGenderBreakdown();

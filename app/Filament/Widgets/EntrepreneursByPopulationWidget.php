@@ -7,6 +7,7 @@ use App\Models\Entrepreneur;
 
 class EntrepreneursByPopulationWidget extends ChartWidget
 {
+    protected static bool $isDiscoverable = false;
     protected static ?string $heading = 'Emprendedores por población vulnerable';
 
     protected static string $color = 'warning';

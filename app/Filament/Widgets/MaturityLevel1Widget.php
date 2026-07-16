@@ -7,6 +7,8 @@ use App\Models\BusinessDiagnosis;
 
 class MaturityLevel1Widget extends ChartWidget
 {
+    protected static bool $isDiscoverable = false;
+
     protected static ?string $heading = 'Nivel 1: Validación temprana (16-30 pts)';
 
     protected static string $color = 'warning';

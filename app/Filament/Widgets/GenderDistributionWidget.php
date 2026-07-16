@@ -13,13 +13,12 @@ class GenderDistributionWidget extends ChartWidget
     protected static string $color = 'info';
 
     protected int | string | array $columnSpan = [
-        'sm' => 'full',
-        'md' => 2,
-        'lg' => 2,
-        'xl' => 2
+        'sm' => 1,
+        'md' => 1,
+        'xl' => 1,
     ];
 
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 6;
 
     protected function getData(): array
     {

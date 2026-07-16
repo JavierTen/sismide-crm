@@ -7,6 +7,8 @@ use App\Models\BusinessDiagnosis;
 
 class MaturityLevel2Widget extends ChartWidget
 {
+    protected static bool $isDiscoverable = false;
+
     protected static ?string $heading = 'Nivel 2: Crecimiento inicial (31-50 pts)';
 
     protected static string $color = 'primary';

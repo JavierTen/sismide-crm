@@ -7,6 +7,8 @@ use App\Models\BusinessDiagnosis;
 
 class MaturityLevel4Widget extends ChartWidget
 {
+    protected static bool $isDiscoverable = false;
+
     protected static ?string $heading = 'Nivel 4: Consolidación avanzada (71-85 pts)';
 
     protected static string $color = 'success';

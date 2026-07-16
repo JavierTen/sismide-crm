@@ -16,6 +16,7 @@ class Project extends Model
         'detail',
         'acronym',
         'type',
+        'participant_goal',
     ];
 
     protected function casts(): array

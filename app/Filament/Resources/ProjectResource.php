@@ -143,6 +143,13 @@ class ProjectResource extends Resource
                     ->description('Estado y configuraciones adicionales')
                     ->icon('heroicon-o-cog-6-tooth')
                     ->schema([
+                        Forms\Components\TextInput::make('participant_goal')
+                            ->label('Meta de Participantes')
+                            ->numeric()
+                            ->default(300)
+                            ->minValue(1)
+                            ->helperText('Número total de emprendedores meta para el dashboard ejecutivo'),
+
                         Forms\Components\Toggle::make('status')
                             ->label('Estado Activo')
                             ->helperText('Determina si esta linea productiva está disponible para uso')

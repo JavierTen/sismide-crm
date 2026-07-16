@@ -9,6 +9,8 @@ use Carbon\Carbon;
 
 class EntrepreneursStatsWidget extends BaseWidget
 {
+    protected static bool $isDiscoverable = false;
+
     protected function getStats(): array
     {
         return [

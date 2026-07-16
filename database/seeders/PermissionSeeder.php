@@ -117,10 +117,16 @@ class PermissionSeeder extends Seeder
             'editBusinessDiagnosis',
             'listBusinessDiagnosis',
             'deleteBusinessDiagnosis',
+
+            // Dashboard / Reporting permissions
+            'viewDashboardIndicators',
+            'viewDiagnosisScore',
+            'viewAllYears',
+            'accessEjePanel',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create([
+            Permission::firstOrCreate([
                 'name' => $permission,
                 'guard_name' => 'web',
             ]);

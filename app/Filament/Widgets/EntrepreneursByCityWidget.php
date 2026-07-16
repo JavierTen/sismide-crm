@@ -8,6 +8,8 @@ use App\Models\City;
 
 class EntrepreneursByCityWidget extends ChartWidget
 {
+    protected static bool $isDiscoverable = false;
+
     protected static ?string $heading = 'Emprendedores por municipio';
 
     protected static string $color = 'danger';

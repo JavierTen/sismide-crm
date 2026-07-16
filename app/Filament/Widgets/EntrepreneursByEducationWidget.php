@@ -7,6 +7,7 @@ use App\Models\Entrepreneur;
 
 class EntrepreneursByEducationWidget extends ChartWidget
 {
+    protected static bool $isDiscoverable = false;
     protected static ?string $heading = 'Emprendedores por nivel de educación';
 
     protected static string $color = 'success';

@@ -564,7 +564,7 @@ class CharacterizationResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('latitude')
                                     ->label('Latitud')
-                                    ->numeric()
+                                    ->inputMode('decimal')
                                     ->step(0.00000001)
                                     ->required()
                                     ->placeholder('Ej: 7.1193')
@@ -573,7 +573,7 @@ class CharacterizationResource extends Resource
 
                                 Forms\Components\TextInput::make('longitude')
                                     ->label('Longitud')
-                                    ->numeric()
+                                    ->inputMode('decimal')
                                     ->required()
                                     ->step(0.00000001)
                                     ->prefix('-')

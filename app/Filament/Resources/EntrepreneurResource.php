@@ -431,8 +431,8 @@ class EntrepreneurResource extends Resource
                                                 '3' => '3',
                                                 '4' => '4',
                                                 '5' => '5',
-                                                '6' => '6',
                                             ])
+                                            ->required()
                                             ->preload()
                                             ->searchable(),
                                     ])
@@ -767,7 +767,7 @@ class EntrepreneurResource extends Resource
 
                                 // === GESTOR Y FECHAS ===
                                 Column::make('manager.name')->heading('Gestor Asignado'),
-                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
+                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y')),
                             ]),
                     ])
                     ->color('success')

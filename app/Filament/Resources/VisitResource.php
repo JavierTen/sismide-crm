@@ -366,12 +366,7 @@ class VisitResource extends Resource
                             ->modalHeading('Resultado de la visita')
                             ->modalSubmitAction(false)
                             ->modalCancelActionLabel('Cerrar')
-                            ->fillForm(fn ($record) => [
-                                'visit_result'          => $record->visit_result,
-                                'topics_and_commitment' => $record->topics_and_commitment,
-                                'evidence_path'         => $record->evidence_path,
-                            ])
-                            ->form([
+                            ->form(fn ($record) => [
                                 Forms\Components\Placeholder::make('sin_resultado_info')
                                     ->label('')
                                     ->content(new \Illuminate\Support\HtmlString(
@@ -379,32 +374,32 @@ class VisitResource extends Resource
                                         . 'Esta visita aún no tiene resultado registrado.'
                                         . '</div>'
                                     ))
-                                    ->visible(fn ($get) => ! $get('visit_result')),
+                                    ->visible(! $record->visit_result),
 
-                                Forms\Components\Select::make('visit_result')
+                                Forms\Components\Placeholder::make('visit_result_label')
                                     ->label('Resultado de la visita')
-                                    ->disabled()
-                                    ->dehydrated(false)
-                                    ->options([
+                                    ->content(match ($record->visit_result) {
                                         'aceptada'    => 'Visita aceptada',
                                         'no_aceptada' => 'Visita no aceptada',
                                         'sin_persona' => 'No había nadie en la unidad productiva',
-                                    ])
-                                    ->visible(fn ($get) => (bool) $get('visit_result')),
+                                        default       => '—',
+                                    })
+                                    ->visible((bool) $record->visit_result),
 
-                                Forms\Components\Textarea::make('topics_and_commitment')
+                                Forms\Components\Placeholder::make('topics_and_commitment_label')
                                     ->label('Temas tratados y compromisos')
-                                    ->disabled()
-                                    ->dehydrated(false)
-                                    ->rows(5)
-                                    ->visible(fn ($get) => (bool) $get('visit_result')),
+                                    ->content($record->topics_and_commitment ?? '—')
+                                    ->visible((bool) $record->visit_result),
 
                                 Forms\Components\FileUpload::make('evidence_path')
                                     ->label('Evidencias adjuntas')
+                                    ->disk('public')
+                                    ->multiple()
+                                    ->downloadable()
                                     ->disabled()
                                     ->dehydrated(false)
-                                    ->multiple()
-                                    ->visible(fn ($get) => $get('visit_result') === 'aceptada' && ! empty($get('evidence_path'))),
+                                    ->default($record->evidence_path ?? [])
+                                    ->visible($record->visit_result === 'aceptada' && ! empty($record->evidence_path)),
                             ])
                     ),
             ])

@@ -123,6 +123,36 @@ class PermissionSeeder extends Seeder
             'viewDiagnosisScore',
             'viewAllYears',
             'accessEjePanel',
+
+            // EJE - Instituciones Educativas
+            'listEducationalInstitutions',
+            'createEducationalInstitution',
+            'editEducationalInstitution',
+            'deleteEducationalInstitution',
+
+            // EJE - Docentes
+            'listTeachers',
+            'createTeacher',
+            'editTeacher',
+            'deleteTeacher',
+
+            // EJE - Estudiantes
+            'listStudents',
+            'createStudent',
+            'editStudent',
+            'deleteStudent',
+
+            // EJE - Caracterizaciones de Estudiantes
+            'listStudentCharacterizations',
+            'createStudentCharacterization',
+            'editStudentCharacterization',
+            'deleteStudentCharacterization',
+
+            // EJE - Evaluaciones de Instituciones
+            'listInstitutionEvaluations',
+            'createInstitutionEvaluation',
+            'editInstitutionEvaluation',
+            'deleteInstitutionEvaluation',
         ];
 
         foreach ($permissions as $permission) {

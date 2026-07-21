@@ -19,6 +19,8 @@ class InstitutionEvaluation extends Model
         'territorial_impact_section',
         'operational_capacity_section',
         'technical_concept',
+        'technical_verdict',
+        'technical_conditions',
         'total_score',
         'result_category',
         'manager_id',
@@ -38,6 +40,15 @@ class InstitutionEvaluation extends Model
         static::saving(function (InstitutionEvaluation $evaluation) {
             $evaluation->total_score = $evaluation->calculateTotalScore();
             $evaluation->result_category = $evaluation->calculateResultCategory();
+
+            // Marcar internamente si no cumple capacidad operativa mínima
+            if (is_array($evaluation->operational_capacity_section)) {
+                $capacity = $evaluation->operational_capacity_section;
+                $capacity['meets_minimum_capacity'] =
+                    ($capacity['can_link_min_students'] ?? null) !== 'no' &&
+                    ($capacity['can_link_min_teachers'] ?? null) !== 'no';
+                $evaluation->operational_capacity_section = $capacity;
+            }
 
             if (auth()->check()) {
                 $evaluation->updated_by = auth()->id();
@@ -59,6 +70,87 @@ class InstitutionEvaluation extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+
+    // ── Lógica de desempate ──────────────────────────────────────────────────
+
+    public function getTiebreakerScores(): array
+    {
+        $ped = $this->pedagogical_section              ?? [];
+        $sus = $this->sustainability_section           ?? [];
+        $cul = $this->entrepreneurial_culture_section  ?? [];
+        $ter = $this->territorial_impact_section       ?? [];
+
+        return [
+            static::pedagogicalScoring()['pei_articulation'][$ped['pei_articulation'] ?? '']                         ?? 0,
+            static::sustainabilityScoring()['continuity_strategy'][$sus['continuity_strategy'] ?? '']                 ?? 0,
+            static::entrepreneurialCultureScoring()['business_fairs'][$cul['business_fairs'] ?? '']                   ?? 0,
+            static::entrepreneurialCultureScoring()['external_fairs_participation'][$cul['external_fairs_participation'] ?? ''] ?? 0,
+            static::territorialImpactScoring()['railway_corridor_influence'][$ter['railway_corridor_influence'] ?? ''] ?? 0,
+        ];
+    }
+
+    /**
+     * Devuelve todas las evaluaciones no eliminadas ordenadas por puntaje total
+     * y luego por los 5 criterios de desempate (mayor a menor).
+     */
+    public static function sortedByRanking(): \Illuminate\Support\Collection
+    {
+        return static::whereNull('deleted_at')
+            ->get()
+            ->sort(function (self $a, self $b) {
+                if ($a->total_score !== $b->total_score) {
+                    return ($b->total_score ?? 0) <=> ($a->total_score ?? 0);
+                }
+                foreach (array_map(null, $a->getTiebreakerScores(), $b->getTiebreakerScores()) as [$aScore, $bScore]) {
+                    if ($aScore !== $bScore) {
+                        return $bScore <=> $aScore;
+                    }
+                }
+                return 0;
+            })
+            ->values();
+    }
+
+    /**
+     * Devuelve la posición de esta evaluación y si requiere decisión del comité.
+     * ['rank' => 1, 'is_committee' => false, 'display' => '1']
+     * ['rank' => 2, 'is_committee' => true,  'display' => 'Comité']
+     */
+    public function getRankingInfo(): array
+    {
+        $sorted  = static::sortedByRanking();
+        $myKey   = array_merge([$this->total_score ?? 0], $this->getTiebreakerScores());
+
+        // Cuántas evaluaciones tienen estrictamente mejor perfil que ésta
+        $betterCount = $sorted->filter(function (self $e) use ($myKey) {
+            if ($e->id === $this->id) {
+                return false;
+            }
+            $eKey = array_merge([$e->total_score ?? 0], $e->getTiebreakerScores());
+            foreach (array_map(null, $eKey, $myKey) as [$eScore, $myScore]) {
+                if ($eScore > $myScore) return true;
+                if ($eScore < $myScore) return false;
+            }
+            return false; // empate completo, no "mejor"
+        })->count();
+
+        $rank = $betterCount + 1;
+
+        // ¿Hay otra evaluación con exactamente el mismo perfil?
+        $isCommittee = $sorted->filter(function (self $e) use ($myKey) {
+            if ($e->id === $this->id) return false;
+            $eKey = array_merge([$e->total_score ?? 0], $e->getTiebreakerScores());
+            return $eKey === $myKey;
+        })->isNotEmpty();
+
+        return [
+            'rank'         => $rank,
+            'is_committee' => $isCommittee,
+            'display'      => $isCommittee ? 'Comité' : (string) $rank,
+        ];
+    }
+
+    // ── Scoring ──────────────────────────────────────────────────────────────
 
     public static function pedagogicalScoring(): array
     {

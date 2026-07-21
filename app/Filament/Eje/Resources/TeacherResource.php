@@ -27,6 +27,17 @@ class TeacherResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Docentes';
 
+    private static function userCanList(): bool   { return auth()->user()?->can('listTeachers') ?? false; }
+    private static function userCanCreate(): bool { return auth()->user()?->can('createTeacher') ?? false; }
+    private static function userCanEdit(): bool   { return auth()->user()?->can('editTeacher') ?? false; }
+    private static function userCanDelete(): bool  { return auth()->user()?->can('deleteTeacher') ?? false; }
+
+    public static function canViewAny(): bool              { return static::userCanList(); }
+    public static function canCreate(): bool               { return static::userCanCreate(); }
+    public static function canEdit($record): bool          { return static::userCanEdit(); }
+    public static function canDelete($record): bool        { return static::userCanDelete(); }
+    public static function shouldRegisterNavigation(): bool { return static::canViewAny(); }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -180,12 +191,19 @@ class TeacherResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn ($record) => !$record->trashed() && static::userCanEdit() && (auth()->user()->hasRole('Admin') || $record->manager_id === auth()->id())),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn ($record) => !$record->trashed() && static::userCanDelete() && (auth()->user()->hasRole('Admin') || $record->manager_id === auth()->id())),
+                Tables\Actions\RestoreAction::make()
+                    ->visible(fn ($record) => $record->trashed() && auth()->user()->hasRole('Admin')),
+                Tables\Actions\ForceDeleteAction::make()
+                    ->visible(fn ($record) => $record->trashed() && auth()->user()->hasRole('Admin')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => static::userCanDelete()),
                 ]),
             ]);
     }

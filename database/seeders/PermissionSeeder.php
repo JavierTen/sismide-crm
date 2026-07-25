@@ -153,6 +153,12 @@ class PermissionSeeder extends Seeder
             'createInstitutionEvaluation',
             'editInstitutionEvaluation',
             'deleteInstitutionEvaluation',
+
+            // Entidades y Actores — Actores / Contactos
+            'listEntityContacts',
+            'createEntityContact',
+            'editEntityContact',
+            'deleteEntityContact',
         ];
 
         foreach ($permissions as $permission) {

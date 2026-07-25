@@ -179,14 +179,7 @@ class EntityContactsRelationManager extends RelationManager
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
             ])
-            ->headerActions([
-                Tables\Actions\CreateAction::make()
-                    ->label('Agregar Contacto')
-                    ->mutateFormDataUsing(function (array $data): array {
-                        $data['manager_id'] = auth()->id();
-                        return $data;
-                    }),
-            ])
+            ->headerActions([])
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->label('')

@@ -1253,6 +1253,91 @@ class ActorResource extends Resource
                     ->modalWidth('5xl')
                     ->visible(fn() => static::userCanList()),
 
+                Tables\Actions\Action::make('add_contact')
+                    ->label('')
+                    ->icon('heroicon-o-user-plus')
+                    ->tooltip('Agregar actor')
+                    ->color('info')
+                    ->visible(fn() => auth()->user()?->can('createEntityContact') ?? false)
+                    ->modalHeading(fn($record) => 'Agregar actor — ' . $record->name)
+                    ->modalWidth('2xl')
+                    ->form([
+                        Forms\Components\Section::make('Datos del Contacto')
+                            ->schema([
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Nombre Completo')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->placeholder('Nombre y apellidos'),
+
+                                Forms\Components\TextInput::make('role')
+                                    ->label('Rol / Cargo')
+                                    ->maxLength(255)
+                                    ->placeholder('Cargo en la institución'),
+
+                                Forms\Components\TextInput::make('email')
+                                    ->label('Correo Electrónico')
+                                    ->email()
+                                    ->maxLength(255)
+                                    ->placeholder('contacto@ejemplo.com'),
+
+                                Forms\Components\TextInput::make('phone')
+                                    ->label('Teléfono / Celular')
+                                    ->tel()
+                                    ->maxLength(50)
+                                    ->placeholder('+57 300 123 4567'),
+
+                                Forms\Components\TextInput::make('area')
+                                    ->label('Área / Dependencia')
+                                    ->maxLength(255)
+                                    ->placeholder('Ej: Dirección de Emprendimiento'),
+
+                                Forms\Components\Select::make('contact_type')
+                                    ->label('Tipo de Contacto')
+                                    ->options(\App\Models\EntityContact::CONTACT_TYPE_OPTIONS)
+                                    ->placeholder('Seleccione el tipo')
+                                    ->native(false),
+
+                                Forms\Components\Select::make('decision_level')
+                                    ->label('Nivel de Decisión')
+                                    ->options(\App\Models\EntityContact::DECISION_LEVEL_OPTIONS)
+                                    ->placeholder('Seleccione el nivel')
+                                    ->native(false),
+
+                                Forms\Components\Select::make('status')
+                                    ->label('Estado')
+                                    ->options(\App\Models\EntityContact::STATUS_OPTIONS)
+                                    ->default('active')
+                                    ->required()
+                                    ->native(false),
+
+                                Forms\Components\Toggle::make('is_primary_contact')
+                                    ->label('¿Es el contacto principal?')
+                                    ->default(false)
+                                    ->inline(false)
+                                    ->onColor('success')
+                                    ->offColor('gray'),
+
+                                Forms\Components\Textarea::make('notes')
+                                    ->label('Observaciones')
+                                    ->rows(2)
+                                    ->columnSpanFull(),
+                            ])
+                            ->columns(2),
+                    ])
+                    ->action(function ($record, array $data) {
+                        $record->contacts()->create([
+                            ...$data,
+                            'manager_id' => auth()->id(),
+                        ]);
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Contacto guardado')
+                            ->body('El contacto fue registrado exitosamente.')
+                            ->success()
+                            ->send();
+                    }),
+
                 Tables\Actions\EditAction::make()
                     ->label('')
                     ->icon('heroicon-o-pencil-square')

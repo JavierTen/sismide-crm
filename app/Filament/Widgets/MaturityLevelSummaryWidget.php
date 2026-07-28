@@ -27,12 +27,12 @@ class MaturityLevelSummaryWidget extends ChartWidget
         }
 
         $levels = [
-            ['label' => 'Nivel 0\nPotencial\nEmprendedor', 'min' => 0,  'max' => 15,  'color' => '#6B7280'],
-            ['label' => 'Nivel 1\nIdeación',                'min' => 16, 'max' => 30,  'color' => '#EC4899'],
-            ['label' => 'Nivel 2\nValidación',              'min' => 31, 'max' => 50,  'color' => '#F59E0B'],
-            ['label' => 'Nivel 3\nPuesta en\nmarcha',       'min' => 51, 'max' => 70,  'color' => '#3B82F6'],
-            ['label' => 'Nivel 4\nConsolidación',           'min' => 71, 'max' => 85,  'color' => '#F97316'],
-            ['label' => 'Nivel 5\nEscalamiento',            'min' => 86, 'max' => 100, 'color' => '#8B5CF6'],
+            ['label' => ['Nivel 0', 'Potencial Emprendedor'], 'min' => 0,  'max' => 15,  'color' => '#6B7280'],
+            ['label' => ['Nivel 1', 'Ideación'],               'min' => 16, 'max' => 30,  'color' => '#EC4899'],
+            ['label' => ['Nivel 2', 'Validación'],             'min' => 31, 'max' => 50,  'color' => '#F59E0B'],
+            ['label' => ['Nivel 3', 'Puesta en Marcha'],       'min' => 51, 'max' => 70,  'color' => '#3B82F6'],
+            ['label' => ['Nivel 4', 'Consolidación'],          'min' => 71, 'max' => 85,  'color' => '#F97316'],
+            ['label' => ['Nivel 5', 'Escalamiento'],           'min' => 86, 'max' => 100, 'color' => '#8B5CF6'],
         ];
 
         $counts = [];
@@ -72,7 +72,8 @@ class MaturityLevelSummaryWidget extends ChartWidget
                 'tooltip' => [
                     'callbacks' => [
                         'title' => 'function(context) {
-                            return context[0].label.replace(/\\n/g, " ");
+                            var lbl = context[0].label;
+                            return Array.isArray(lbl) ? lbl.join(" ") : lbl;
                         }',
                         'label' => 'function(context) {
                             return context.parsed.y + " emprendedores";
@@ -83,7 +84,12 @@ class MaturityLevelSummaryWidget extends ChartWidget
             'scales' => [
                 'x' => [
                     'grid'  => ['display' => false],
-                    'ticks' => ['font' => ['size' => 10]],
+                    'ticks' => [
+                        'font'     => ['size' => 10],
+                        'autoSkip' => false,
+                        'maxRotation' => 30,
+                        'minRotation' => 30,
+                    ],
                 ],
                 'y' => [
                     'beginAtZero' => true,

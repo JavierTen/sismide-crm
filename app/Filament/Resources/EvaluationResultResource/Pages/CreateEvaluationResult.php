@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateEvaluationResult extends CreateRecord
 {
     protected static string $resource = EvaluationResultResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

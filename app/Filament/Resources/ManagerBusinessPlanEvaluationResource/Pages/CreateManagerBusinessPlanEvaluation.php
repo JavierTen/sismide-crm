@@ -9,4 +9,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateManagerBusinessPlanEvaluation extends CreateRecord
 {
     protected static string $resource = ManagerBusinessPlanEvaluationResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }

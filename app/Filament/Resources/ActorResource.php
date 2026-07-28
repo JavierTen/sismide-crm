@@ -902,15 +902,18 @@ class ActorResource extends Resource
 
                                         Infolists\Components\TextEntry::make('institutional_phone')
                                             ->label('Teléfono Institucional')
-                                            ->default('—'),
+                                            ->default('—')
+                                            ->columnSpan(1),
 
                                         Infolists\Components\TextEntry::make('institutional_email')
                                             ->label('Correo Institucional')
-                                            ->default('—'),
+                                            ->default('—')
+                                            ->columnSpanFull(),
 
                                         Infolists\Components\TextEntry::make('website')
                                             ->label('Página Web / Redes')
-                                            ->default('—'),
+                                            ->default('—')
+                                            ->columnSpanFull(),
 
                                         Infolists\Components\TextEntry::make('description')
                                             ->label('Descripción')
@@ -1149,7 +1152,8 @@ class ActorResource extends Resource
 
                                         Infolists\Components\TextEntry::make('email')
                                             ->label('Correo')
-                                            ->default('—'),
+                                            ->default('—')
+                                            ->columnSpan(2),
 
                                         Infolists\Components\TextEntry::make('phone')
                                             ->label('Teléfono')

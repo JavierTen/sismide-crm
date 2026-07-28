@@ -28,23 +28,19 @@ class MaturityLevelSummaryWidget extends ChartWidget
             $baseQuery->where('manager_id', auth()->id());
         }
 
-        $year   = YearContext::effectiveYear() ?? now()->year;
-        $scale  = MaturityScale::getScale($year);
-        $levels = array_map(fn($s) => [
-            'label' => ['Nivel ' . $s['level'], $s['name']],
-            'min'   => $s['min'],
-            'max'   => $s['max'],
-            'color' => $s['color'],
-        ], $scale);
+        $year  = YearContext::effectiveYear() ?? now()->year;
+        $scale = MaturityScale::getScale($year);
 
-        $counts = [];
-        $labels = [];
-        $colors = [];
+        $counts    = [];
+        $labels    = [];
+        $fullNames = [];
+        $colors    = [];
 
-        foreach ($levels as $level) {
-            $counts[]   = (clone $baseQuery)->whereBetween('total_score', [$level['min'], $level['max']])->count();
-            $labels[]   = $level['label'];
-            $colors[]   = $level['color'];
+        foreach ($scale as $s) {
+            $counts[]    = (clone $baseQuery)->whereBetween('total_score', [$s['min'], $s['max']])->count();
+            $labels[]    = 'Nivel ' . $s['level'];
+            $fullNames[] = $s['name'] . ' (' . $s['min'] . '-' . $s['max'] . ' pts)';
+            $colors[]    = $s['color'];
         }
 
         return [
@@ -55,6 +51,7 @@ class MaturityLevelSummaryWidget extends ChartWidget
                     'backgroundColor' => $colors,
                     'borderRadius'    => 4,
                     'borderWidth'     => 0,
+                    'fullNames'       => $fullNames,
                 ],
             ],
             'labels' => $labels,
@@ -74,8 +71,9 @@ class MaturityLevelSummaryWidget extends ChartWidget
                 'tooltip' => [
                     'callbacks' => [
                         'title' => 'function(context) {
-                            var lbl = context[0].label;
-                            return Array.isArray(lbl) ? lbl.join(" ") : lbl;
+                            var ds = context[0].dataset;
+                            var i  = context[0].dataIndex;
+                            return ds.fullNames ? ds.fullNames[i] : context[0].label;
                         }',
                         'label' => 'function(context) {
                             return context.parsed.y + " emprendedores";
@@ -87,10 +85,9 @@ class MaturityLevelSummaryWidget extends ChartWidget
                 'x' => [
                     'grid'  => ['display' => false],
                     'ticks' => [
-                        'font'     => ['size' => 10],
-                        'autoSkip' => false,
-                        'maxRotation' => 30,
-                        'minRotation' => 30,
+                        'font'        => ['size' => 11],
+                        'maxRotation' => 0,
+                        'minRotation' => 0,
                     ],
                 ],
                 'y' => [

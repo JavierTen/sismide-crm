@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use App\Support\MaturityScale;
+use App\Support\YearContext;
 use Filament\Widgets\ChartWidget;
 use App\Models\BusinessDiagnosis;
 
@@ -9,9 +11,13 @@ class MaturityLevel5Widget extends ChartWidget
 {
     protected static bool $isDiscoverable = false;
 
-    protected static ?string $heading = 'Nivel 5: Escalamiento e Innovación (86-100 pts)';
-
     protected static string $color = 'success';
+
+    public function getHeading(): string
+    {
+        $s = MaturityScale::getScale(YearContext::effectiveYear() ?? now()->year)[5];
+        return "Nivel 5: {$s['name']} ({$s['min']}-{$s['max']} pts)";
+    }
 
     protected int | string | array $columnSpan = [
         'sm' => 2,
@@ -24,7 +30,8 @@ class MaturityLevel5Widget extends ChartWidget
 
     protected function getData(): array
     {
-        $data = $this->getMunicipalityData(86, 100);
+        $s    = MaturityScale::getScale(YearContext::effectiveYear() ?? now()->year)[5];
+        $data = $this->getMunicipalityData($s['min'], $s['max']);
 
         // Obtener el total GENERAL de emprendimientos con diagnóstico
         $totalGeneral = $this->getTotalEntrepreneursWithDiagnosis();
@@ -41,8 +48,8 @@ class MaturityLevel5Widget extends ChartWidget
                 [
                     'label' => 'Emprendimientos',
                     'data' => array_values($data['counts']),
-                    'backgroundColor' => '#059669',
-                    'borderColor' => '#047857',
+                    'backgroundColor' => $s['color'],
+                    'borderColor' => $s['color'],
                     'borderWidth' => 1,
                     'borderRadius' => 4,
                 ],

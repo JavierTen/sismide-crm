@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Scopes\YearColumnScope;
+use App\Support\MaturityScale;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -449,55 +450,23 @@ class BusinessDiagnosis extends Model
     }
 
     /**
-     * Obtiene el nivel de madurez empresarial basado en el puntaje
+     * Obtiene el nivel de madurez empresarial basado en el puntaje y el año del diagnóstico.
      */
     public function getMaturityLevel(): array
     {
         $score = $this->total_score ?? 0;
+        $year  = $this->created_at?->year ?? now()->year;
 
-        if ($score >= 0 && $score <= 15) {
-            return [
-                'level' => 0,
-                'name' => 'Pre-emprendimiento y validación temprana',
-                'label' => 'Nivel 0: Pre-emprendimiento y validación temprana',
-                'color' => 'danger',
-            ];
-        } elseif ($score >= 16 && $score <= 30) {
-            return [
-                'level' => 1,
-                'name' => 'Pre-emprendimiento y validación temprana',
-                'label' => 'Nivel 1: Pre-emprendimiento y validación temprana',
-                'color' => 'warning',
-            ];
-        } elseif ($score >= 31 && $score <= 50) {
-            return [
-                'level' => 2,
-                'name' => 'Pre-emprendimiento y validación temprana',
-                'label' => 'Nivel 2: Pre-emprendimiento y validación temprana',
-                'color' => 'primary',
-            ];
-        } elseif ($score >= 51 && $score <= 70) {
-            return [
-                'level' => 3,
-                'name' => 'Consolidación',
-                'label' => 'Nivel 3: Consolidación',
-                'color' => 'info',
-            ];
-        } elseif ($score >= 71 && $score <= 85) {
-            return [
-                'level' => 4,
-                'name' => 'Consolidación',
-                'label' => 'Nivel 4: Consolidación',
-                'color' => 'success',
-            ];
-        } else { // 86-100
-            return [
-                'level' => 5,
-                'name' => 'Escalamiento',
-                'label' => 'Nivel 5: Escalamiento e Innovación',
-                'color' => 'success',
-            ];
-        }
+        $level = MaturityScale::getLevelForScore($score, $year);
+
+        $filamentColors = ['#6B7280' => 'gray', '#EC4899' => 'pink', '#F59E0B' => 'warning', '#3B82F6' => 'info', '#F97316' => 'warning', '#8B5CF6' => 'primary'];
+
+        return [
+            'level' => $level['level'],
+            'name'  => $level['name'],
+            'label' => $level['label'],
+            'color' => $filamentColors[$level['color']] ?? 'gray',
+        ];
     }
 
     // ========== OPCIONES ==========

@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use App\Support\MaturityScale;
+use App\Support\YearContext;
 use Filament\Widgets\ChartWidget;
 use App\Models\BusinessDiagnosis;
 
@@ -9,9 +11,13 @@ class MaturityLevel0Widget extends ChartWidget
 {
     protected static bool $isDiscoverable = false;
 
-    protected static ?string $heading = 'Nivel 0: Pre-emprendimiento (0-15 pts)';
-
     protected static string $color = 'danger';
+
+    public function getHeading(): string
+    {
+        $s = MaturityScale::getScale(YearContext::effectiveYear() ?? now()->year)[0];
+        return "Nivel 0: {$s['name']} ({$s['min']}-{$s['max']} pts)";
+    }
 
     protected int | string | array $columnSpan = [
         'sm' => 2,
@@ -24,7 +30,8 @@ class MaturityLevel0Widget extends ChartWidget
 
     protected function getData(): array
     {
-        $data = $this->getMunicipalityData(16, 30); // Cambiar según el nivel
+        $s    = MaturityScale::getScale(YearContext::effectiveYear() ?? now()->year)[0];
+        $data = $this->getMunicipalityData($s['min'], $s['max']);
 
         // Obtener el total GENERAL de emprendimientos con diagnóstico
         $totalGeneral = $this->getTotalEntrepreneursWithDiagnosis();
@@ -41,8 +48,8 @@ class MaturityLevel0Widget extends ChartWidget
                 [
                     'label' => 'Emprendimientos',
                     'data' => array_values($data['counts']),
-                    'backgroundColor' => '#EC4899', // Cambiar color según nivel
-                    'borderColor' => '#DB2777', // Cambiar color según nivel
+                    'backgroundColor' => $s['color'],
+                    'borderColor' => $s['color'],
                     'borderWidth' => 1,
                     'borderRadius' => 4,
                 ],

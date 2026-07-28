@@ -11,6 +11,6 @@
         @foreach ($years as $year)
             <option value="{{ $year }}">{{ $year }}</option>
         @endforeach
-        <option value="{{ \App\Support\YearContext::ALL_YEARS }}">Todos los años</option>
+        {{-- <option value="{{ \App\Support\YearContext::ALL_YEARS }}">Todos los años</option> --}}
     </select>
 </div>

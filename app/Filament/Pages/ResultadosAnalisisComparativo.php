@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\MaturityScale;
+use App\Support\YearContext;
 use Filament\Pages\Page;
 use App\Models\BusinessDiagnosis;
 
@@ -61,8 +63,8 @@ class ResultadosAnalisisComparativo extends Page
             $cityName = $diagnosis->entrepreneur?->city?->name ?? 'Sin municipio';
             $totalScore = $diagnosis->total_score ?? 0;
 
-            // Determinar la ruta según el puntaje
-            $route = $this->getRouteByScore($totalScore);
+            // Determinar la ruta según el puntaje y el año del diagnóstico
+            $route = $this->getRouteByScore($totalScore, $diagnosis->created_at?->year ?? now()->year);
 
             if (!isset($data[$cityName])) {
                 $data[$cityName] = [
@@ -138,11 +140,12 @@ class ResultadosAnalisisComparativo extends Page
     /**
      * Determinar la ruta según el puntaje
      */
-    private function getRouteByScore(int $score): string
+    private function getRouteByScore(int $score, int $year): string
     {
-        if ($score >= 0 && $score <= 50) {
+        $phases = MaturityScale::getPhaseRanges($year);
+        if ($score >= $phases[1]['min'] && $score <= $phases[1]['max']) {
             return 'ruta1';
-        } elseif ($score >= 51 && $score <= 85) {
+        } elseif ($score >= $phases[2]['min'] && $score <= $phases[2]['max']) {
             return 'ruta2';
         } else {
             return 'ruta3';

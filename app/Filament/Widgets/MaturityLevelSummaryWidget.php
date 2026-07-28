@@ -3,6 +3,8 @@
 namespace App\Filament\Widgets;
 
 use App\Models\BusinessDiagnosis;
+use App\Support\MaturityScale;
+use App\Support\YearContext;
 use Filament\Widgets\ChartWidget;
 
 class MaturityLevelSummaryWidget extends ChartWidget
@@ -26,14 +28,14 @@ class MaturityLevelSummaryWidget extends ChartWidget
             $baseQuery->where('manager_id', auth()->id());
         }
 
-        $levels = [
-            ['label' => ['Nivel 0', 'Potencial Emprendedor'], 'min' => 0,  'max' => 15,  'color' => '#6B7280'],
-            ['label' => ['Nivel 1', 'Ideación'],               'min' => 16, 'max' => 30,  'color' => '#EC4899'],
-            ['label' => ['Nivel 2', 'Validación'],             'min' => 31, 'max' => 50,  'color' => '#F59E0B'],
-            ['label' => ['Nivel 3', 'Puesta en Marcha'],       'min' => 51, 'max' => 70,  'color' => '#3B82F6'],
-            ['label' => ['Nivel 4', 'Consolidación'],          'min' => 71, 'max' => 85,  'color' => '#F97316'],
-            ['label' => ['Nivel 5', 'Escalamiento'],           'min' => 86, 'max' => 100, 'color' => '#8B5CF6'],
-        ];
+        $year   = YearContext::effectiveYear() ?? now()->year;
+        $scale  = MaturityScale::getScale($year);
+        $levels = array_map(fn($s) => [
+            'label' => ['Nivel ' . $s['level'], $s['name']],
+            'min'   => $s['min'],
+            'max'   => $s['max'],
+            'color' => $s['color'],
+        ], $scale);
 
         $counts = [];
         $labels = [];

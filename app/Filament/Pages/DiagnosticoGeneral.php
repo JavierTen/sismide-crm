@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Support\MaturityScale;
+use App\Support\YearContext;
 use Filament\Pages\Page;
 use App\Models\BusinessDiagnosis;
 
@@ -71,16 +73,18 @@ class DiagnosticoGeneral extends Page
             $color = '';
             $borderColor = '';
 
-            if ($totalScore >= 0 && $totalScore <= 50) {
-                $route = 'Fase 1: Nivel 0,1,2 - Pre-emprendimiento';
+            $year   = $diagnosis->created_at?->year ?? now()->year;
+            $phases = MaturityScale::getPhaseRanges($year);
+            if ($totalScore >= $phases[1]['min'] && $totalScore <= $phases[1]['max']) {
+                $route = $phases[1]['label'];
                 $color = 'rgba(245, 158, 11, 0.5)';
                 $borderColor = '#F59E0B';
-            } elseif ($totalScore >= 51 && $totalScore <= 85) {
-                $route = 'Fase 2: Nivel 3,4 - Consolidación';
+            } elseif ($totalScore >= $phases[2]['min'] && $totalScore <= $phases[2]['max']) {
+                $route = $phases[2]['label'];
                 $color = 'rgba(59, 130, 246, 0.5)';
                 $borderColor = '#3B82F6';
-            } elseif ($totalScore >= 86 && $totalScore <= 100) {
-                $route = 'Fase 3: Nivel 5 - Escalamiento';
+            } elseif ($totalScore >= $phases[3]['min'] && $totalScore <= $phases[3]['max']) {
+                $route = $phases[3]['label'];
                 $color = 'rgba(16, 185, 129, 0.5)';
                 $borderColor = '#10B981';
             }

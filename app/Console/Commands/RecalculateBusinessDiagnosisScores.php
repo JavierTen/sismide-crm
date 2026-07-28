@@ -28,16 +28,25 @@ class RecalculateBusinessDiagnosisScores extends Command
         $progressBar->start();
 
         $updated = 0;
-        $errors = 0;
+        $errors  = 0;
+        $changes = []; // ['Nivel X → Nivel Y' => count]
 
         foreach ($diagnoses as $diagnosis) {
             try {
+                $nivelAntes = $diagnosis->maturity_level ?? 'Sin nivel';
+
                 $diagnosis->total_score = $diagnosis->calculateTotalScore();
 
-                // Calcular y guardar el nivel de madurez
                 if ($diagnosis->total_score !== null) {
                     $maturity = $diagnosis->getMaturityLevel();
                     $diagnosis->maturity_level = $maturity['label'];
+                }
+
+                $nivelDespues = $diagnosis->maturity_level ?? 'Sin nivel';
+
+                if ($nivelAntes !== $nivelDespues) {
+                    $key = $nivelAntes . ' → ' . $nivelDespues;
+                    $changes[$key] = ($changes[$key] ?? 0) + 1;
                 }
 
                 $diagnosis->saveQuietly();
@@ -54,15 +63,27 @@ class RecalculateBusinessDiagnosisScores extends Command
         $progressBar->finish();
         $this->newLine(2);
 
-        $this->info("✅ Recálculo completado:");
+        $this->info('✅ Recálculo completado:');
         $this->table(
             ['Métrica', 'Valor'],
             [
                 ['Total procesados', $count],
                 ['Actualizados exitosamente', $updated],
+                ['Sin cambios de nivel', $updated - array_sum($changes)],
+                ['Con cambio de nivel', array_sum($changes)],
                 ['Errores', $errors],
             ]
         );
+
+        if (!empty($changes)) {
+            $this->newLine();
+            $this->info('📊 Cambios de nivel:');
+            arsort($changes);
+            $rows = array_map(fn($k, $v) => [$k, $v], array_keys($changes), array_values($changes));
+            $this->table(['Antes → Después', 'Registros'], $rows);
+        } else {
+            $this->info('ℹ️  Ningún registro cambió de nivel.');
+        }
 
         return 0;
     }

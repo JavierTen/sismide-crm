@@ -20,11 +20,11 @@ class NecesidadesWidget extends ChartWidget
     ];
 
     private static array $needLabels = [
-        'marketing'           => 'Marketing y ventas',
+        'marketing'           => 'Marketing',
         'financiero'          => 'Financiero',
         'formalizacion'       => 'Formalización',
         'produccion'          => 'Producción',
-        'acceso_financiacion' => 'Acceso a financiación',
+        'acceso_financiacion' => 'Financiación',
         'tecnologia'          => 'Tecnología',
         'innovacion'          => 'Innovación',
         'comercial'           => 'Comercial',
@@ -54,24 +54,19 @@ class NecesidadesWidget extends ChartWidget
                 }
             });
 
+        $counts = array_filter($counts, fn($v) => $v > 0);
         arsort($counts);
         $counts = array_slice($counts, 0, 8, true);
 
-        $total = array_sum($counts) ?: 1;
-
-        $labels  = array_map(fn($k) => self::$needLabels[$k] ?? $k, array_keys($counts));
-        $data    = array_values($counts);
-        $colors  = [
-            '#DC2626', '#1D4ED8', '#16A34A', '#D97706',
-            '#7C3AED', '#DB2777', '#0891B2', '#65A30D',
-        ];
+        $labels = array_map(fn($k) => self::$needLabels[$k] ?? $k, array_keys($counts));
+        $data   = array_values($counts);
 
         return [
             'datasets' => [
                 [
                     'label'           => 'Emprendedores',
                     'data'            => $data,
-                    'backgroundColor' => array_slice($colors, 0, count($data)),
+                    'backgroundColor' => '#F59E0B',
                     'borderRadius'    => 4,
                     'borderWidth'     => 0,
                 ],
@@ -88,26 +83,30 @@ class NecesidadesWidget extends ChartWidget
     protected function getOptions(): array
     {
         return [
-            'indexAxis' => 'y',
-            'plugins'   => [
+            'plugins' => [
                 'legend' => ['display' => false],
                 'tooltip' => [
                     'callbacks' => [
                         'label' => 'function(context) {
-                            return context.parsed.x + " emprendedores";
+                            return context.parsed.y + " emprendedores";
                         }',
                     ],
                 ],
             ],
             'scales' => [
                 'x' => [
+                    'grid'  => ['display' => false],
+                    'ticks' => [
+                        'font'        => ['size' => 10],
+                        'autoSkip'    => false,
+                        'maxRotation' => 35,
+                        'minRotation' => 35,
+                    ],
+                ],
+                'y' => [
                     'beginAtZero' => true,
                     'grid'        => ['color' => '#F3F4F6'],
                     'ticks'       => ['stepSize' => 1],
-                ],
-                'y' => [
-                    'grid'  => ['display' => false],
-                    'ticks' => ['font' => ['size' => 11]],
                 ],
             ],
             'maintainAspectRatio' => false,

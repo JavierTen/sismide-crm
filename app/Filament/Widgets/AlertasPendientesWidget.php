@@ -38,10 +38,6 @@ class AlertasPendientesWidget extends BaseWidget
         if ($isManager) $q3->where('manager_id', $managerId);
         $sinPlan = $q3->count();
 
-        // Sin gestor asignado
-        $q4 = Entrepreneur::whereNull('manager_id');
-        $sinGestor = $q4->count();
-
         // Visitas sin resultado
         $q5 = Visit::whereNull('visit_result');
         if ($isManager) $q5->where('manager_id', $managerId);
@@ -51,11 +47,6 @@ class AlertasPendientesWidget extends BaseWidget
         $q6 = Characterization::whereNull('photo_evidence_path');
         if ($isManager) $q6->whereHas('entrepreneur', fn($q) => $q->where('manager_id', $managerId));
         $sinEvidencia = $q6->count();
-
-        // Sin habeas data
-        $q7 = Characterization::where(fn($q) => $q->where('habeas_data_accepted', false)->orWhereNull('habeas_data_accepted'));
-        if ($isManager) $q7->whereHas('entrepreneur', fn($q) => $q->where('manager_id', $managerId));
-        $sinHabeasData = $q7->count();
 
         return [
             Stat::make('Sin caracterización', $sinCaracterizacion)
@@ -73,11 +64,6 @@ class AlertasPendientesWidget extends BaseWidget
                 ->descriptionIcon('heroicon-o-exclamation-circle')
                 ->color($sinPlan > 0 ? 'warning' : 'success'),
 
-            Stat::make('Sin gestor asignado', $sinGestor)
-                ->description('Emprendedores sin gestor')
-                ->descriptionIcon('heroicon-o-user-minus')
-                ->color($sinGestor > 0 ? 'danger' : 'success'),
-
             Stat::make('Visitas pendientes', $visitasPendientes)
                 ->description('Sin resultado registrado')
                 ->descriptionIcon('heroicon-o-clock')
@@ -88,10 +74,6 @@ class AlertasPendientesWidget extends BaseWidget
                 ->descriptionIcon('heroicon-o-camera')
                 ->color($sinEvidencia > 0 ? 'warning' : 'success'),
 
-            Stat::make('Sin habeas data', $sinHabeasData)
-                ->description('Sin autorización de datos')
-                ->descriptionIcon('heroicon-o-shield-exclamation')
-                ->color($sinHabeasData > 0 ? 'danger' : 'success'),
         ];
     }
 }

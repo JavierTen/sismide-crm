@@ -4,7 +4,6 @@ namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
 use App\Models\BusinessDiagnosis;
-use App\Support\MaturityScale;
 use App\Support\YearContext;
 use Illuminate\Support\Facades\DB;
 
@@ -37,15 +36,22 @@ class RutasEmprendimiento extends Page
         $cacheKey = 'routes_data_entry_' . ($year ?? 'all');
 
         return cache()->remember($cacheKey, now()->addMinutes(10), function () use ($year) {
-            $phases = MaturityScale::getPhaseRanges($year ?? now()->year);
-
-            $base = fn () => BusinessDiagnosis::whereNotNull('total_score')
+            $base = fn () => BusinessDiagnosis::whereNotNull('maturity_level')
                 ->where('diagnosis_type', 'entry')
                 ->when($year !== null, fn ($q) => $q->whereYear('created_at', $year));
 
-            $ruta1 = $base()->whereBetween('total_score', [$phases[1]['min'], $phases[1]['max']])->count();
-            $ruta2 = $base()->whereBetween('total_score', [$phases[2]['min'], $phases[2]['max']])->count();
-            $ruta3 = $base()->whereBetween('total_score', [$phases[3]['min'], $phases[3]['max']])->count();
+            $ruta1 = $base()->where(fn ($q) => $q
+                ->where('maturity_level', 'like', 'Nivel 0:%')
+                ->orWhere('maturity_level', 'like', 'Nivel 1:%')
+                ->orWhere('maturity_level', 'like', 'Nivel 2:%')
+            )->count();
+
+            $ruta2 = $base()->where(fn ($q) => $q
+                ->where('maturity_level', 'like', 'Nivel 3:%')
+                ->orWhere('maturity_level', 'like', 'Nivel 4:%')
+            )->count();
+
+            $ruta3 = $base()->where('maturity_level', 'like', 'Nivel 5:%')->count();
 
             return [
                 'ruta1' => ['label' => 'Ruta 1: Pre-emprendimiento', 'total' => $ruta1, 'levels' => 'Niveles 0, 1, 2'],
@@ -64,15 +70,22 @@ class RutasEmprendimiento extends Page
         $cacheKey = 'routes_data_exit_' . ($year ?? 'all');
 
         return cache()->remember($cacheKey, now()->addMinutes(10), function () use ($year) {
-            $phases = MaturityScale::getPhaseRanges($year ?? now()->year);
-
-            $base = fn () => BusinessDiagnosis::whereNotNull('total_score')
+            $base = fn () => BusinessDiagnosis::whereNotNull('maturity_level')
                 ->where('diagnosis_type', 'exit')
                 ->when($year !== null, fn ($q) => $q->whereYear('created_at', $year));
 
-            $ruta1 = $base()->whereBetween('total_score', [$phases[1]['min'], $phases[1]['max']])->count();
-            $ruta2 = $base()->whereBetween('total_score', [$phases[2]['min'], $phases[2]['max']])->count();
-            $ruta3 = $base()->whereBetween('total_score', [$phases[3]['min'], $phases[3]['max']])->count();
+            $ruta1 = $base()->where(fn ($q) => $q
+                ->where('maturity_level', 'like', 'Nivel 0:%')
+                ->orWhere('maturity_level', 'like', 'Nivel 1:%')
+                ->orWhere('maturity_level', 'like', 'Nivel 2:%')
+            )->count();
+
+            $ruta2 = $base()->where(fn ($q) => $q
+                ->where('maturity_level', 'like', 'Nivel 3:%')
+                ->orWhere('maturity_level', 'like', 'Nivel 4:%')
+            )->count();
+
+            $ruta3 = $base()->where('maturity_level', 'like', 'Nivel 5:%')->count();
 
             return [
                 'ruta1' => ['label' => 'Ruta 1: Pre-emprendimiento', 'total' => $ruta1, 'levels' => 'Niveles 0, 1, 2'],

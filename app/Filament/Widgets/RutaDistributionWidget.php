@@ -4,6 +4,8 @@ namespace App\Filament\Widgets;
 
 use App\Models\BusinessDiagnosis;
 use App\Models\Project;
+use App\Support\MaturityScale;
+use App\Support\YearContext;
 use Filament\Widgets\ChartWidget;
 
 class RutaDistributionWidget extends ChartWidget
@@ -29,12 +31,15 @@ class RutaDistributionWidget extends ChartWidget
             $baseQuery->where('manager_id', auth()->id());
         }
 
-        $ruta1 = (clone $baseQuery)->where('total_score', '<=', 50)->count();
-        $ruta2 = (clone $baseQuery)->whereBetween('total_score', [51, 85])->count();
-        $ruta3 = (clone $baseQuery)->where('total_score', '>=', 86)->count();
+        $year   = YearContext::effectiveYear() ?? now()->year;
+        $phases = MaturityScale::getPhaseRanges($year);
+
+        $ruta1 = (clone $baseQuery)->whereBetween('total_score', [$phases[1]['min'], $phases[1]['max']])->count();
+        $ruta2 = (clone $baseQuery)->whereBetween('total_score', [$phases[2]['min'], $phases[2]['max']])->count();
+        $ruta3 = (clone $baseQuery)->whereBetween('total_score', [$phases[3]['min'], $phases[3]['max']])->count();
 
         $total = $ruta1 + $ruta2 + $ruta3;
-        $pct = fn($n) => $total > 0 ? round(($n / $total) * 100) : 0;
+        $pct   = fn($n) => $total > 0 ? round(($n / $total) * 100) : 0;
 
         return [
             'datasets' => [

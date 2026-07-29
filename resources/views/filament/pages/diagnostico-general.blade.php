@@ -4,20 +4,16 @@
             $citiesDataEntry = $this->getEntrepreneursDataByCitiesEntry();
             $citiesDataExit = $this->getEntrepreneursDataByCitiesExit();
 
-            // Calcular totales ENTRADA
+            // Calcular totales ENTRADA (usa 'route' ya asignado por año en PHP)
             $ruta1TotalEntry = 0;
             $ruta2TotalEntry = 0;
             $ruta3TotalEntry = 0;
 
-            foreach($citiesDataEntry as $cityName => $entrepreneursData) {
-                foreach($entrepreneursData as $entrepreneur) {
-                    if ($entrepreneur['total_score'] >= 0 && $entrepreneur['total_score'] <= 50) {
-                        $ruta1TotalEntry++;
-                    } elseif ($entrepreneur['total_score'] >= 51 && $entrepreneur['total_score'] <= 85) {
-                        $ruta2TotalEntry++;
-                    } elseif ($entrepreneur['total_score'] >= 86 && $entrepreneur['total_score'] <= 100) {
-                        $ruta3TotalEntry++;
-                    }
+            foreach ($citiesDataEntry as $entrepreneursData) {
+                foreach ($entrepreneursData as $e) {
+                    if (str_contains($e['route'], 'Fase 1'))      $ruta1TotalEntry++;
+                    elseif (str_contains($e['route'], 'Fase 2'))  $ruta2TotalEntry++;
+                    elseif (str_contains($e['route'], 'Fase 3'))  $ruta3TotalEntry++;
                 }
             }
 
@@ -26,15 +22,11 @@
             $ruta2TotalExit = 0;
             $ruta3TotalExit = 0;
 
-            foreach($citiesDataExit as $cityName => $entrepreneursData) {
-                foreach($entrepreneursData as $entrepreneur) {
-                    if ($entrepreneur['total_score'] >= 0 && $entrepreneur['total_score'] <= 50) {
-                        $ruta1TotalExit++;
-                    } elseif ($entrepreneur['total_score'] >= 51 && $entrepreneur['total_score'] <= 85) {
-                        $ruta2TotalExit++;
-                    } elseif ($entrepreneur['total_score'] >= 86 && $entrepreneur['total_score'] <= 100) {
-                        $ruta3TotalExit++;
-                    }
+            foreach ($citiesDataExit as $entrepreneursData) {
+                foreach ($entrepreneursData as $e) {
+                    if (str_contains($e['route'], 'Fase 1'))      $ruta1TotalExit++;
+                    elseif (str_contains($e['route'], 'Fase 2'))  $ruta2TotalExit++;
+                    elseif (str_contains($e['route'], 'Fase 3'))  $ruta3TotalExit++;
                 }
             }
         @endphp
@@ -209,7 +201,7 @@
     </div>
 
     @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script>
         let radarCharts = {};
 
@@ -322,7 +314,7 @@
 
         function renderAllRadarCharts() {
             // Renderizar gráficas de ENTRADA
-            const citiesDataEntry = @json($this->getEntrepreneursDataByCitiesEntry());
+            const citiesDataEntry = @json($citiesDataEntry);
             Object.keys(citiesDataEntry).forEach(cityName => {
                 const citySlug = createSlug(cityName);
                 const entrepreneursData = citiesDataEntry[cityName];
@@ -330,7 +322,7 @@
             });
 
             // Renderizar gráficas de SALIDA
-            const citiesDataExit = @json($this->getEntrepreneursDataByCitiesExit());
+            const citiesDataExit = @json($citiesDataExit);
             Object.keys(citiesDataExit).forEach(cityName => {
                 const citySlug = createSlug(cityName);
                 const entrepreneursData = citiesDataExit[cityName];

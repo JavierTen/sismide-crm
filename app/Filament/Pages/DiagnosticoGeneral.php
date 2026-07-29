@@ -48,8 +48,8 @@ class DiagnosticoGeneral extends Page
      */
     private function getEntrepreneursDataByCities(string $diagnosisType): array
     {
-        $query = BusinessDiagnosis::with(['entrepreneur.city'])
-            ->where('diagnosis_type', $diagnosisType); // ← FILTRO POR TIPO
+        $query = BusinessDiagnosis::with(['entrepreneur.city', 'entrepreneur.business'])
+            ->where('diagnosis_type', $diagnosisType);
 
         if (!auth()->user()->hasRole(['Admin', 'Viewer'])) {
             $query->where('manager_id', auth()->id());

@@ -2,10 +2,13 @@
     <div class="space-y-8">
 
         @php
-            $routesEntry = $this->getRoutesDataEntry();
-            $routesExit = $this->getRoutesDataExit();
+            $routesEntry    = $this->getRoutesDataEntry();
+            $routesExit     = $this->getRoutesDataExit();
             $radarDataEntry = $this->getRadarDataByCityEntry();
-            $radarDataExit = $this->getRadarDataByCityExit();
+            $radarDataExit  = $this->getRadarDataByCityExit();
+            $phases         = \App\Support\MaturityScale::getPhaseRanges(
+                                  \App\Support\YearContext::effectiveYear() ?? now()->year
+                              );
             $colors = [
                 'ruta1' => ['bg' => '#F59E0B', 'border' => '#D97706'],
                 'ruta2' => ['bg' => '#3B82F6', 'border' => '#2563EB'],
@@ -159,9 +162,11 @@
     </div>
 
     @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script>
         let radarCharts = {};
+
+        const phaseRanges = @json($phases);
 
         function createSlug(text) {
             return text
@@ -184,7 +189,11 @@
             radarCharts[canvasId] = new Chart(ctx, {
                 type: 'radar',
                 data: {
-                    labels: ['Ruta 1 (0-30)', 'Ruta 2 (31-70)', 'Ruta 3 (71-100)'],
+                    labels: [
+                        `Ruta 1 (${phaseRanges[1].min}-${phaseRanges[1].max})`,
+                        `Ruta 2 (${phaseRanges[2].min}-${phaseRanges[2].max})`,
+                        `Ruta 3 (${phaseRanges[3].min}-${phaseRanges[3].max})`,
+                    ],
                     datasets: [{
                         label: 'Puntaje Promedio',
                         data: [
@@ -244,7 +253,7 @@
 
         function renderAllRadarCharts() {
             // Renderizar gráficas de ENTRADA (azul)
-            const radarDataEntry = @json($this->getRadarDataByCityEntry());
+            const radarDataEntry = @json($radarDataEntry);
             Object.keys(radarDataEntry).forEach(cityName => {
                 const citySlug = createSlug(cityName);
                 const cityData = radarDataEntry[cityName];
@@ -257,7 +266,7 @@
             });
 
             // Renderizar gráficas de SALIDA (verde)
-            const radarDataExit = @json($this->getRadarDataByCityExit());
+            const radarDataExit = @json($radarDataExit);
             Object.keys(radarDataExit).forEach(cityName => {
                 const citySlug = createSlug(cityName);
                 const cityData = radarDataExit[cityName];

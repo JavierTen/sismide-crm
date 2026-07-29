@@ -4,10 +4,9 @@ namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
 use App\Models\BusinessDiagnosis;
-use App\Models\City;
+use App\Support\MaturityScale;
 use App\Support\YearContext;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
 
 class RutasEmprendimiento extends Page
 {
@@ -34,47 +33,24 @@ class RutasEmprendimiento extends Page
      */
     public function getRoutesDataEntry(): array
     {
-        $cacheKey = 'routes_data_entry_' . (YearContext::effectiveYear() ?? 'all');
+        $year     = YearContext::effectiveYear();
+        $cacheKey = 'routes_data_entry_' . ($year ?? 'all');
 
-        return cache()->remember($cacheKey, now()->addMinutes(10), function () {
-            $ruta1 = BusinessDiagnosis::whereNotNull('total_score')
-                ->where('diagnosis_type', 'entry') // ← FILTRO ENTRADA
-                ->whereIn('maturity_level', [
-                    'Nivel 0: Pre-emprendimiento y validación temprana',
-                    'Nivel 1: Pre-emprendimiento y validación temprana',
-                    'Nivel 2: Pre-emprendimiento y validación temprana',
-                ])
-                ->count();
+        return cache()->remember($cacheKey, now()->addMinutes(10), function () use ($year) {
+            $phases = MaturityScale::getPhaseRanges($year ?? now()->year);
 
-            $ruta2 = BusinessDiagnosis::whereNotNull('total_score')
-                ->where('diagnosis_type', 'entry') // ← FILTRO ENTRADA
-                ->whereIn('maturity_level', [
-                    'Nivel 3: Consolidación',
-                    'Nivel 4: Consolidación',
-                ])
-                ->count();
+            $base = fn () => BusinessDiagnosis::whereNotNull('total_score')
+                ->where('diagnosis_type', 'entry')
+                ->when($year !== null, fn ($q) => $q->whereYear('created_at', $year));
 
-            $ruta3 = BusinessDiagnosis::whereNotNull('total_score')
-                ->where('diagnosis_type', 'entry') // ← FILTRO ENTRADA
-                ->where('maturity_level', 'Nivel 5: Escalamiento e Innovación')
-                ->count();
+            $ruta1 = $base()->whereBetween('total_score', [$phases[1]['min'], $phases[1]['max']])->count();
+            $ruta2 = $base()->whereBetween('total_score', [$phases[2]['min'], $phases[2]['max']])->count();
+            $ruta3 = $base()->whereBetween('total_score', [$phases[3]['min'], $phases[3]['max']])->count();
 
             return [
-                'ruta1' => [
-                    'label' => 'Ruta 1: Pre-emprendimiento',
-                    'total' => $ruta1,
-                    'levels' => 'Niveles 0, 1, 2',
-                ],
-                'ruta2' => [
-                    'label' => 'Ruta 2: Consolidación',
-                    'total' => $ruta2,
-                    'levels' => 'Niveles 3, 4',
-                ],
-                'ruta3' => [
-                    'label' => 'Ruta 3: Escalamiento',
-                    'total' => $ruta3,
-                    'levels' => 'Nivel 5',
-                ],
+                'ruta1' => ['label' => 'Ruta 1: Pre-emprendimiento', 'total' => $ruta1, 'levels' => 'Niveles 0, 1, 2'],
+                'ruta2' => ['label' => 'Ruta 2: Consolidación',      'total' => $ruta2, 'levels' => 'Niveles 3, 4'],
+                'ruta3' => ['label' => 'Ruta 3: Escalamiento',       'total' => $ruta3, 'levels' => 'Nivel 5'],
             ];
         });
     }
@@ -84,47 +60,24 @@ class RutasEmprendimiento extends Page
      */
     public function getRoutesDataExit(): array
     {
-        $cacheKey = 'routes_data_exit_' . (YearContext::effectiveYear() ?? 'all');
+        $year     = YearContext::effectiveYear();
+        $cacheKey = 'routes_data_exit_' . ($year ?? 'all');
 
-        return cache()->remember($cacheKey, now()->addMinutes(10), function () {
-            $ruta1 = BusinessDiagnosis::whereNotNull('total_score')
-                ->where('diagnosis_type', 'exit') // ← FILTRO SALIDA
-                ->whereIn('maturity_level', [
-                    'Nivel 0: Pre-emprendimiento y validación temprana',
-                    'Nivel 1: Pre-emprendimiento y validación temprana',
-                    'Nivel 2: Pre-emprendimiento y validación temprana',
-                ])
-                ->count();
+        return cache()->remember($cacheKey, now()->addMinutes(10), function () use ($year) {
+            $phases = MaturityScale::getPhaseRanges($year ?? now()->year);
 
-            $ruta2 = BusinessDiagnosis::whereNotNull('total_score')
-                ->where('diagnosis_type', 'exit') // ← FILTRO SALIDA
-                ->whereIn('maturity_level', [
-                    'Nivel 3: Consolidación',
-                    'Nivel 4: Consolidación',
-                ])
-                ->count();
+            $base = fn () => BusinessDiagnosis::whereNotNull('total_score')
+                ->where('diagnosis_type', 'exit')
+                ->when($year !== null, fn ($q) => $q->whereYear('created_at', $year));
 
-            $ruta3 = BusinessDiagnosis::whereNotNull('total_score')
-                ->where('diagnosis_type', 'exit') // ← FILTRO SALIDA
-                ->where('maturity_level', 'Nivel 5: Escalamiento e Innovación')
-                ->count();
+            $ruta1 = $base()->whereBetween('total_score', [$phases[1]['min'], $phases[1]['max']])->count();
+            $ruta2 = $base()->whereBetween('total_score', [$phases[2]['min'], $phases[2]['max']])->count();
+            $ruta3 = $base()->whereBetween('total_score', [$phases[3]['min'], $phases[3]['max']])->count();
 
             return [
-                'ruta1' => [
-                    'label' => 'Ruta 1: Pre-emprendimiento',
-                    'total' => $ruta1,
-                    'levels' => 'Niveles 0, 1, 2',
-                ],
-                'ruta2' => [
-                    'label' => 'Ruta 2: Consolidación',
-                    'total' => $ruta2,
-                    'levels' => 'Niveles 3, 4',
-                ],
-                'ruta3' => [
-                    'label' => 'Ruta 3: Escalamiento',
-                    'total' => $ruta3,
-                    'levels' => 'Nivel 5',
-                ],
+                'ruta1' => ['label' => 'Ruta 1: Pre-emprendimiento', 'total' => $ruta1, 'levels' => 'Niveles 0, 1, 2'],
+                'ruta2' => ['label' => 'Ruta 2: Consolidación',      'total' => $ruta2, 'levels' => 'Niveles 3, 4'],
+                'ruta3' => ['label' => 'Ruta 3: Escalamiento',       'total' => $ruta3, 'levels' => 'Nivel 5'],
             ];
         });
     }

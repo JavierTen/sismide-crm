@@ -1,10 +1,13 @@
 <x-filament-panels::page>
     <div class="space-y-8">
         @php
-            $dataEntry = $this->getDataByRouteEntry();
-            $dataExit = $this->getDataByRouteExit();
+            $dataEntry   = $this->getDataByRouteEntry();
+            $dataExit    = $this->getDataByRouteExit();
             $totalsEntry = $this->getTotalsByRoute('entry');
-            $totalsExit = $this->getTotalsByRoute('exit');
+            $totalsExit  = $this->getTotalsByRoute('exit');
+            $phases      = \App\Support\MaturityScale::getPhaseRanges(
+                               \App\Support\YearContext::effectiveYear() ?? now()->year
+                           );
         @endphp
 
         {{-- ========== RESUMEN GENERAL ENTRADA ========== --}}
@@ -244,9 +247,11 @@
     </div>
 
     @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script>
         let radarCharts = {};
+
+        const phaseRanges = @json($phases);
 
         function createSlug(text) {
             return text
@@ -258,21 +263,12 @@
         }
 
         function getColorByScore(score) {
-            if (score >= 0 && score <= 50) {
-                return {
-                    bg: 'rgba(245, 158, 11, 0.2)',
-                    border: '#F59E0B'
-                };
-            } else if (score >= 51 && score <= 85) {
-                return {
-                    bg: 'rgba(59, 130, 246, 0.2)',
-                    border: '#3B82F6'
-                };
+            if (score >= phaseRanges[1].min && score <= phaseRanges[1].max) {
+                return { bg: 'rgba(245, 158, 11, 0.2)', border: '#F59E0B' };
+            } else if (score >= phaseRanges[2].min && score <= phaseRanges[2].max) {
+                return { bg: 'rgba(59, 130, 246, 0.2)', border: '#3B82F6' };
             } else {
-                return {
-                    bg: 'rgba(16, 185, 129, 0.2)',
-                    border: '#10B981'
-                };
+                return { bg: 'rgba(16, 185, 129, 0.2)', border: '#10B981' };
             }
         }
 
@@ -368,8 +364,8 @@
         }
 
         function renderAllCharts() {
-            const dataEntry = @json($this->getDataByRouteEntry());
-            const dataExit = @json($this->getDataByRouteExit());
+            const dataEntry = @json($dataEntry);
+            const dataExit  = @json($dataExit);
 
             Object.keys(dataEntry).forEach(cityName => {
                 const citySlug = createSlug(cityName);

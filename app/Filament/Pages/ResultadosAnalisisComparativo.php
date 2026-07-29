@@ -27,26 +27,24 @@ class ResultadosAnalisisComparativo extends Page
         return auth()->user()->can('viewComparativeAnalysis');
     }
 
-    /**
-     * Obtener datos agrupados por municipio y ruta - ENTRADA
-     */
+    private array $cache = [];
+
     public function getDataByRouteEntry(): array
     {
-        return $this->getDataByRoute('entry');
+        return $this->cache['entry'] ??= $this->fetchDataByRoute('entry');
     }
 
-    /**
-     * Obtener datos agrupados por municipio y ruta - SALIDA
-     */
     public function getDataByRouteExit(): array
     {
-        return $this->getDataByRoute('exit');
+        return $this->cache['exit'] ??= $this->fetchDataByRoute('exit');
     }
 
-    /**
-     * Obtener datos agrupados por municipio y ruta (método reutilizable)
-     */
     private function getDataByRoute(string $diagnosisType): array
+    {
+        return $diagnosisType === 'entry' ? $this->getDataByRouteEntry() : $this->getDataByRouteExit();
+    }
+
+    private function fetchDataByRoute(string $diagnosisType): array
     {
         $query = BusinessDiagnosis::with(['entrepreneur.city', 'entrepreneur.business'])
             ->where('diagnosis_type', $diagnosisType);

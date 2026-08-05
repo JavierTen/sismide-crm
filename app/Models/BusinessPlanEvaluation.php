@@ -6,12 +6,13 @@ use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
 class BusinessPlanEvaluation extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, TracksUpdatedBy;
 
     protected $fillable = [
         'business_plan_id',
@@ -21,6 +22,7 @@ class BusinessPlanEvaluation extends Model
         'question_number',
         'score',
         'comments',
+        'updated_by_id',
     ];
 
     protected $casts = [

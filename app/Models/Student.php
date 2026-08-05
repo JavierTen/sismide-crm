@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Student extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, TracksUpdatedBy;
 
     protected $fillable = [
         'educational_institution_id',
@@ -27,6 +28,7 @@ class Student extends Model
         'guardian_name',
         'guardian_phone',
         'manager_id',
+        'updated_by_id',
     ];
 
     protected $casts = [

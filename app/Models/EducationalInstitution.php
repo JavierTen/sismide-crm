@@ -6,11 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EducationalInstitution extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, TracksUpdatedBy;
 
     protected $fillable = [
         'city_id',
@@ -21,6 +22,7 @@ class EducationalInstitution extends Model
         'phone',
         'email',
         'manager_id',
+        'updated_by_id',
     ];
 
     public function getDisplayNameAttribute(): string

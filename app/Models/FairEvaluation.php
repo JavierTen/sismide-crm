@@ -4,13 +4,14 @@ namespace App\Models;
 
 use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class FairEvaluation extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, TracksUpdatedBy;
 
     protected $fillable = [
         // Datos del Emprendimiento
@@ -40,6 +41,7 @@ class FairEvaluation extends Model
 
         // Manager
         'manager_id',
+        'updated_by_id',
     ];
 
     protected static function boot()

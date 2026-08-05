@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 //Exportar en excel
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use App\Exports\FormattedExcelExport;
 use pxlrbt\FilamentExcel\Exports\ExcelExport;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Columns\Column;
@@ -703,7 +704,7 @@ class EntrepreneurResource extends Resource
                     ->label('Exportar Excel')
                     ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
-                        ExcelExport::make()
+                        FormattedExcelExport::make()
                             ->withFilename(fn() => 'emprendedores-' . now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                             ->modifyQueryUsing(fn($query) => $query->with([
@@ -715,6 +716,8 @@ class EntrepreneurResource extends Resource
                                 'city',
                                 'department',
                                 'manager',
+                                'creator',
+                                'updatedBy',
                                 'project',
                                 'business.economicActivity',
                                 'business.entrepreneurshipStage',
@@ -722,53 +725,78 @@ class EntrepreneurResource extends Resource
                                 'business.ciiuCode',
                                 'business.department',
                                 'business.city',
-                                'business.ward',
-                                'business.village',
                             ]))
                             ->withColumns([
-                                // === INFORMACIÓN PERSONAL ===
-                                Column::make('documentType.code')->heading('Tipo Doc.'),
-                                Column::make('document_number')->heading('No. Documento'),
+                                Column::make('documentType.code')->heading('Tipo de Documento'),
+                                Column::make('document_number')->heading('Número de Documento'),
                                 Column::make('full_name')->heading('Nombre Completo'),
                                 Column::make('gender.name')->heading('Género'),
                                 Column::make('maritalStatus.name')->heading('Estado Civil'),
-                                Column::make('birth_date')->heading('Fecha Nacimiento')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                Column::make('birth_date')->heading('Fecha de Nacimiento')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                Column::make('age')->heading('Edad')->getStateUsing(fn($record) => $record->birth_date ? now()->diffInYears($record->birth_date) . ' años' : ''),
                                 Column::make('population.name')->heading('Población Vulnerable'),
-
-                                // === INFORMACIÓN DE CONTACTO ===
-                                Column::make('phone')->heading('Teléfono'),
-                                Column::make('email')->heading('Email'),
-
-                                // === INFORMACIÓN ACADÉMICA ===
+                                Column::make('phone')->heading('Teléfono Principal'),
+                                Column::make('phone_2')->heading('Teléfono Secundario'),
+                                Column::make('email')->heading('Correo Electrónico'),
                                 Column::make('educationLevel.name')->heading('Nivel Educativo'),
-
-                                // === ESTADO ===
-                                Column::make('status')->heading('Estado')->formatStateUsing(fn($state) => $state ? 'Activo' : 'Inactivo'),
-
-                                // === INFORMACIÓN EMPRENDIMIENTO ===
-                                Column::make('business.business_name')->heading('Nombre Emprendimiento'),
-                                Column::make('business.creation_date')->heading('Fecha Creación Negocio')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
-                                Column::make('business.description')->heading('Descripción'),
-                                Column::make('business.entrepreneurshipStage.name')->heading('Etapa Emprendimiento'),
+                                Column::make('status')->heading('Estado Activo')->formatStateUsing(fn($state) => $state ? 'Activo' : 'Inactivo'),
+                                Column::make('business.business_name')->heading('Nombre del Emprendimiento'),
+                                Column::make('has_chamber')->heading('Tiene Cámara de Comercio')->getStateUsing(fn($record) => $record->business?->has_chamber_of_commerce ? 'Sí' : 'No'),
+                                Column::make('chamber_date')->heading('Fecha de Cámara de Comercio')->getStateUsing(fn($record) => $record->business?->has_chamber_of_commerce ? ($record->business->creation_date?->format('d/m/Y') ?? '') : 'No aplica'),
+                                Column::make('business.description')->heading('Descripción del Emprendimiento'),
+                                Column::make('business.entrepreneurshipStage.name')->heading('Etapa del Emprendimiento'),
                                 Column::make('business.economicActivity.name')->heading('Actividad Económica'),
                                 Column::make('business.productiveLine.name')->heading('Línea Productiva'),
-                                Column::make('business.ciiuCode.code')->heading('Código CIIU'),
+                                Column::make('ciiu_code')->heading('Código CIIU')->getStateUsing(fn($record) => $record->business?->has_chamber_of_commerce ? ($record->business->ciiuCode?->code ?? '') : 'No aplica'),
                                 Column::make('project.name')->heading('Proyecto'),
                                 Column::make('business.cohort')->heading('Cohorte'),
+                                Column::make('business.department.name')->heading('Departamento del Negocio'),
+                                Column::make('business.city.name')->heading('Municipio del Negocio'),
+                                Column::make('business.address')->heading('Dirección del Negocio'),
+                                Column::make('business.phone')->heading('Teléfono del Negocio'),
+                                Column::make('business.email')->heading('Correo Electrónico del Negocio'),
+                                Column::make('created_at')->heading('Fecha de Registro')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                Column::make('created_time')->heading('Hora de Registro')->getStateUsing(fn($record) => $record->created_at?->format('H:i:s')),
+                                Column::make('creator.name')->heading('Usuario que Creó el Registro'),
+                                Column::make('updated_at')->heading('Fecha de Última Actualización')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                Column::make('updater')->heading('Usuario que Realizó la Última Actualización')->getStateUsing(fn($record) => $record->updatedBy?->name ?? ''),
+                            ])
+                            ->afterSheet(function (\Maatwebsite\Excel\Events\AfterSheet $event) {
+                                $sheet   = $event->sheet->getDelegate();
+                                $lastCol = $sheet->getHighestColumn();
+                                $lastRow = $sheet->getHighestRow();
 
-                                // === UBICACIÓN EMPRENDIMIENTO ===
-                                Column::make('business.department.name')->heading('Departamento Negocio'),
-                                Column::make('business.city.name')->heading('Ciudad Negocio'),
-                                Column::make('business.ward.name')->heading('Corregimiento'),
-                                Column::make('business.village.name')->heading('Vereda'),
-                                Column::make('business.address')->heading('Dirección Negocio'),
-                                Column::make('business.phone')->heading('Teléfono Negocio'),
-                                Column::make('business.email')->heading('Email Negocio'),
+                                $sheet->getStyle('1:1')->applyFromArray([
+                                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                                    'fill' => [
+                                        'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                                        'startColor' => ['rgb' => '1E40AF'],
+                                    ],
+                                    'alignment' => [
+                                        'wrapText'   => true,
+                                        'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                                        'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                                    ],
+                                ]);
 
-                                // === GESTOR Y FECHAS ===
-                                Column::make('manager.name')->heading('Gestor Asignado'),
-                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y')),
-                            ]),
+                                if ($lastRow > 1) {
+                                    $sheet->getStyle('A2:' . $lastCol . $lastRow)->applyFromArray([
+                                        'alignment' => [
+                                            'wrapText' => true,
+                                            'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP,
+                                        ],
+                                    ]);
+                                }
+
+                                $sheet->freezePane('A2');
+                                $sheet->setAutoFilter('A1:' . $lastCol . '1');
+
+                                $lastColIdx = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+                                for ($i = 1; $i <= $lastColIdx; $i++) {
+                                    $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+                                    $sheet->getColumnDimension($col)->setAutoSize(true);
+                                }
+                            }),
                     ])
                     ->color('success')
                     ->icon('heroicon-o-arrow-down-tray'),
@@ -778,7 +806,7 @@ class EntrepreneurResource extends Resource
                     ExportBulkAction::make()
                         ->label('Exportar seleccionados')
                         ->exports([
-                            ExcelExport::make()
+                            FormattedExcelExport::make()
                                 ->withFilename(fn() => 'emprendedores-' . now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                                 ->modifyQueryUsing(fn($query) => $query->with([
@@ -790,6 +818,8 @@ class EntrepreneurResource extends Resource
                                     'city',
                                     'department',
                                     'manager',
+                                    'creator',
+                                    'updatedBy',
                                     'project',
                                     'business.economicActivity',
                                     'business.entrepreneurshipStage',
@@ -797,61 +827,78 @@ class EntrepreneurResource extends Resource
                                     'business.ciiuCode',
                                     'business.department',
                                     'business.city',
-                                    'business.ward',
-                                    'business.village',
                                 ]))
                                 ->withColumns([
-                                    // === INFORMACIÓN PERSONAL ===
-                                    Column::make('documentType.code')->heading('Tipo Doc.'),
-                                    Column::make('document_number')->heading('No. Documento'),
+                                    Column::make('documentType.code')->heading('Tipo de Documento'),
+                                    Column::make('document_number')->heading('Número de Documento'),
                                     Column::make('full_name')->heading('Nombre Completo'),
                                     Column::make('gender.name')->heading('Género'),
                                     Column::make('maritalStatus.name')->heading('Estado Civil'),
-                                    Column::make('birth_date')->heading('Fecha Nacimiento')->formatStateUsing(function ($state) {
-                                        if (!$state) return '';
-                                        return $state instanceof \Carbon\Carbon ? $state->format('d/m/Y') : $state;
-                                    }),
+                                    Column::make('birth_date')->heading('Fecha de Nacimiento')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                    Column::make('age')->heading('Edad')->getStateUsing(fn($record) => $record->birth_date ? now()->diffInYears($record->birth_date) . ' años' : ''),
                                     Column::make('population.name')->heading('Población Vulnerable'),
-
-                                    // === INFORMACIÓN DE CONTACTO ===
-                                    Column::make('phone')->heading('Teléfono'),
-                                    Column::make('email')->heading('Email'),
-
-                                    // === INFORMACIÓN ACADÉMICA ===
+                                    Column::make('phone')->heading('Teléfono Principal'),
+                                    Column::make('phone_2')->heading('Teléfono Secundario'),
+                                    Column::make('email')->heading('Correo Electrónico'),
                                     Column::make('educationLevel.name')->heading('Nivel Educativo'),
-
-                                    // === ESTADO ===
-                                    Column::make('status')->heading('Estado')->formatStateUsing(fn($state) => $state ? 'Activo' : 'Inactivo'),
-
-                                    // === INFORMACIÓN EMPRENDIMIENTO ===
-                                    Column::make('business.business_name')->heading('Nombre Emprendimiento'),
-                                    Column::make('business.creation_date')->heading('Fecha Creación Negocio')->formatStateUsing(function ($state) {
-                                        if (!$state) return '';
-                                        return $state instanceof \Carbon\Carbon ? $state->format('d/m/Y') : $state;
-                                    }),
-                                    Column::make('business.description')->heading('Descripción'),
-                                    Column::make('business.entrepreneurshipStage.name')->heading('Etapa Emprendimiento'),
+                                    Column::make('status')->heading('Estado Activo')->formatStateUsing(fn($state) => $state ? 'Activo' : 'Inactivo'),
+                                    Column::make('business.business_name')->heading('Nombre del Emprendimiento'),
+                                    Column::make('has_chamber')->heading('Tiene Cámara de Comercio')->getStateUsing(fn($record) => $record->business?->has_chamber_of_commerce ? 'Sí' : 'No'),
+                                    Column::make('chamber_date')->heading('Fecha de Cámara de Comercio')->getStateUsing(fn($record) => $record->business?->has_chamber_of_commerce ? ($record->business->creation_date?->format('d/m/Y') ?? '') : 'No aplica'),
+                                    Column::make('business.description')->heading('Descripción del Emprendimiento'),
+                                    Column::make('business.entrepreneurshipStage.name')->heading('Etapa del Emprendimiento'),
                                     Column::make('business.economicActivity.name')->heading('Actividad Económica'),
                                     Column::make('business.productiveLine.name')->heading('Línea Productiva'),
-                                    Column::make('business.ciiuCode.code')->heading('Código CIIU'),
+                                    Column::make('ciiu_code')->heading('Código CIIU')->getStateUsing(fn($record) => $record->business?->has_chamber_of_commerce ? ($record->business->ciiuCode?->code ?? '') : 'No aplica'),
                                     Column::make('project.name')->heading('Proyecto'),
                                     Column::make('business.cohort')->heading('Cohorte'),
+                                    Column::make('business.department.name')->heading('Departamento del Negocio'),
+                                    Column::make('business.city.name')->heading('Municipio del Negocio'),
+                                    Column::make('business.address')->heading('Dirección del Negocio'),
+                                    Column::make('business.phone')->heading('Teléfono del Negocio'),
+                                    Column::make('business.email')->heading('Correo Electrónico del Negocio'),
+                                    Column::make('created_at')->heading('Fecha de Registro')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                    Column::make('created_time')->heading('Hora de Registro')->getStateUsing(fn($record) => $record->created_at?->format('H:i:s')),
+                                    Column::make('creator.name')->heading('Usuario que Creó el Registro'),
+                                    Column::make('updated_at')->heading('Fecha de Última Actualización')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+                                    Column::make('updater')->heading('Usuario que Realizó la Última Actualización')->getStateUsing(fn($record) => $record->updatedBy?->name ?? ''),
+                                ])
+                                ->afterSheet(function (\Maatwebsite\Excel\Events\AfterSheet $event) {
+                                    $sheet   = $event->sheet->getDelegate();
+                                    $lastCol = $sheet->getHighestColumn();
+                                    $lastRow = $sheet->getHighestRow();
 
-                                    // === UBICACIÓN EMPRENDIMIENTO ===
-                                    Column::make('business.department.name')->heading('Departamento Negocio'),
-                                    Column::make('business.city.name')->heading('Ciudad Negocio'),
-                                    Column::make('business.ward.name')->heading('Corregimiento'),
-                                    Column::make('business.village.name')->heading('Vereda'),
-                                    Column::make('business.address')->heading('Dirección Negocio'),
-                                    Column::make('business.phone')->heading('Teléfono Negocio'),
-                                    Column::make('business.email')->heading('Email Negocio'),
+                                    $sheet->getStyle('1:1')->applyFromArray([
+                                        'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                                        'fill' => [
+                                            'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                                            'startColor' => ['rgb' => '1E40AF'],
+                                        ],
+                                        'alignment' => [
+                                            'wrapText'   => true,
+                                            'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                                            'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                                        ],
+                                    ]);
 
-                                    // === GESTOR Y FECHAS ===
-                                    Column::make('manager.name')->heading('Gestor Asignado'),
-                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(function ($state) {
-                                        return $state instanceof \Carbon\Carbon ? $state->format('d/m/Y H:i') : $state;
-                                    }),
-                                ]),
+                                    if ($lastRow > 1) {
+                                        $sheet->getStyle('A2:' . $lastCol . $lastRow)->applyFromArray([
+                                            'alignment' => [
+                                                'wrapText' => true,
+                                                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP,
+                                            ],
+                                        ]);
+                                    }
+
+                                    $sheet->freezePane('A2');
+                                    $sheet->setAutoFilter('A1:' . $lastCol . '1');
+
+                                    $lastColIdx = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+                                    for ($i = 1; $i <= $lastColIdx; $i++) {
+                                        $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+                                        $sheet->getColumnDimension($col)->setAutoSize(true);
+                                    }
+                                }),
                         ]),
 
                     Tables\Actions\DeleteBulkAction::make()

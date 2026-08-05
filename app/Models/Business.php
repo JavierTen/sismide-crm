@@ -4,12 +4,13 @@ namespace App\Models;
 
 use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Model;
 
 class Business extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, TracksUpdatedBy;
 
     protected $fillable = [
         'entrepreneur_id',
@@ -35,6 +36,7 @@ class Business extends Model
         'is_characterized',
         'aid_compliance',
         'cohort',
+        'updated_by_id',
     ];
 
     protected $casts = [

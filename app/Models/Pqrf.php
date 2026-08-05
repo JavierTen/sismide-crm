@@ -5,12 +5,13 @@ namespace App\Models;
 use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class Pqrf extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, TracksUpdatedBy;
 
     protected $table = 'pqrfs';
 
@@ -27,6 +28,7 @@ class Pqrf extends Model
         'response_date',
         'response_files',
         'responded_by',
+        'updated_by_id',
     ];
 
     protected $casts = [

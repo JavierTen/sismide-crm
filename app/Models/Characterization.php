@@ -5,12 +5,13 @@ namespace App\Models;
 use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class Characterization extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, TracksUpdatedBy;
 
     protected $fillable = [
         'entrepreneur_id',
@@ -85,6 +86,7 @@ class Characterization extends Model
         'photo_evidence_path',
         // legacy
         'employees_generated',
+        'updated_by_id',
     ];
 
     protected $casts = [

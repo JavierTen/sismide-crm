@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EntityContact extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, TracksUpdatedBy;
 
     protected $table = 'entity_contacts';
 
@@ -25,6 +26,7 @@ class EntityContact extends Model
         'status',
         'notes',
         'manager_id',
+        'updated_by_id',
     ];
 
     protected $casts = [

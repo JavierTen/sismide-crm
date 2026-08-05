@@ -9,13 +9,14 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class Entrepreneur extends Authenticatable implements FilamentUser, HasName
 {
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, TracksUpdatedBy;
 
     protected $table = 'entrepreneurs';
 
@@ -45,6 +46,7 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
         'user_id',
         'traffic_light',
         'password',
+        'updated_by_id',
     ];
 
     protected $hidden = [
@@ -156,6 +158,11 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
     public function manager()
     {
         return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function visits()

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class Actor extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, TracksUpdatedBy;
 
     protected $fillable = [
         // Información General
@@ -128,6 +129,7 @@ class Actor extends Model
 
         // Manager
         'manager_id',
+        'updated_by_id',
     ];
 
     protected $casts = [

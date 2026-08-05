@@ -5,11 +5,12 @@ namespace App\Models;
 use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Visit extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, TracksUpdatedBy;
 
     protected $table = 'visits';
 
@@ -31,6 +32,7 @@ class Visit extends Model
         'visit_result',
         'topics_and_commitment',
         'evidence_path',
+        'updated_by_id',
     ];
 
     protected $casts = [

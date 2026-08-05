@@ -5,11 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class StudentCharacterization extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, TracksUpdatedBy;
 
     protected $fillable = [
         'student_id',
@@ -28,6 +29,7 @@ class StudentCharacterization extends Model
         'data_authorization',
         'data_authorization_file',
         'manager_id',
+        'updated_by_id',
     ];
 
     protected $casts = [

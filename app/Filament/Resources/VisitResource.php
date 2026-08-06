@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 //Exportar en excel
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use App\Exports\FormattedExcelExport;
 use pxlrbt\FilamentExcel\Columns\Column;
 
 class VisitResource extends Resource
@@ -478,6 +478,8 @@ class VisitResource extends Resource
                             'visit_result'          => $data['visit_result'],
                             'topics_and_commitment' => $data['topics_and_commitment'],
                             'evidence_path'         => $data['evidence_path'] ?? null,
+                            'confirmed_by_id'       => auth()->id(),
+                            'confirmed_at'          => now(),
                         ]);
 
                         Notification::make()
@@ -521,60 +523,19 @@ class VisitResource extends Resource
                     ->label('Exportar Excel')
                     ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
-                        ExcelExport::make()
+                        FormattedExcelExport::make()
                             ->withFilename(fn() => 'visitas-' . now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                             ->modifyQueryUsing(fn($query) => $query->with([
-                                'entrepreneur.business',
-                                'entrepreneur.city',
+                                'entrepreneur.documentType',
+                                'entrepreneur.business.city',
                                 'manager',
-                                'originalVisit',
+                                'updatedBy',
+                                'reschedules.manager',
+                                'confirmedBy',
                             ]))
-                            ->withColumns([
-                                // === AGENDAMIENTO DE VISITAS ===
-                                Column::make('entrepreneur.full_name')->heading('Emprendedor'),
-                                Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
-                                Column::make('entrepreneur.city.name')->heading('Municipio'),
-                                Column::make('manager.name')->heading('Gestor'),
-
-                                Column::make('visit_type')->heading('Tipo de Visita')->formatStateUsing(fn($state) => match ($state) {
-                                    'asistencia_tecnica' => 'Visita de Asistencia técnica',
-                                    'caracterizacion' => 'Visita de Caracterización',
-                                    'diagnostico' => 'Visita levantamiento de Diagnóstico',
-                                    'seguimiento' => 'Visita de Seguimiento',
-                                    default => $state,
-                                }),
-                                Column::make('visit_date')->heading('Fecha de Visita')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
-                                Column::make('visit_time')->heading('Hora de Visita'),
-
-                                // === RESULTADO Y REAGENDAMIENTO ===
-                                Column::make('visit_result')->heading('Resultado')->formatStateUsing(fn($state) => match ($state) {
-                                    'aceptada'    => 'Visita aceptada',
-                                    'no_aceptada' => 'Visita no aceptada',
-                                    'sin_persona' => 'No había nadie en la unidad productiva',
-                                    null, ''      => 'Programada',
-                                    default       => $state,
-                                }),
-                                Column::make('topics_and_commitment')->heading('Temas tratados y compromisos'),
-                                Column::make('strengthened')->heading('Se ha fortalecido')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('rescheduled')->heading('Reagendada')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('reschedule_reason')->heading('Motivo de Reagendamiento'),
-
-                                // === DATOS DE REAGENDAMIENTO (si aplica) ===
-                                Column::make('originalVisit.visit_type')->heading('Tipo Visita Original')->formatStateUsing(fn($state) => $state ? match ($state) {
-                                    'asistencia_tecnica' => 'Asistencia técnica',
-                                    'caracterizacion' => 'Caracterización',
-                                    'diagnostico' => 'Diagnóstico',
-                                    'seguimiento' => 'Seguimiento',
-                                    default => $state,
-                                } : ''),
-                                Column::make('originalVisit.visit_date')->heading('Fecha Original')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
-                                Column::make('originalVisit.visit_time')->heading('Hora Original'),
-
-                                // === INFORMACIÓN ADICIONAL ===
-                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
-                                Column::make('updated_at')->heading('Última Actualización')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
-                            ]),
+                            ->withColumns(self::exportColumns())
+                            ->afterSheet(self::afterSheetCallback()),
                     ])
                     ->color('success')
                     ->icon('heroicon-o-arrow-down-tray'),
@@ -584,60 +545,19 @@ class VisitResource extends Resource
                     ExportBulkAction::make()
                         ->label('Exportar Excel')
                         ->exports([
-                            ExcelExport::make()
+                            FormattedExcelExport::make()
                                 ->withFilename(fn() => 'visitas-' . now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                                 ->modifyQueryUsing(fn($query) => $query->with([
-                                    'entrepreneur.business',
-                                    'entrepreneur.city',
+                                    'entrepreneur.documentType',
+                                    'entrepreneur.business.city',
                                     'manager',
-                                    'originalVisit',
+                                    'updatedBy',
+                                    'reschedules.manager',
+                                    'confirmedBy',
                                 ]))
-                                ->withColumns([
-                                    // === AGENDAMIENTO DE VISITAS ===
-                                    Column::make('entrepreneur.full_name')->heading('Emprendedor'),
-                                    Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
-                                    Column::make('entrepreneur.city.name')->heading('Municipio'),
-                                    Column::make('manager.name')->heading('Gestor'),
-
-                                    Column::make('visit_type')->heading('Tipo de Visita')->formatStateUsing(fn($state) => match ($state) {
-                                        'asistencia_tecnica' => 'Visita de Asistencia técnica',
-                                        'caracterizacion' => 'Visita de Caracterización',
-                                        'diagnostico' => 'Visita levantamiento de Diagnóstico',
-                                        'seguimiento' => 'Visita de Seguimiento',
-                                        default => $state,
-                                    }),
-                                    Column::make('visit_date')->heading('Fecha de Visita')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
-                                    Column::make('visit_time')->heading('Hora de Visita'),
-
-                                    // === RESULTADO Y REAGENDAMIENTO ===
-                                    Column::make('visit_result')->heading('Resultado')->formatStateUsing(fn($state) => match ($state) {
-                                        'aceptada'    => 'Visita aceptada',
-                                        'no_aceptada' => 'Visita no aceptada',
-                                        'sin_persona' => 'No había nadie en la unidad productiva',
-                                        null, ''      => 'Programada',
-                                        default       => $state,
-                                    }),
-                                    Column::make('topics_and_commitment')->heading('Temas tratados y compromisos'),
-                                    Column::make('strengthened')->heading('Se ha fortalecido')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                    Column::make('rescheduled')->heading('Reagendada')->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                    Column::make('reschedule_reason')->heading('Motivo de Reagendamiento'),
-
-                                    // === DATOS DE REAGENDAMIENTO (si aplica) ===
-                                    Column::make('originalVisit.visit_type')->heading('Tipo Visita Original')->formatStateUsing(fn($state) => $state ? match ($state) {
-                                        'asistencia_tecnica' => 'Asistencia técnica',
-                                        'caracterizacion' => 'Caracterización',
-                                        'diagnostico' => 'Diagnóstico',
-                                        'seguimiento' => 'Seguimiento',
-                                        default => $state,
-                                    } : ''),
-                                    Column::make('originalVisit.visit_date')->heading('Fecha Original')->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
-                                    Column::make('originalVisit.visit_time')->heading('Hora Original'),
-
-                                    // === INFORMACIÓN ADICIONAL ===
-                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
-                                    Column::make('updated_at')->heading('Última Actualización')->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
-                                ]),
+                                ->withColumns(self::exportColumns())
+                                ->afterSheet(self::afterSheetCallback()),
                         ]),
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn() => static::userCanDelete()),
@@ -665,6 +585,219 @@ class VisitResource extends Resource
         }
 
         return $query->where('manager_id', auth()->id());
+    }
+
+    private static function visitTypeLabel(?string $type): string
+    {
+        return match ($type) {
+            'asistencia_tecnica' => 'Visita de Asistencia Técnica',
+            'caracterizacion'    => 'Visita de Caracterización',
+            'diagnostico'        => 'Visita levantamiento de Diagnóstico',
+            'seguimiento'        => 'Visita de Seguimiento',
+            default              => $type ?? '',
+        };
+    }
+
+    private static function exportColumns(): array
+    {
+        return [
+            // === BLOQUE 1: IDENTIFICACIÓN DEL EMPRENDEDOR ===
+            Column::make('entrepreneur.full_name')->heading('Nombre Completo del Emprendedor'),
+            Column::make('entrepreneur.documentType.code')->heading('Tipo de Documento'),
+            Column::make('entrepreneur.document_number')->heading('Número de Documento'),
+            Column::make('entrepreneur.business.business_name')->heading('Nombre del Emprendimiento'),
+            Column::make('entrepreneur.business.city.name')->heading('Municipio del Emprendimiento'),
+            Column::make('manager.name')->heading('Gestor Responsable'),
+            Column::make('cohort_col')
+                ->heading('Cohorte')
+                ->getStateUsing(fn($record) => $record->entrepreneur?->business?->cohort ?? 'Sin asignar'),
+
+            // === BLOQUE 2: AGENDAMIENTO ===
+            Column::make('visit_type_label')
+                ->heading('Tipo de Visita Programada')
+                ->getStateUsing(fn($record) => self::visitTypeLabel($record->visit_type)),
+
+            Column::make('visit_date')
+                ->heading('Fecha Inicial de la Visita')
+                ->formatStateUsing(fn($state) => $state?->format('d/m/Y')),
+
+            Column::make('visit_time')->heading('Hora Inicial de la Visita'),
+
+            Column::make('estado_actual')
+                ->heading('Estado Actual de la Visita')
+                ->getStateUsing(fn($record) => match (true) {
+                    $record->rescheduled                    => 'Reprogramada',
+                    $record->visit_result === 'aceptada'    => 'Visita aceptada',
+                    $record->visit_result === 'no_aceptada' => 'Visita no aceptada',
+                    $record->visit_result === 'sin_persona' => 'No había nadie en la unidad productiva',
+                    default                                 => 'Programada',
+                }),
+
+            Column::make('created_at_date')
+                ->heading('Fecha de Creación del Agendamiento')
+                ->getStateUsing(fn($record) => $record->created_at?->format('d/m/Y')),
+
+            Column::make('manager_creator')
+                ->heading('Usuario que Creó la Visita')
+                ->getStateUsing(fn($record) => $record->manager?->name ?? ''),
+
+            // === BLOQUE 3: REPROGRAMACIÓN ===
+            Column::make('rescheduled')
+                ->heading('¿La Visita Fue Reprogramada?')
+                ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
+
+            Column::make('reschedule_reason_col')
+                ->heading('Motivo de Reprogramación')
+                ->getStateUsing(fn($record) => $record->rescheduled
+                    ? ($record->reschedule_reason ?? 'No aplica')
+                    : 'No aplica'),
+
+            Column::make('new_visit_type')
+                ->heading('Tipo de Visita Reprogramada')
+                ->getStateUsing(fn($record) => $record->rescheduled
+                    ? self::visitTypeLabel($record->reschedules->first()?->visit_type)
+                    : 'No aplica'),
+
+            Column::make('new_visit_date')
+                ->heading('Nueva Fecha de la Visita')
+                ->getStateUsing(fn($record) => $record->rescheduled
+                    ? ($record->reschedules->first()?->visit_date?->format('d/m/Y') ?? 'No aplica')
+                    : 'No aplica'),
+
+            Column::make('new_visit_time')
+                ->heading('Nueva Hora de la Visita')
+                ->getStateUsing(fn($record) => $record->rescheduled
+                    ? ($record->reschedules->first()?->visit_time ?? 'No aplica')
+                    : 'No aplica'),
+
+            Column::make('reschedule_date')
+                ->heading('Fecha en que se Realizó la Reprogramación')
+                ->getStateUsing(fn($record) => $record->rescheduled
+                    ? ($record->reschedules->first()?->created_at?->format('d/m/Y') ?? 'No aplica')
+                    : 'No aplica'),
+
+            Column::make('rescheduled_by')
+                ->heading('Usuario que Realizó la Reprogramación')
+                ->getStateUsing(fn($record) => $record->rescheduled
+                    ? ($record->reschedules->first()?->manager?->name ?? 'No aplica')
+                    : 'No aplica'),
+
+            Column::make('reschedules_count')
+                ->heading('Número de Reprogramaciones')
+                ->getStateUsing(fn($record) => $record->reschedules->count()),
+
+            // === BLOQUE 4: RESULTADO ===
+            Column::make('visit_result')
+                ->heading('Resultado de la Visita')
+                ->getStateUsing(fn($record) => match ($record->visit_result) {
+                    'aceptada'    => 'Visita aceptada',
+                    'no_aceptada' => 'Visita no aceptada',
+                    'sin_persona' => 'No había nadie en la unidad productiva',
+                    default       => 'Pendiente de confirmar',
+                }),
+
+            Column::make('topics_and_commitment')
+                ->heading('Temas Tratados y Compromisos')
+                ->getStateUsing(fn($record) => $record->topics_and_commitment ?? 'Pendiente de confirmar'),
+
+            Column::make('evidence_names')
+                ->heading('Evidencia de la Visita')
+                ->getStateUsing(fn($record) => empty($record->evidence_path)
+                    ? 'Sin evidencia'
+                    : implode(', ', array_map(fn($p) => basename($p), $record->evidence_path))),
+
+            Column::make('evidence_links')
+                ->heading('Enlace de Visualización o Descarga')
+                ->getStateUsing(fn($record) => empty($record->evidence_path)
+                    ? 'Sin evidencia'
+                    : implode(', ', array_map(
+                        fn($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
+                        $record->evidence_path
+                    ))),
+
+            Column::make('confirmed_at')
+                ->heading('Fecha de Confirmación del Resultado')
+                ->getStateUsing(fn($record) => $record->confirmed_at
+                    ? $record->confirmed_at->format('d/m/Y')
+                    : 'Sin confirmación de resultado'),
+
+            Column::make('confirmed_by_col')
+                ->heading('Usuario que Confirmó la Visita')
+                ->getStateUsing(fn($record) => $record->confirmedBy?->name
+                    ?? 'Sin confirmación de resultado'),
+
+            // === BLOQUE 5: AUDITORÍA ===
+            Column::make('created_at_audit')
+                ->heading('Fecha de Creación del Registro')
+                ->getStateUsing(fn($record) => $record->created_at?->format('d/m/Y')),
+
+            Column::make('created_time')
+                ->heading('Hora de Creación')
+                ->getStateUsing(fn($record) => $record->created_at?->format('H:i:s')),
+
+            Column::make('manager_audit')
+                ->heading('Usuario Creador')
+                ->getStateUsing(fn($record) => $record->manager?->name ?? ''),
+
+            Column::make('updated_at_date')
+                ->heading('Fecha de Última Actualización')
+                ->getStateUsing(fn($record) => $record->updated_at?->format('d/m/Y')),
+
+            Column::make('updated_at_time')
+                ->heading('Hora de Última Actualización')
+                ->getStateUsing(fn($record) => $record->updated_at?->format('H:i:s')),
+
+            Column::make('updatedBy.name')->heading('Usuario que Realizó la Última Actualización'),
+
+            Column::make('vencida')
+                ->heading('Visita Vencida')
+                ->getStateUsing(fn($record) => (
+                    $record->visit_date &&
+                    $record->visit_date->isPast() &&
+                    ! $record->visit_result &&
+                    ! $record->rescheduled
+                ) ? 'Sí' : 'No'),
+        ];
+    }
+
+    private static function afterSheetCallback(): \Closure
+    {
+        return function (\Maatwebsite\Excel\Events\AfterSheet $event) {
+            $sheet   = $event->sheet->getDelegate();
+            $lastCol = $sheet->getHighestColumn();
+            $lastRow = $sheet->getHighestRow();
+
+            $sheet->getStyle('1:1')->applyFromArray([
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => [
+                    'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => '1E40AF'],
+                ],
+                'alignment' => [
+                    'wrapText'   => true,
+                    'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                    'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                ],
+            ]);
+
+            if ($lastRow > 1) {
+                $sheet->getStyle('A2:' . $lastCol . $lastRow)->applyFromArray([
+                    'alignment' => [
+                        'wrapText' => true,
+                        'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP,
+                    ],
+                ]);
+            }
+
+            $sheet->freezePane('A2');
+            $sheet->setAutoFilter('A1:' . $lastCol . '1');
+
+            $lastColIdx = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+            for ($i = 1; $i <= $lastColIdx; $i++) {
+                $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+        };
     }
 
     public static function getRelations(): array

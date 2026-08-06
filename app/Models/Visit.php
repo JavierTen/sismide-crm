@@ -33,6 +33,8 @@ class Visit extends Model
         'topics_and_commitment',
         'evidence_path',
         'updated_by_id',
+        'confirmed_by_id',
+        'confirmed_at',
     ];
 
     protected $casts = [
@@ -41,6 +43,7 @@ class Visit extends Model
         'strengthened'  => 'boolean',
         'rescheduled'   => 'boolean',
         'evidence_path' => 'array',
+        'confirmed_at'  => 'datetime',
     ];
 
     public function entrepreneur()
@@ -56,6 +59,11 @@ class Visit extends Model
     public function scopeActive($query)
     {
         return $query->where('deleted_at', null)->orderBy('created_at', 'asc');
+    }
+
+    public function confirmedBy()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'confirmed_by_id');
     }
 
     public function originalVisit()

@@ -196,6 +196,11 @@ class Characterization extends Model
         return $this->belongsTo(Population::class, 'population_id');
     }
 
+    public function habeasDataManager()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'habeas_data_manager_id');
+    }
+
     // Helpful static option lists for forms / tables
     public static function businessTypes(): array
     {

@@ -12,10 +12,10 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 // Exportar en excel
+use App\Exports\FormattedExcelExport;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use pxlrbt\FilamentExcel\Columns\Column;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class CharacterizationResource extends Resource
 {
@@ -963,100 +963,12 @@ class CharacterizationResource extends Resource
                     ->label('Exportar Excel')
                     ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
-                        ExcelExport::make()
+                        FormattedExcelExport::make()
                             ->withFilename(fn () => 'caracterizaciones-'.now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                            ->modifyQueryUsing(fn ($query) => $query->with([
-                                'entrepreneur.business.economicActivity',
-                                'entrepreneur.population',
-                                'entrepreneur.city',
-                                'entrepreneur.manager',
-                                'manager',
-                            ]))
-                            ->withColumns([
-                                // === INFORMACIÓN DEL EMPRENDEDOR ===
-                                Column::make('entrepreneur.full_name')->heading('Emprendedor'),
-                                Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
-                                Column::make('entrepreneur.city.name')->heading('Municipio'),
-                                Column::make('entrepreneur.manager.name')->heading('Gestor'),
-                                Column::make('characterization_date')->heading('Fecha Caracterización'),
-
-                                // === INFORMACIÓN ECONÓMICA ===
-                                Column::make('entrepreneur.business.economicActivity.name')->heading('Actividad Económica'),
-                                Column::make('entrepreneur.population.name')->heading('Población Vulnerable'),
-
-                                // === CARACTERÍSTICAS DEL NEGOCIO ===
-                                Column::make('business_type')->heading('Tipo de Negocio')->formatStateUsing(fn ($state) => match ($state) {
-                                    'individual' => 'Individual',
-                                    'associative' => 'Asociativo',
-                                    default => $state,
-                                }),
-                                Column::make('business_age')->heading('Antigüedad del Negocio')->formatStateUsing(fn ($state) => match ($state) {
-                                    'over_6_months' => 'Más de 6 meses',
-                                    'over_12_months' => 'Más de 12 meses',
-                                    'over_24_months' => 'Más de 24 meses',
-                                    default => $state,
-                                }),
-                                Column::make('clients')->heading('Clientela')->formatStateUsing(function ($state) {
-                                    if (! $state) {
-                                        return '';
-                                    }
-                                    $options = [
-                                        'community' => 'Comunidad en general',
-                                        'public_entities' => 'Entidades públicas',
-                                        'private_entities' => 'Entidades privadas',
-                                        'schools' => 'Colegios',
-                                        'hospitals' => 'Hospitales',
-                                    ];
-
-                                    return collect($state)->map(fn ($key) => $options[$key] ?? $key)->join(', ');
-                                }),
-                                Column::make('promotion_strategies')->heading('Estrategias de Promoción')->formatStateUsing(function ($state) {
-                                    if (! $state) {
-                                        return '';
-                                    }
-                                    $options = [
-                                        'word_of_mouth' => 'Voz a voz',
-                                        'whatsapp' => 'WhatsApp',
-                                        'facebook' => 'Facebook',
-                                        'instagram' => 'Instagram',
-                                    ];
-
-                                    return collect($state)->map(fn ($key) => $options[$key] ?? $key)->join(', ');
-                                }),
-                                Column::make('average_monthly_sales')->heading('Ventas Mensuales Promedio')->formatStateUsing(fn ($state) => match ($state) {
-                                    'lt_500000' => 'Menos de $500.000',
-                                    '500k_1m' => '$500.001 — $1.000.000',
-                                    '1m_2m' => '$1.001.000 — $2.000.000',
-                                    '2m_5m' => '$2.001.000 — $5.000.000',
-                                    'gt_5m' => 'Más de $5.001.000',
-                                    default => $state,
-                                }),
-                                Column::make('employees_generated')->heading('Empleos Generados')->formatStateUsing(fn ($state) => match ($state) {
-                                    'up_to_2' => 'Hasta 2 empleados',
-                                    '3_to_4' => '3 a 4 empleados',
-                                    'more_than_5' => 'Más de 5 empleados',
-                                    default => $state,
-                                }),
-
-                                // === FORMALIZACIÓN Y REGISTROS ===
-                                Column::make('has_accounting_records')->heading('Registros Contables')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-                                Column::make('has_commercial_registration')->heading('Registro Mercantil')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-                                Column::make('family_in_drummond')->heading('Familiar en Drummond')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-
-                                // === GEORREFERENCIACIÓN ===
-                                Column::make('latitude')->heading('Latitud'),
-                                Column::make('longitude')->heading('Longitud'),
-
-                                // === EVIDENCIAS FOTOGRÁFICAS ===
-                                Column::make('commerce_evidence_path')->heading('Evidencia del Comercio')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
-                                Column::make('population_evidence_path')->heading('Evidencia de Población')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
-                                Column::make('photo_evidence_path')->heading('Foto Georeferenciación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
-
-                                // === INFORMACIÓN ADICIONAL ===
-                                Column::make('manager.name')->heading('Registrado por'),
-                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
-                            ]),
+                            ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                            ->withColumns(self::exportColumns())
+                            ->afterSheet(self::afterSheetCallback()),
                     ])
                     ->color('success')
                     ->icon('heroicon-o-arrow-down-tray'),
@@ -1079,100 +991,12 @@ class CharacterizationResource extends Resource
                     ExportBulkAction::make()
                         ->label('Exportar Excel')
                         ->exports([
-                            ExcelExport::make()
+                            FormattedExcelExport::make()
                                 ->withFilename(fn () => 'caracterizaciones-'.now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                                ->modifyQueryUsing(fn ($query) => $query->with([
-                                    'entrepreneur.business.economicActivity',
-                                    'entrepreneur.population',
-                                    'entrepreneur.city',
-                                    'entrepreneur.manager',
-                                    'manager',
-                                ]))
-                                ->withColumns([
-                                    // === INFORMACIÓN DEL EMPRENDEDOR ===
-                                    Column::make('entrepreneur.full_name')->heading('Emprendedor'),
-                                    Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
-                                    Column::make('entrepreneur.city.name')->heading('Municipio'),
-                                    Column::make('entrepreneur.manager.name')->heading('Gestor'),
-                                    Column::make('characterization_date')->heading('Fecha Caracterización'),
-
-                                    // === INFORMACIÓN ECONÓMICA ===
-                                    Column::make('entrepreneur.business.economicActivity.name')->heading('Actividad Económica'),
-                                    Column::make('entrepreneur.population.name')->heading('Población Vulnerable'),
-
-                                    // === CARACTERÍSTICAS DEL NEGOCIO ===
-                                    Column::make('business_type')->heading('Tipo de Negocio')->formatStateUsing(fn ($state) => match ($state) {
-                                        'individual' => 'Individual',
-                                        'associative' => 'Asociativo',
-                                        default => $state,
-                                    }),
-                                    Column::make('business_age')->heading('Antigüedad del Negocio')->formatStateUsing(fn ($state) => match ($state) {
-                                        'over_6_months' => 'Más de 6 meses',
-                                        'over_12_months' => 'Más de 12 meses',
-                                        'over_24_months' => 'Más de 24 meses',
-                                        default => $state,
-                                    }),
-                                    Column::make('clients')->heading('Clientela')->formatStateUsing(function ($state) {
-                                        if (! $state) {
-                                            return '';
-                                        }
-                                        $options = [
-                                            'community' => 'Comunidad en general',
-                                            'public_entities' => 'Entidades públicas',
-                                            'private_entities' => 'Entidades privadas',
-                                            'schools' => 'Colegios',
-                                            'hospitals' => 'Hospitales',
-                                        ];
-
-                                        return collect($state)->map(fn ($key) => $options[$key] ?? $key)->join(', ');
-                                    }),
-                                    Column::make('promotion_strategies')->heading('Estrategias de Promoción')->formatStateUsing(function ($state) {
-                                        if (! $state) {
-                                            return '';
-                                        }
-                                        $options = [
-                                            'word_of_mouth' => 'Voz a voz',
-                                            'whatsapp' => 'WhatsApp',
-                                            'facebook' => 'Facebook',
-                                            'instagram' => 'Instagram',
-                                        ];
-
-                                        return collect($state)->map(fn ($key) => $options[$key] ?? $key)->join(', ');
-                                    }),
-                                    Column::make('average_monthly_sales')->heading('Ventas Mensuales Promedio')->formatStateUsing(fn ($state) => match ($state) {
-                                        'lt_500000' => 'Menos de $500.000',
-                                        '500k_1m' => '$500.001 — $1.000.000',
-                                        '1m_2m' => '$1.001.000 — $2.000.000',
-                                        '2m_5m' => '$2.001.000 — $5.000.000',
-                                        'gt_5m' => 'Más de $5.001.000',
-                                        default => $state,
-                                    }),
-                                    Column::make('employees_generated')->heading('Empleos Generados')->formatStateUsing(fn ($state) => match ($state) {
-                                        'up_to_2' => 'Hasta 2 empleados',
-                                        '3_to_4' => '3 a 4 empleados',
-                                        'more_than_5' => 'Más de 5 empleados',
-                                        default => $state,
-                                    }),
-
-                                    // === FORMALIZACIÓN Y REGISTROS ===
-                                    Column::make('has_accounting_records')->heading('Registros Contables')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-                                    Column::make('has_commercial_registration')->heading('Registro Mercantil')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-                                    Column::make('family_in_drummond')->heading('Familiar en Drummond')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-
-                                    // === GEORREFERENCIACIÓN ===
-                                    Column::make('latitude')->heading('Latitud'),
-                                    Column::make('longitude')->heading('Longitud'),
-
-                                    // === EVIDENCIAS FOTOGRÁFICAS ===
-                                    Column::make('commerce_evidence_path')->heading('Evidencia del Comercio')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
-                                    Column::make('population_evidence_path')->heading('Evidencia de Población')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
-                                    Column::make('photo_evidence_path')->heading('Foto Georeferenciación')->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
-
-                                    // === INFORMACIÓN ADICIONAL ===
-                                    Column::make('manager.name')->heading('Registrado por'),
-                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
-                                ]),
+                                ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                                ->withColumns(self::exportColumns())
+                                ->afterSheet(self::afterSheetCallback()),
                         ]),
 
                     Tables\Actions\ForceDeleteBulkAction::make()
@@ -1183,6 +1007,712 @@ class CharacterizationResource extends Resource
             ->modifyQueryUsing(fn (Builder $query) => $query->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]));
+    }
+
+    private static function exportWith(): array
+    {
+        return [
+            'entrepreneur.documentType',
+            'entrepreneur.gender',
+            'entrepreneur.maritalStatus',
+            'entrepreneur.educationLevel',
+            'entrepreneur.population',
+            'entrepreneur.project',
+            'entrepreneur.city',
+            'entrepreneur.business.economicActivity',
+            'entrepreneur.business.productiveLine',
+            'entrepreneur.business.entrepreneurshipStage',
+            'manager',
+            'updatedBy',
+            'habeasDataManager',
+        ];
+    }
+
+    private static function exportColumns(): array
+    {
+        return [
+            // === BLOQUE 1: INFORMACIÓN DEL EMPRENDEDOR ===
+            Column::make('characterization_date')
+                ->heading('Fecha de Caracterización')
+                ->getStateUsing(fn ($record) => $record->characterization_date
+                    ? \Carbon\Carbon::parse($record->characterization_date)->format('d/m/Y')
+                    : ''),
+
+            Column::make('entrepreneur_name')
+                ->heading('Nombre Completo')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->full_name ?? ''),
+
+            Column::make('entrepreneur_doc_type')
+                ->heading('Tipo de Documento')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->documentType?->name ?? ''),
+
+            Column::make('entrepreneur_doc_number')
+                ->heading('Número de Documento')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->document_number ?? ''),
+
+            Column::make('business_name')
+                ->heading('Nombre del Emprendimiento')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->business?->business_name ?? ''),
+
+            Column::make('business_description')
+                ->heading('Descripción del Emprendimiento')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->business?->description ?? ''),
+
+            Column::make('gender')
+                ->heading('Género')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->gender?->name ?? ''),
+
+            Column::make('marital_status')
+                ->heading('Estado Civil')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->maritalStatus?->name ?? ''),
+
+            Column::make('education_level')
+                ->heading('Nivel Educativo')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->educationLevel?->name ?? ''),
+
+            Column::make('entrepreneur_phone')
+                ->heading('Teléfono')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->phone ?? ''),
+
+            Column::make('entrepreneur_city')
+                ->heading('Municipio')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->city?->name ?? ''),
+
+            Column::make('entrepreneurship_stage')
+                ->heading('Etapa del Emprendimiento')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->business?->entrepreneurshipStage?->name ?? ''),
+
+            Column::make('maturity_level')
+                ->heading('Nivel de Madurez')
+                ->getStateUsing(fn ($record) => match ($record->maturity_level) {
+                    'idea'          => 'Idea',
+                    'validacion'    => 'Validación',
+                    'crecimiento'   => 'Crecimiento',
+                    'consolidacion' => 'Consolidación',
+                    'escalamiento'  => 'Escalamiento',
+                    default         => $record->maturity_level ?? '',
+                }),
+
+            Column::make('entrepreneur_registration_date')
+                ->heading('Fecha de Registro del Emprendedor')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->created_at?->format('d/m/Y') ?? ''),
+
+            Column::make('economic_activity')
+                ->heading('Actividad Económica')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->business?->economicActivity?->name ?? ''),
+
+            Column::make('productive_line')
+                ->heading('Línea Productiva')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->business?->productiveLine?->name ?? ''),
+
+            Column::make('population')
+                ->heading('Población Vulnerable')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->population?->name ?? ''),
+
+            Column::make('project')
+                ->heading('Proyecto')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->project?->name ?? ''),
+
+            Column::make('cohort')
+                ->heading('Cohorte')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->business?->cohort ?? 'Sin asignar'),
+
+            // === BLOQUE 2: CARACTERÍSTICAS DEL NEGOCIO ===
+            Column::make('business_type')
+                ->heading('Tipo de Negocio')
+                ->getStateUsing(fn ($record) => match ($record->business_type) {
+                    'individual'  => 'Individual',
+                    'associative' => 'Asociativo',
+                    default       => $record->business_type ?? '',
+                }),
+
+            Column::make('business_age')
+                ->heading('Antigüedad del Negocio')
+                ->getStateUsing(fn ($record) => match ($record->business_age) {
+                    'lt_6_months'    => 'Menos de 6 meses',
+                    'over_6_months'  => 'Más de 6 meses',
+                    'over_12_months' => 'Más de 12 meses',
+                    'over_24_months' => 'Más de 24 meses',
+                    default          => $record->business_age ?? '',
+                }),
+
+            Column::make('market_coverage')
+                ->heading('Cobertura del Mercado')
+                ->getStateUsing(fn ($record) => match ($record->market_coverage) {
+                    'local'         => 'Local',
+                    'municipal'     => 'Municipal',
+                    'regional'      => 'Regional',
+                    'nacional'      => 'Nacional',
+                    'internacional' => 'Internacional',
+                    default         => $record->market_coverage ?? '',
+                }),
+
+            Column::make('average_monthly_sales')
+                ->heading('Ventas Mensuales Promedio')
+                ->getStateUsing(fn ($record) => match ($record->average_monthly_sales) {
+                    'lt_500000' => 'Menos de $500.000',
+                    '500k_1m'   => '$500.001 — $1.000.000',
+                    '1m_2m'     => '$1.001.000 — $2.000.000',
+                    '2m_5m'     => '$2.001.000 — $5.000.000',
+                    'gt_5m'     => 'Más de $5.001.000',
+                    default     => $record->average_monthly_sales ?? '',
+                }),
+
+            Column::make('direct_jobs')
+                ->heading('Empleos Directos Generados')
+                ->getStateUsing(fn ($record) => $record->direct_jobs ?? 0),
+
+            Column::make('indirect_jobs')
+                ->heading('Empleos Indirectos Generados')
+                ->getStateUsing(fn ($record) => $record->indirect_jobs ?? 0),
+
+            // === BLOQUE 3: MERCADO (14 columnas Sí/No) ===
+            Column::make('client_consumidor_final')
+                ->heading('Mercado: Personas en general (consumidor final)')
+                ->getStateUsing(fn ($record) => in_array('consumidor_final', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_empresas_privadas')
+                ->heading('Mercado: Empresas privadas')
+                ->getStateUsing(fn ($record) => in_array('empresas_privadas', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_entidades_publicas')
+                ->heading('Mercado: Entidades públicas')
+                ->getStateUsing(fn ($record) => in_array('entidades_publicas', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_emprendedores')
+                ->heading('Mercado: Emprendedores')
+                ->getStateUsing(fn ($record) => in_array('emprendedores', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_comercios')
+                ->heading('Mercado: Comercios')
+                ->getStateUsing(fn ($record) => in_array('comercios', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_restaurantes')
+                ->heading('Mercado: Restaurantes, hoteles y cafeterías')
+                ->getStateUsing(fn ($record) => in_array('restaurantes', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_instituciones_edu')
+                ->heading('Mercado: Instituciones educativas')
+                ->getStateUsing(fn ($record) => in_array('instituciones_edu', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_instituciones_salud')
+                ->heading('Mercado: Instituciones de salud')
+                ->getStateUsing(fn ($record) => in_array('instituciones_salud', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_ong')
+                ->heading('Mercado: Organizaciones sin ánimo de lucro')
+                ->getStateUsing(fn ($record) => in_array('ong', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_asociaciones')
+                ->heading('Mercado: Asociaciones o cooperativas')
+                ->getStateUsing(fn ($record) => in_array('asociaciones', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_productores_agro')
+                ->heading('Mercado: Productores agropecuarios')
+                ->getStateUsing(fn ($record) => in_array('productores_agro', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_turistas')
+                ->heading('Mercado: Turistas')
+                ->getStateUsing(fn ($record) => in_array('turistas', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_internacionales')
+                ->heading('Mercado: Clientes internacionales')
+                ->getStateUsing(fn ($record) => in_array('internacionales', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('client_otro')
+                ->heading('Mercado: Otro')
+                ->getStateUsing(fn ($record) => in_array('otro', (array) $record->clients) ? 'Sí' : 'No'),
+
+            Column::make('clients_other')
+                ->heading('Descripción de Otro Mercado')
+                ->getStateUsing(fn ($record) => $record->clients_other ?? 'No aplica'),
+
+            // === BLOQUE 4: ESTRATEGIAS DE PROMOCIÓN (21 columnas Sí/No) ===
+            Column::make('promo_voz_a_voz')
+                ->heading('Promoción: Voz a voz')
+                ->getStateUsing(fn ($record) => in_array('voz_a_voz', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_referidos')
+                ->heading('Promoción: Referidos')
+                ->getStateUsing(fn ($record) => in_array('referidos', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_whatsapp')
+                ->heading('Promoción: WhatsApp')
+                ->getStateUsing(fn ($record) => in_array('whatsapp', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_facebook')
+                ->heading('Promoción: Facebook')
+                ->getStateUsing(fn ($record) => in_array('facebook', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_instagram')
+                ->heading('Promoción: Instagram')
+                ->getStateUsing(fn ($record) => in_array('instagram', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_tiktok')
+                ->heading('Promoción: TikTok')
+                ->getStateUsing(fn ($record) => in_array('tiktok', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_youtube')
+                ->heading('Promoción: YouTube')
+                ->getStateUsing(fn ($record) => in_array('youtube', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_pagina_web')
+                ->heading('Promoción: Página web')
+                ->getStateUsing(fn ($record) => in_array('pagina_web', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_google_business')
+                ->heading('Promoción: Google Business Profile')
+                ->getStateUsing(fn ($record) => in_array('google_business', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_marketplace')
+                ->heading('Promoción: Marketplace')
+                ->getStateUsing(fn ($record) => in_array('marketplace', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_ecommerce')
+                ->heading('Promoción: Plataformas de comercio electrónico')
+                ->getStateUsing(fn ($record) => in_array('ecommerce', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_ferias')
+                ->heading('Promoción: Ferias y eventos comerciales')
+                ->getStateUsing(fn ($record) => in_array('ferias', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_volantes')
+                ->heading('Promoción: Volantes o material impreso')
+                ->getStateUsing(fn ($record) => in_array('volantes', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_avisos')
+                ->heading('Promoción: Avisos o letreros')
+                ->getStateUsing(fn ($record) => in_array('avisos', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_radio')
+                ->heading('Promoción: Radio')
+                ->getStateUsing(fn ($record) => in_array('radio', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_television')
+                ->heading('Promoción: Televisión')
+                ->getStateUsing(fn ($record) => in_array('television', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_correo')
+                ->heading('Promoción: Correo electrónico')
+                ->getStateUsing(fn ($record) => in_array('correo', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_llamadas')
+                ->heading('Promoción: Llamadas telefónicas')
+                ->getStateUsing(fn ($record) => in_array('llamadas', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_alianzas')
+                ->heading('Promoción: Alianzas comerciales')
+                ->getStateUsing(fn ($record) => in_array('alianzas', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_ninguna')
+                ->heading('Promoción: Ninguna')
+                ->getStateUsing(fn ($record) => in_array('ninguna', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promo_otra')
+                ->heading('Promoción: Otra estrategia')
+                ->getStateUsing(fn ($record) => in_array('otra', (array) $record->promotion_strategies) ? 'Sí' : 'No'),
+
+            Column::make('promotion_strategies_other')
+                ->heading('Descripción de Otra Estrategia')
+                ->getStateUsing(fn ($record) => $record->promotion_strategies_other ?? 'No aplica'),
+
+            // === BLOQUE 5: FORMALIZACIÓN ===
+            Column::make('has_commercial_registration')
+                ->heading('¿Cuenta con Registro Mercantil?')
+                ->getStateUsing(fn ($record) => $record->has_commercial_registration ? 'Sí' : 'No'),
+
+            Column::make('mercantile_registration_number')
+                ->heading('Número de Matrícula Mercantil')
+                ->getStateUsing(fn ($record) => $record->has_commercial_registration
+                    ? ($record->mercantile_registration_number ?? '')
+                    : 'No aplica'),
+
+            Column::make('mercantile_registration_expiry')
+                ->heading('Fecha de Vencimiento del Registro Mercantil')
+                ->getStateUsing(fn ($record) => $record->has_commercial_registration
+                    ? ($record->mercantile_registration_expiry?->format('d/m/Y') ?? '')
+                    : 'No aplica'),
+
+            Column::make('has_accounting_records')
+                ->heading('¿Lleva Registros Contables?')
+                ->getStateUsing(fn ($record) => $record->has_accounting_records ? 'Sí' : 'No'),
+
+            Column::make('accounting_method')
+                ->heading('Método para Llevar Registros Contables')
+                ->getStateUsing(fn ($record) => $record->has_accounting_records
+                    ? match ($record->accounting_method) {
+                        'cuaderno'          => 'Cuaderno',
+                        'excel'             => 'Excel',
+                        'software_contable' => 'Software contable',
+                        'app_movil'         => 'Aplicación móvil',
+                        'otro'              => $record->accounting_method_other ?? 'Otro',
+                        default             => $record->accounting_method ?? '',
+                    }
+                    : 'No aplica'),
+
+            Column::make('has_business_bank_account')
+                ->heading('¿Cuenta con Cuenta Bancaria Empresarial?')
+                ->getStateUsing(fn ($record) => $record->has_business_bank_account ? 'Sí' : 'No'),
+
+            Column::make('bank_name')
+                ->heading('Nombre de la Entidad Financiera')
+                ->getStateUsing(fn ($record) => $record->has_business_bank_account
+                    ? ($record->bank_name ?? '')
+                    : 'No aplica'),
+
+            Column::make('has_operation_licenses')
+                ->heading('¿Cuenta con Permisos o Licencias para Operar?')
+                ->getStateUsing(fn ($record) => match ($record->has_operation_licenses) {
+                    'si'        => 'Sí',
+                    'no'        => 'No',
+                    'no_aplica' => 'No aplica',
+                    default     => $record->has_operation_licenses ?? '',
+                }),
+
+            Column::make('licenses_description')
+                ->heading('Permisos o Licencias que Posee')
+                ->getStateUsing(fn ($record) => $record->has_operation_licenses === 'si'
+                    ? ($record->licenses_description ?? '')
+                    : 'No aplica'),
+
+            Column::make('family_in_drummond')
+                ->heading('¿Tiene Familiares Trabajando en Drummond?')
+                ->getStateUsing(fn ($record) => $record->family_in_drummond ? 'Sí' : 'No'),
+
+            Column::make('drummond_family_relationship')
+                ->heading('Parentesco con Familiar en Drummond')
+                ->getStateUsing(fn ($record) => $record->family_in_drummond
+                    ? match ($record->drummond_family_relationship) {
+                        'padre'   => 'Padre',
+                        'madre'   => 'Madre',
+                        'hermano' => 'Hermano(a)',
+                        'hijo'    => 'Hijo(a)',
+                        'conyuge' => 'Cónyuge',
+                        'otro'    => 'Otro',
+                        default   => $record->drummond_family_relationship ?? '',
+                    }
+                    : 'No aplica'),
+
+            // === BLOQUE 6: INFRAESTRUCTURA ===
+            Column::make('activity_location')
+                ->heading('Lugar donde Desarrolla la Actividad Económica')
+                ->getStateUsing(fn ($record) => match ($record->activity_location) {
+                    'en_mi_vivienda'      => 'En mi vivienda',
+                    'local_propio'        => 'Local propio',
+                    'local_arrendado'     => 'Local arrendado',
+                    'espacio_compartido'  => 'Espacio compartido',
+                    'sin_establecimiento' => 'Sin establecimiento fijo',
+                    'otro'                => 'Otro',
+                    default               => $record->activity_location ?? '',
+                }),
+
+            Column::make('latitude')
+                ->heading('Latitud')
+                ->getStateUsing(fn ($record) => $record->latitude ?? ''),
+
+            Column::make('longitude')
+                ->heading('Longitud')
+                ->getStateUsing(fn ($record) => $record->longitude ?? ''),
+
+            // === BLOQUE 7: IMPACTO SOCIAL ===
+            Column::make('economic_dependents')
+                ->heading('Personas que Dependen Económicamente del Emprendimiento')
+                ->getStateUsing(fn ($record) => $record->economic_dependents ?? 0),
+
+            Column::make('benefited_families')
+                ->heading('Familias Beneficiadas Directamente')
+                ->getStateUsing(fn ($record) => $record->benefited_families ?? 0),
+
+            // === BLOQUE 8: INFORMACIÓN FINANCIERA ===
+            Column::make('has_family_employees')
+                ->heading('¿Tiene Familiares Contratados?')
+                ->getStateUsing(fn ($record) => $record->has_family_employees ? 'Sí' : 'No'),
+
+            Column::make('family_employees_count')
+                ->heading('Número de Familiares Contratados')
+                ->getStateUsing(fn ($record) => $record->has_family_employees
+                    ? ($record->family_employees_count ?? 0)
+                    : 'No aplica'),
+
+            Column::make('hires_women')
+                ->heading('¿Contrata Mujeres?')
+                ->getStateUsing(fn ($record) => $record->hires_women ? 'Sí' : 'No'),
+
+            Column::make('women_employees_count')
+                ->heading('Número de Mujeres que Trabajan Actualmente')
+                ->getStateUsing(fn ($record) => $record->hires_women
+                    ? ($record->women_employees_count ?? 0)
+                    : 'No aplica'),
+
+            Column::make('monthly_costs')
+                ->heading('Costos Mensuales Estimados')
+                ->getStateUsing(fn ($record) => $record->monthly_costs ?? 0),
+
+            Column::make('monthly_expenses')
+                ->heading('Gastos Mensuales Estimados')
+                ->getStateUsing(fn ($record) => $record->monthly_expenses ?? 0),
+
+            Column::make('monthly_profit')
+                ->heading('Utilidad Mensual Estimada')
+                ->getStateUsing(fn ($record) => $record->monthly_profit ?? 0),
+
+            Column::make('has_active_credits')
+                ->heading('¿Tiene Créditos Vigentes?')
+                ->getStateUsing(fn ($record) => $record->has_active_credits ? 'Sí' : 'No'),
+
+            Column::make('credit_entity')
+                ->heading('Entidad Financiera del Crédito')
+                ->getStateUsing(fn ($record) => $record->has_active_credits
+                    ? ($record->credit_entity ?? '')
+                    : 'No aplica'),
+
+            Column::make('credit_amount')
+                ->heading('Valor del Crédito Aprobado')
+                ->getStateUsing(fn ($record) => $record->has_active_credits
+                    ? ($record->credit_amount ?? 0)
+                    : 'No aplica'),
+
+            // === BLOQUE 9: PRODUCCIÓN Y OPERACIÓN ===
+            Column::make('monthly_production_capacity')
+                ->heading('Capacidad de Producción Mensual')
+                ->getStateUsing(fn ($record) => $record->monthly_production_capacity ?? ''),
+
+            Column::make('equipment_and_tools')
+                ->heading('Equipos y Herramientas Disponibles')
+                ->getStateUsing(fn ($record) => $record->equipment_and_tools ?? ''),
+
+            Column::make('main_suppliers')
+                ->heading('Principales Proveedores')
+                ->getStateUsing(fn ($record) => $record->main_suppliers ?? ''),
+
+            // === BLOQUE 10: INNOVACIÓN Y TECNOLOGÍA ===
+            Column::make('tech_capacity_level')
+                ->heading('Nivel de Capacidad Tecnológica')
+                ->getStateUsing(fn ($record) => match ($record->tech_capacity_level) {
+                    'baja'  => 'Baja',
+                    'media' => 'Media',
+                    'alta'  => 'Alta',
+                    default => $record->tech_capacity_level ?? '',
+                }),
+
+            Column::make('has_innovation')
+                ->heading('¿Ha Implementado Componentes de Innovación?')
+                ->getStateUsing(fn ($record) => $record->has_innovation ? 'Sí' : 'No'),
+
+            Column::make('innovation_description')
+                ->heading('Descripción de los Componentes de Innovación')
+                ->getStateUsing(fn ($record) => $record->has_innovation
+                    ? ($record->innovation_description ?? '')
+                    : 'No aplica'),
+
+            // === BLOQUE 11: HERRAMIENTAS DIGITALES (7 columnas Sí/No) ===
+            Column::make('digital_redes_sociales')
+                ->heading('Digital: Redes sociales')
+                ->getStateUsing(fn ($record) => in_array('redes_sociales', (array) $record->digital_tools) ? 'Sí' : 'No'),
+
+            Column::make('digital_ecommerce')
+                ->heading('Digital: Comercio electrónico')
+                ->getStateUsing(fn ($record) => in_array('ecommerce', (array) $record->digital_tools) ? 'Sí' : 'No'),
+
+            Column::make('digital_facturacion_elec')
+                ->heading('Digital: Facturación electrónica')
+                ->getStateUsing(fn ($record) => in_array('facturacion_elec', (array) $record->digital_tools) ? 'Sí' : 'No'),
+
+            Column::make('digital_software_admin')
+                ->heading('Digital: Software administrativo')
+                ->getStateUsing(fn ($record) => in_array('software_admin', (array) $record->digital_tools) ? 'Sí' : 'No'),
+
+            Column::make('digital_crm')
+                ->heading('Digital: CRM')
+                ->getStateUsing(fn ($record) => in_array('crm', (array) $record->digital_tools) ? 'Sí' : 'No'),
+
+            Column::make('digital_ia')
+                ->heading('Digital: Inteligencia Artificial')
+                ->getStateUsing(fn ($record) => in_array('ia', (array) $record->digital_tools) ? 'Sí' : 'No'),
+
+            Column::make('digital_otro')
+                ->heading('Digital: Otra herramienta digital')
+                ->getStateUsing(fn ($record) => in_array('otro', (array) $record->digital_tools) ? 'Sí' : 'No'),
+
+            // === BLOQUE 12: DIAGNÓSTICO ===
+            Column::make('main_difficulties')
+                ->heading('Principales Dificultades Identificadas')
+                ->getStateUsing(fn ($record) => $record->main_difficulties ?? ''),
+
+            Column::make('need_comercial')
+                ->heading('Necesidad: Comercial')
+                ->getStateUsing(fn ($record) => in_array('comercial', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_financiero')
+                ->heading('Necesidad: Financiera')
+                ->getStateUsing(fn ($record) => in_array('financiero', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_administrativo')
+                ->heading('Necesidad: Administrativa')
+                ->getStateUsing(fn ($record) => in_array('administrativo', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_contable')
+                ->heading('Necesidad: Contable')
+                ->getStateUsing(fn ($record) => in_array('contable', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_produccion')
+                ->heading('Necesidad: De Producción')
+                ->getStateUsing(fn ($record) => in_array('produccion', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_tecnologia')
+                ->heading('Necesidad: Tecnológica')
+                ->getStateUsing(fn ($record) => in_array('tecnologia', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_marketing')
+                ->heading('Necesidad: De Marketing')
+                ->getStateUsing(fn ($record) => in_array('marketing', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_formalizacion')
+                ->heading('Necesidad: De Formalización')
+                ->getStateUsing(fn ($record) => in_array('formalizacion', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_innovacion')
+                ->heading('Necesidad: De Innovación')
+                ->getStateUsing(fn ($record) => in_array('innovacion', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_acceso_financiacion')
+                ->heading('Necesidad: De Acceso a Financiación')
+                ->getStateUsing(fn ($record) => in_array('acceso_financiacion', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_talento_humano')
+                ->heading('Necesidad: De Talento Humano')
+                ->getStateUsing(fn ($record) => in_array('talento_humano', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            Column::make('need_otro')
+                ->heading('Necesidad: Otra')
+                ->getStateUsing(fn ($record) => in_array('otro', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
+
+            // === BLOQUE 13: EVIDENCIAS ===
+            Column::make('commerce_evidence_names')
+                ->heading('Evidencia del Comercio')
+                ->getStateUsing(fn ($record) => empty($record->commerce_evidence_path)
+                    ? 'Sin evidencia'
+                    : implode(', ', array_map(fn ($p) => basename($p), $record->commerce_evidence_path))),
+
+            Column::make('commerce_evidence_links')
+                ->heading('Enlace Evidencia del Comercio')
+                ->getStateUsing(fn ($record) => empty($record->commerce_evidence_path)
+                    ? 'Sin evidencia'
+                    : implode(', ', array_map(
+                        fn ($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
+                        $record->commerce_evidence_path
+                    ))),
+
+            Column::make('population_evidence_names')
+                ->heading('Evidencia de Población Vulnerable')
+                ->getStateUsing(fn ($record) => empty($record->population_evidence_path)
+                    ? 'Sin evidencia'
+                    : implode(', ', array_map(fn ($p) => basename($p), $record->population_evidence_path))),
+
+            Column::make('population_evidence_links')
+                ->heading('Enlace Evidencia de Población Vulnerable')
+                ->getStateUsing(fn ($record) => empty($record->population_evidence_path)
+                    ? 'Sin evidencia'
+                    : implode(', ', array_map(
+                        fn ($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
+                        $record->population_evidence_path
+                    ))),
+
+            Column::make('photo_evidence_names')
+                ->heading('Fotografía de Georreferenciación')
+                ->getStateUsing(fn ($record) => empty($record->photo_evidence_path)
+                    ? 'Sin evidencia'
+                    : implode(', ', array_map(fn ($p) => basename($p), $record->photo_evidence_path))),
+
+            Column::make('photo_evidence_links')
+                ->heading('Enlace Fotografía de Georreferenciación')
+                ->getStateUsing(fn ($record) => empty($record->photo_evidence_path)
+                    ? 'Sin evidencia'
+                    : implode(', ', array_map(
+                        fn ($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
+                        $record->photo_evidence_path
+                    ))),
+
+            // === BLOQUE 14: HABEAS DATA ===
+            Column::make('habeas_data_accepted')
+                ->heading('Autorización de Tratamiento de Datos')
+                ->getStateUsing(fn ($record) => $record->habeas_data_accepted ? 'Autorizado' : 'No autorizado'),
+
+            Column::make('habeas_data_accepted_at')
+                ->heading('Fecha de Autorización')
+                ->getStateUsing(fn ($record) => $record->habeas_data_accepted_at?->format('d/m/Y') ?? ''),
+
+            Column::make('habeas_data_manager')
+                ->heading('Usuario que Registró la Autorización')
+                ->getStateUsing(fn ($record) => $record->habeasDataManager?->name ?? ''),
+
+            // === BLOQUE 15: AUDITORÍA ===
+            Column::make('created_at_date')
+                ->heading('Fecha de Creación')
+                ->getStateUsing(fn ($record) => $record->created_at?->format('d/m/Y') ?? ''),
+
+            Column::make('created_at_time')
+                ->heading('Hora de Creación')
+                ->getStateUsing(fn ($record) => $record->created_at?->format('H:i') ?? ''),
+
+            Column::make('created_by')
+                ->heading('Usuario Creador')
+                ->getStateUsing(fn ($record) => $record->manager?->name ?? ''),
+
+            Column::make('updated_at_date')
+                ->heading('Fecha de Última Actualización')
+                ->getStateUsing(fn ($record) => $record->updated_at?->format('d/m/Y') ?? ''),
+
+            Column::make('updated_at_time')
+                ->heading('Hora de Última Actualización')
+                ->getStateUsing(fn ($record) => $record->updated_at?->format('H:i') ?? ''),
+
+            Column::make('updated_by')
+                ->heading('Usuario que Realizó la Última Actualización')
+                ->getStateUsing(fn ($record) => $record->updatedBy?->name ?? ''),
+        ];
+    }
+
+    private static function afterSheetCallback(): \Closure
+    {
+        return function (\Maatwebsite\Excel\Events\AfterSheet $event) {
+            $sheet    = $event->sheet->getDelegate();
+            $highest  = $sheet->getHighestRowAndColumn();
+            $lastCol  = $highest['column'];
+            $lastRow  = $highest['row'];
+            $lastColIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+
+            $headerRange = 'A1:'.$lastCol.'1';
+
+            $sheet->getStyle($headerRange)->applyFromArray([
+                'font' => [
+                    'bold'  => true,
+                    'color' => ['argb' => 'FFFFFFFF'],
+                ],
+                'fill' => [
+                    'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['argb' => 'FF1E40AF'],
+                ],
+                'alignment' => [
+                    'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                    'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                    'wrapText'   => true,
+                ],
+            ]);
+
+            if ($lastRow > 1) {
+                $sheet->getStyle('A2:'.$lastCol.$lastRow)->getAlignment()
+                    ->setWrapText(true)
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+            }
+
+            for ($i = 1; $i <= $lastColIndex; $i++) {
+                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+            }
+
+            $sheet->freezePane('A2');
+            $sheet->setAutoFilter('A1:'.$lastCol.'1');
+        };
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

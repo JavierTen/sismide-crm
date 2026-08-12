@@ -143,16 +143,27 @@ class TrainingSupportResource extends Resource
                                     ->label('Modalidad')
                                     ->content(function ($get) {
                                         $trainingId = $get('training_id');
-                                        if (! $trainingId) {
-                                            return '----';
-                                        }
-
+                                        if (! $trainingId) return '----';
                                         $training = \App\Models\Training::find($trainingId);
-
                                         return match ($training?->modality) {
-                                            'virtual' => '🌐 Virtual',
+                                            'virtual'   => '🌐 Virtual',
                                             'in_person' => '🏢 Presencial',
-                                            default => 'Sin modalidad'
+                                            'hybrid'    => '🔀 Híbrida',
+                                            default     => 'Sin modalidad',
+                                        };
+                                    }),
+
+                                Forms\Components\Placeholder::make('training_route')
+                                    ->label('Ruta')
+                                    ->content(function ($get) {
+                                        $trainingId = $get('training_id');
+                                        if (! $trainingId) return '----';
+                                        $training = \App\Models\Training::find($trainingId);
+                                        return match ($training?->route) {
+                                            'route_1' => 'Ruta 1: Pre-emprendimiento',
+                                            'route_2' => 'Ruta 2: Consolidación',
+                                            'route_3' => 'Ruta 3: Escalamiento e Innovación',
+                                            default   => $training?->route ?? '----',
                                         };
                                     }),
 
@@ -160,12 +171,8 @@ class TrainingSupportResource extends Resource
                                     ->label('Municipio')
                                     ->content(function ($get) {
                                         $trainingId = $get('training_id');
-                                        if (! $trainingId) {
-                                            return '----';
-                                        }
-
+                                        if (! $trainingId) return '----';
                                         $training = \App\Models\Training::with('city')->find($trainingId);
-
                                         return $training?->city?->name ?? 'Sin municipio';
                                     }),
 
@@ -173,223 +180,181 @@ class TrainingSupportResource extends Resource
                                     ->label('Fecha')
                                     ->content(function ($get) {
                                         $trainingId = $get('training_id');
-                                        if (! $trainingId) {
-                                            return '----';
-                                        }
-
+                                        if (! $trainingId) return '----';
                                         $training = \App\Models\Training::find($trainingId);
-
                                         return $training?->training_date?->format('d/m/Y') ?? 'Sin fecha';
                                     }),
 
                                 Forms\Components\Placeholder::make('training_organizer')
-                                    ->label('Responsable')
+                                    ->label('Capacitador')
                                     ->content(function ($get) {
                                         $trainingId = $get('training_id');
-                                        if (! $trainingId) {
-                                            return '----';
-                                        }
-
+                                        if (! $trainingId) return '----';
                                         $training = \App\Models\Training::find($trainingId);
+                                        $name   = $training?->organizer_name;
+                                        $entity = $training?->organizer_entity;
+                                        if (! $name) return 'Sin capacitador';
+                                        return $entity ? "{$name} – {$entity}" : $name;
+                                    })
+                                    ->columnSpan(2),
 
-                                        return $training?->organizer_name ?? 'Sin responsable';
+                                Forms\Components\Placeholder::make('session_enabled')
+                                    ->label('Participantes habilitados')
+                                    ->content(function ($get) {
+                                        $trainingId = $get('training_id');
+                                        if (! $trainingId) return '----';
+                                        $session = \App\Models\TrainingSession::where('training_id', $trainingId)->first();
+                                        if (! $session) return 'Sin sesión registrada';
+                                        return $session->participations()->count();
+                                    }),
+
+                                Forms\Components\Placeholder::make('session_attended')
+                                    ->label('Asistentes registrados')
+                                    ->content(function ($get) {
+                                        $trainingId = $get('training_id');
+                                        if (! $trainingId) return '----';
+                                        $session = \App\Models\TrainingSession::where('training_id', $trainingId)->first();
+                                        if (! $session) return 'Sin sesión registrada';
+                                        return $session->participations()->where('attended', true)->count();
                                     }),
                             ]),
                     ])
                     ->collapsible()
                     ->persistCollapsed(),
 
-                Forms\Components\Section::make('Lista de Asistencia')
-                    ->description('Archivo obligatorio para todas las capacitaciones')
+                // ── PRESENCIAL + HÍBRIDA ────────────────────────────────────────
+                Forms\Components\Section::make('Lista de Asistencia Firmada')
+                    ->description('Obligatorio para capacitaciones presenciales e híbridas')
                     ->icon('heroicon-o-document-check')
                     ->schema([
                         Forms\Components\FileUpload::make('attendance_list_path')
-                            ->label('Lista de Asistencia')
+                            ->label('Lista de Asistencia Firmada *')
                             ->directory('training-supports/attendance')
                             ->disk('public')
-                            ->required()
-                            ->maxSize(10240) // 10MB
+                            ->required(fn ($get) => in_array(\App\Models\Training::find($get('training_id'))?->modality, ['in_person', 'hybrid']))
+                            ->maxSize(10240)
                             ->downloadable()
                             ->openable()
-                            ->acceptedFileTypes(function ($get) {
-                                $trainingId = $get('training_id');
-                                if (! $trainingId) {
-                                    return ['application/pdf'];
-                                }
-
-                                $training = \App\Models\Training::find($trainingId);
-
-                                if ($training?->modality === 'virtual') {
-                                    // Virtual: PDF, Excel, Imágenes
-                                    return [
-                                        'application/pdf',
-                                        'application/vnd.ms-excel',
-                                        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                                        'image/jpeg',
-                                        'image/png',
-                                    ];
-                                } else {
-                                    // Presencial: PDF, Imágenes
-                                    return [
-                                        'application/pdf',
-                                        'image/jpeg',
-                                        'image/png',
-                                    ];
-                                }
-                            })
-                            ->helperText(function ($get) {
-                                $trainingId = $get('training_id');
-                                if (! $trainingId) {
-                                    return 'Primero selecciona una capacitación';
-                                }
-
-                                $training = \App\Models\Training::find($trainingId);
-
-                                if ($training?->modality === 'virtual') {
-                                    return ' Capacitación Virtual - Acepta: PDF, Excel, JPG, PNG (máximo 10MB)';
-                                } else {
-                                    return ' Capacitación Presencial - Acepta: PDF, JPG, PNG (máximo 10MB)';
-                                }
-                            })
-                            ->imageResizeMode('contain')
-                            ->imageResizeTargetWidth('1920')
-                            ->imageResizeTargetHeight('1080')
-                            ->validationMessages([
-                                'required' => 'La lista de asistencia es obligatoria.',
-                                'max' => 'El archivo no puede superar los 10MB.',
-                            ])
+                            ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])
+                            ->helperText('PDF o imagen legible — máximo 10MB')
                             ->columnSpanFull(),
                     ])
+                    ->visible(fn ($get) => in_array(\App\Models\Training::find($get('training_id'))?->modality, ['in_person', 'hybrid']))
                     ->collapsible()
                     ->persistCollapsed(),
 
-                Forms\Components\Section::make('Evidencias para Capacitación Virtual')
-                    ->description('Campos obligatorios cuando la modalidad es virtual')
-                    ->icon('heroicon-o-video-camera')
-                    ->schema([
-                        Forms\Components\TextInput::make('recording_link')
-                            ->label('Link de Grabación')
-                            ->url()
-                            ->required(function ($get) {
-                                $trainingId = $get('training_id');
-                                if (! $trainingId) {
-                                    return false;
-                                }
-
-                                $training = \App\Models\Training::find($trainingId);
-
-                                return $training?->modality === 'virtual';
-                            })
-                            ->maxLength(255)
-                            ->placeholder('https://meet.google.com/xxx-xxxx-xxx o https://zoom.us/rec/share/...')
-                            ->helperText('URL completa de la grabación de la capacitación virtual')
-                            ->prefixIcon('heroicon-o-link')
-                            ->validationMessages([
-                                'required' => 'El link de grabación es obligatorio para capacitaciones virtuales.',
-                                'url' => 'Debe ser una URL válida.',
-                            ])
-                            ->columnSpanFull(),
-                    ])
-                    ->visible(fn ($get) => $get('training_id') && \App\Models\Training::find($get('training_id'))?->modality === 'virtual')
-                    ->collapsible()
-                    ->persistCollapsed(),
-
-                Forms\Components\Section::make('Evidencias para Capacitación Presencial')
-                    ->description('Campos obligatorios y opcionales para modalidad presencial')
+                Forms\Components\Section::make('Registro Fotográfico')
+                    ->description('Mínimo 2 fotografías obligatorias para presenciales e híbridas')
                     ->icon('heroicon-o-camera')
                     ->schema([
-                        Forms\Components\FileUpload::make('georeference_photo_path')
-                            ->label('Fotografía con Georreferenciación del Lugar')
-                            ->directory('training-supports/georeference')
+                        Forms\Components\FileUpload::make('photos')
+                            ->label('Fotografías de la actividad *')
+                            ->directory('training-supports/photos')
                             ->disk('public')
-                            ->required(function ($get) {
-                                $trainingId = $get('training_id');
-                                if (! $trainingId) {
-                                    return false;
-                                }
-
-                                $training = \App\Models\Training::find($trainingId);
-
-                                return $training?->modality === 'in_person';
-                            })
-                            ->maxSize(5120) // 5MB
+                            ->multiple()
+                            ->minFiles(2)
+                            ->maxFiles(20)
+                            ->maxSize(5120)
                             ->downloadable()
                             ->openable()
                             ->image()
+                            ->imagePreviewHeight('120')
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'image/webp'])
-                            ->helperText('Fotografía del lugar donde se realizó la capacitación (con datos GPS) - Obligatorio (máximo 5MB)')
-                            ->imageResizeMode('contain')
-                            ->imageResizeTargetWidth('1920')
-                            ->imageResizeTargetHeight('1080')
-                            ->validationMessages([
-                                'required' => 'La foto con georreferenciación es obligatoria para capacitaciones presenciales.',
-                                'max' => 'La imagen no puede superar los 5MB.',
-                            ])
-                            ->columnSpanFull(),
-
-                        Forms\Components\Fieldset::make('Fotografías Adicionales de la Actividad')
-                            ->schema([
-                                Forms\Components\FileUpload::make('additional_photo_1_path')
-                                    ->label('Foto Adicional 1')
-                                    ->directory('training-supports/additional')
-                                    ->disk('public')
-                                    ->maxSize(5120) // 5MB
-                                    ->downloadable()
-                                    ->openable()
-                                    ->image()
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'image/webp'])
-                                    ->helperText('Evidencia fotográfica adicional (opcional, máximo 5MB)')
-                                    ->imageResizeMode('contain')
-                                    ->imageResizeTargetWidth('1920')
-                                    ->imageResizeTargetHeight('1080')
-                                    ->validationMessages([
-                                        'max' => 'La imagen no puede superar los 5MB.',
-                                    ]),
-
-                                Forms\Components\FileUpload::make('additional_photo_2_path')
-                                    ->label('Foto Adicional 2')
-                                    ->directory('training-supports/additional')
-                                    ->disk('public')
-                                    ->maxSize(5120) // 5MB
-                                    ->downloadable()
-                                    ->openable()
-                                    ->image()
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'image/webp'])
-                                    ->helperText('Evidencia fotográfica adicional (opcional, máximo 5MB)')
-                                    ->imageResizeMode('contain')
-                                    ->imageResizeTargetWidth('1920')
-                                    ->imageResizeTargetHeight('1080')
-                                    ->validationMessages([
-                                        'max' => 'La imagen no puede superar los 5MB.',
-                                    ]),
-
-                                Forms\Components\FileUpload::make('additional_photo_3_path')
-                                    ->label('Foto Adicional 3')
-                                    ->directory('training-supports/additional')
-                                    ->disk('public')
-                                    ->maxSize(5120) // 5MB
-                                    ->downloadable()
-                                    ->openable()
-                                    ->image()
-                                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'image/webp'])
-                                    ->helperText('Evidencia fotográfica adicional (opcional, máximo 5MB)')
-                                    ->imageResizeMode('contain')
-                                    ->imageResizeTargetWidth('1920')
-                                    ->imageResizeTargetHeight('1080')
-                                    ->validationMessages([
-                                        'max' => 'La imagen no puede superar los 5MB.',
-                                    ]),
-                            ])
-                            ->columns(3),
-
-                        Forms\Components\Placeholder::make('photos_info')
-                            ->label('Nota sobre fotos adicionales')
-                            ->content('Las fotografías adicionales son opcionales. Puedes cargar hasta 3 evidencias fotográficas de la actividad.')
+                            ->helperText('Mínimo 2 fotos — máximo 5MB por imagen')
                             ->columnSpanFull(),
                     ])
-                    ->visible(fn ($get) => $get('training_id') && \App\Models\Training::find($get('training_id'))?->modality === 'in_person')
+                    ->visible(fn ($get) => in_array(\App\Models\Training::find($get('training_id'))?->modality, ['in_person', 'hybrid']))
                     ->collapsible()
                     ->persistCollapsed(),
+
+                // ── VIRTUAL + HÍBRIDA ────────────────────────────────────────────
+                Forms\Components\Section::make('Evidencias Virtuales')
+                    ->description('Obligatorio para capacitaciones virtuales e híbridas')
+                    ->icon('heroicon-o-video-camera')
+                    ->schema([
+                        Forms\Components\FileUpload::make('connection_evidence_path')
+                            ->label('Evidencia de participantes conectados *')
+                            ->directory('training-supports/virtual')
+                            ->disk('public')
+                            ->required(fn ($get) => in_array(\App\Models\Training::find($get('training_id'))?->modality, ['virtual', 'hybrid']))
+                            ->maxSize(10240)
+                            ->downloadable()
+                            ->openable()
+                            ->acceptedFileTypes([
+                                'application/pdf',
+                                'application/vnd.ms-excel',
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                'image/jpeg', 'image/png', 'image/jpg',
+                            ])
+                            ->helperText('Captura de participantes, reporte de Meet/Zoom/Teams u equivalente — PDF, Excel o imagen')
+                            ->columnSpanFull(),
+
+                        Forms\Components\FileUpload::make('visual_evidence_path')
+                            ->label('Evidencia visual de la capacitación *')
+                            ->directory('training-supports/virtual-visual')
+                            ->disk('public')
+                            ->required(fn ($get) => in_array(\App\Models\Training::find($get('training_id'))?->modality, ['virtual', 'hybrid']))
+                            ->maxSize(10240)
+                            ->downloadable()
+                            ->openable()
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'])
+                            ->helperText('Captura(s) de pantalla de la sesión — imagen o PDF')
+                            ->columnSpanFull(),
+
+                        Forms\Components\FileUpload::make('recording_file_path')
+                            ->label('Archivo de grabación')
+                            ->directory('training-supports/recordings')
+                            ->disk('public')
+                            ->maxSize(512000)
+                            ->downloadable()
+                            ->acceptedFileTypes(['video/mp4', 'video/avi', 'video/mov', 'video/webm', 'application/zip'])
+                            ->helperText('Archivo de video o ZIP — opcional, máximo 500MB')
+                            ->columnSpanFull(),
+
+                        Forms\Components\TextInput::make('recording_link')
+                            ->label('Link de grabación')
+                            ->url()
+                            ->maxLength(500)
+                            ->placeholder('https://meet.google.com/... o https://zoom.us/rec/...')
+                            ->prefixIcon('heroicon-o-link')
+                            ->helperText('URL de la grabación (opcional)')
+                            ->columnSpanFull(),
+                    ])
+                    ->visible(fn ($get) => in_array(\App\Models\Training::find($get('training_id'))?->modality, ['virtual', 'hybrid']))
+                    ->collapsible()
+                    ->persistCollapsed(),
+
+                // ── COMPLEMENTARIOS (todas las modalidades) ──────────────────────
+                Forms\Components\Section::make('Material y Documentos Complementarios')
+                    ->description('Archivos adicionales opcionales')
+                    ->icon('heroicon-o-folder-open')
+                    ->schema([
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\FileUpload::make('material_path')
+                                ->label('Material entregado')
+                                ->directory('training-supports/materials')
+                                ->disk('public')
+                                ->maxSize(20480)
+                                ->downloadable()
+                                ->openable()
+                                ->acceptedFileTypes(['application/pdf', 'application/zip', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'])
+                                ->helperText('PDF, PPT, Excel o ZIP — máximo 20MB'),
+
+                            Forms\Components\FileUpload::make('additional_documents_path')
+                                ->label('Documentos complementarios')
+                                ->directory('training-supports/documents')
+                                ->disk('public')
+                                ->maxSize(20480)
+                                ->downloadable()
+                                ->openable()
+                                ->acceptedFileTypes(['application/pdf', 'application/zip', 'image/jpeg', 'image/png'])
+                                ->helperText('PDF, imagen o ZIP — máximo 20MB'),
+                        ]),
+                    ])
+                    ->visible(fn ($get) => (bool) $get('training_id'))
+                    ->collapsible()
+                    ->persistCollapsed()
+                    ->collapsed(),
 
                 Forms\Components\Section::make('Observaciones')
                     ->description('Notas o aclaraciones adicionales (opcional)')
@@ -399,9 +364,9 @@ class TrainingSupportResource extends Resource
                             ->label('Observaciones')
                             ->rows(4)
                             ->placeholder('Escribe observaciones, aclaraciones o comentarios sobre la capacitación...')
-                            ->helperText('Campo opcional para cualquier información adicional relevante')
                             ->columnSpanFull(),
                     ])
+                    ->visible(fn ($get) => (bool) $get('training_id'))
                     ->collapsible()
                     ->persistCollapsed()
                     ->collapsed(),

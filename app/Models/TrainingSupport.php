@@ -22,9 +22,19 @@ class TrainingSupport extends Model
         'additional_photo_1_path',
         'additional_photo_2_path',
         'additional_photo_3_path',
+        'photos',
+        'connection_evidence_path',
+        'visual_evidence_path',
+        'recording_file_path',
+        'material_path',
+        'additional_documents_path',
         'observations',
         'manager_id',
         'updated_by_id',
+    ];
+
+    protected $casts = [
+        'photos' => 'array',
     ];
 
     /**
@@ -45,6 +55,11 @@ class TrainingSupport extends Model
                 'additional_photo_1_path',
                 'additional_photo_2_path',
                 'additional_photo_3_path',
+                'connection_evidence_path',
+                'visual_evidence_path',
+                'recording_file_path',
+                'material_path',
+                'additional_documents_path',
             ];
 
             foreach ($fileFields as $field) {
@@ -56,13 +71,21 @@ class TrainingSupport extends Model
 
         // Eliminar archivos cuando se elimina el registro (soft delete)
         static::deleting(function (TrainingSupport $support) {
-            $filesToDelete = [
-                $support->attendance_list_path,
-                $support->georeference_photo_path,
-                $support->additional_photo_1_path,
-                $support->additional_photo_2_path,
-                $support->additional_photo_3_path,
-            ];
+            $filesToDelete = array_merge(
+                array_filter([
+                    $support->attendance_list_path,
+                    $support->georeference_photo_path,
+                    $support->additional_photo_1_path,
+                    $support->additional_photo_2_path,
+                    $support->additional_photo_3_path,
+                    $support->connection_evidence_path,
+                    $support->visual_evidence_path,
+                    $support->recording_file_path,
+                    $support->material_path,
+                    $support->additional_documents_path,
+                ]),
+                $support->photos ?? []
+            );
 
             foreach ($filesToDelete as $file) {
                 if ($file) {
@@ -71,15 +94,26 @@ class TrainingSupport extends Model
             }
         });
 
-        // Eliminar archivos cuando se elimina permanentemente (force delete)
+        static::saved(function (TrainingSupport $support) {
+            $support->training?->syncStatus();
+        });
+
         static::forceDeleting(function (TrainingSupport $support) {
-            $filesToDelete = [
-                $support->attendance_list_path,
-                $support->georeference_photo_path,
-                $support->additional_photo_1_path,
-                $support->additional_photo_2_path,
-                $support->additional_photo_3_path,
-            ];
+            $filesToDelete = array_merge(
+                array_filter([
+                    $support->attendance_list_path,
+                    $support->georeference_photo_path,
+                    $support->additional_photo_1_path,
+                    $support->additional_photo_2_path,
+                    $support->additional_photo_3_path,
+                    $support->connection_evidence_path,
+                    $support->visual_evidence_path,
+                    $support->recording_file_path,
+                    $support->material_path,
+                    $support->additional_documents_path,
+                ]),
+                $support->photos ?? []
+            );
 
             foreach ($filesToDelete as $file) {
                 if ($file) {

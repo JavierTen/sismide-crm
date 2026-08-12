@@ -27,6 +27,18 @@ class EditTraining extends EditRecord
         ];
     }
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (! empty($data['start_time']) && ! empty($data['end_time'])) {
+            $data['intensity_hours'] = TrainingResource::computeIntensidadPublic(
+                $data['start_time'],
+                $data['end_time']
+            );
+        }
+
+        return $data;
+    }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

@@ -13,8 +13,18 @@ class ListTrainingParticipations extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
+            Actions\Action::make('registrar_masiva')
+                ->label('Asistencia masiva')
+                ->icon('heroicon-o-clipboard-document-list')
+                ->color('primary')
+                ->url(url('/dashboard/registrar-asistencia'))
                 ->visible(fn () => auth()->user()->can('createTrainingParticipation')),
+
+            Actions\CreateAction::make()
+                ->label('Asistencia individual')
+                ->icon('heroicon-o-user-plus')
+                ->color('gray')
+                ->visible(false),
         ];
     }
 }

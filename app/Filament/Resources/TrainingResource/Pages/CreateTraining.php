@@ -13,6 +13,14 @@ class CreateTraining extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['manager_id'] = auth()->id();
+
+        if (! empty($data['start_time']) && ! empty($data['end_time'])) {
+            $data['intensity_hours'] = TrainingResource::computeIntensidadPublic(
+                $data['start_time'],
+                $data['end_time']
+            );
+        }
+
         return $data;
     }
 

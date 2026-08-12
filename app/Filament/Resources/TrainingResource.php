@@ -109,6 +109,33 @@ class TrainingResource extends Resource
         return static::canViewAny();
     }
 
+    public static function computeIntensidadPublic(string $start, string $end): ?float
+    {
+        return static::computeIntensidad($start, $end);
+    }
+
+    private static function computeIntensidad(string $start, string $end): ?float
+    {
+        $toMinutes = function (string $time): ?int {
+            // Funciona con "05:00", "05:00:00", "1970-01-01 05:00:00", etc.
+            if (preg_match('/(\d{1,2}):(\d{2})/', $time, $m)) {
+                return (int) $m[1] * 60 + (int) $m[2];
+            }
+            return null;
+        };
+
+        $startMinutes = $toMinutes($start);
+        $endMinutes   = $toMinutes($end);
+
+        if ($startMinutes === null || $endMinutes === null) {
+            return null;
+        }
+
+        $diff = $endMinutes - $startMinutes;
+
+        return $diff > 0 ? round($diff / 60, 1) : null;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -159,7 +186,8 @@ class TrainingResource extends Resource
                                     ->native(false)
                                     ->seconds(false)
                                     ->placeholder('Seleccione hora de inicio')
-                                    ->helperText('Hora de inicio del evento'),
+                                    ->helperText('Hora de inicio del evento')
+                                    ->live(),
 
                                 Forms\Components\TimePicker::make('end_time')
                                     ->label('Hora de Finalización')
@@ -167,19 +195,25 @@ class TrainingResource extends Resource
                                     ->seconds(false)
                                     ->required()
                                     ->placeholder('Seleccione hora de finalización')
-                                    ->helperText('Hora de finalización del evento (opcional)'),
+                                    ->helperText('Hora de finalización del evento')
+                                    ->live(),
 
-                                Forms\Components\TextInput::make('intensity_hours')
+                                Forms\Components\Placeholder::make('intensity_display')
                                     ->label('Intensidad Horaria')
-                                    ->numeric()
-                                    ->inputMode('decimal')
-                                    ->step(0.5)
-                                    ->minValue(0)
-                                    ->required()
-                                    ->maxValue(999.99)
-                                    ->placeholder('Ej: 2.5')
-                                    ->helperText('Número de horas de duración')
-                                    ->suffix('horas'),
+                                    ->content(function ($get) {
+                                        $start = $get('start_time');
+                                        $end   = $get('end_time');
+
+                                        if (! $start || ! $end) {
+                                            return '— (complete hora de inicio y fin)';
+                                        }
+
+                                        $horas = static::computeIntensidad($start, $end);
+
+                                        return $horas !== null
+                                            ? $horas . ' horas'
+                                            : '— (la hora fin debe ser mayor a la de inicio)';
+                                    }),
 
                                 Forms\Components\Select::make('route')
                                     ->label('Ruta de Formación')
@@ -198,25 +232,80 @@ class TrainingResource extends Resource
                     ->collapsible()
                     ->persistCollapsed(),
 
-                Forms\Components\Section::make('Datos del Organizador')
-                    ->description('Información de contacto del responsable')
+                Forms\Components\Section::make('Datos del Facilitador')
+                    ->description('Seleccione la entidad y el facilitador o ingrese los datos manualmente')
                     ->icon('heroicon-o-user-circle')
                     ->schema([
                         Forms\Components\Grid::make(2)
                             ->schema([
+                                Forms\Components\Select::make('actor_id')
+                                    ->label('Entidad Capacitadora')
+                                    ->relationship('actor', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->live()
+                                    ->placeholder('Seleccione la entidad (opcional)')
+                                    ->helperText('Actor registrado en el sistema')
+                                    ->afterStateUpdated(function ($state, $set) {
+                                        $set('entity_contact_id', null);
+                                        if ($state) {
+                                            $actor = \App\Models\Actor::find($state);
+                                            $set('organizer_entity', $actor?->name);
+                                        }
+                                    })
+                                    ->columnSpanFull(),
+
+                                Forms\Components\Select::make('entity_contact_id')
+                                    ->label('Facilitador')
+                                    ->options(function ($get) {
+                                        $actorId = $get('actor_id');
+                                        if (! $actorId) {
+                                            return [];
+                                        }
+
+                                        return \App\Models\EntityContact::where('entity_id', $actorId)
+                                            ->where('status', 'active')
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    })
+                                    ->searchable()
+                                    ->live()
+                                    ->placeholder('Seleccione el facilitador (opcional)')
+                                    ->helperText('Contacto registrado de la entidad')
+                                    ->afterStateUpdated(function ($state, $set) {
+                                        if ($state) {
+                                            $contact = \App\Models\EntityContact::find($state);
+                                            $set('organizer_name', $contact?->name);
+                                            $set('organizer_position', $contact?->role);
+                                            $set('organizer_phone', $contact?->phone);
+                                            $set('organizer_email', $contact?->email);
+                                        }
+                                    })
+                                    ->columnSpanFull(),
+
+                                Forms\Components\TextInput::make('organizer_entity')
+                                    ->label('Entidad u Organización')
+                                    ->required()
+                                    ->maxLength(255)
+                                    ->placeholder('Ej: Fundación Emprendedores')
+                                    ->helperText('Institución que organiza el evento')
+                                    ->readOnly(fn ($get) => (bool) $get('actor_id')),
+
                                 Forms\Components\TextInput::make('organizer_name')
-                                    ->label('Nombre Completo')
+                                    ->label('Nombre del Facilitador')
                                     ->required()
                                     ->maxLength(255)
                                     ->placeholder('Ej: Juan Carlos Pérez')
-                                    ->helperText('Nombre del responsable de la capacitación'),
+                                    ->helperText('Nombre del facilitador de la capacitación')
+                                    ->readOnly(fn ($get) => (bool) $get('entity_contact_id')),
 
                                 Forms\Components\TextInput::make('organizer_position')
                                     ->label('Cargo')
                                     ->required()
                                     ->maxLength(255)
                                     ->placeholder('Ej: Coordinador de Capacitaciones')
-                                    ->helperText('Cargo que desempeña el organizador'),
+                                    ->helperText('Cargo que desempeña el facilitador')
+                                    ->readOnly(fn ($get) => (bool) $get('entity_contact_id')),
 
                                 Forms\Components\TextInput::make('organizer_phone')
                                     ->label('Teléfono')
@@ -225,22 +314,14 @@ class TrainingResource extends Resource
                                     ->maxLength(10)
                                     ->minLength(10)
                                     ->placeholder('Ej: 3001234567')
-                                    ->helperText('Número de contacto del organizador (10 dígitos)')
+                                    ->helperText('Número de contacto del facilitador (10 dígitos)')
                                     ->numeric()
                                     ->extraInputAttributes([
                                         'pattern' => '[0-9]*',
                                         'inputmode' => 'numeric',
                                     ])
-                                    ->rules([
-                                        'regex:/^[0-9]{10}$/',
-                                    ]),
-
-                                Forms\Components\TextInput::make('organizer_entity')
-                                    ->label('Entidad u Organización')
-                                    ->required()
-                                    ->maxLength(255)
-                                    ->placeholder('Ej: Fundación Emprendedores')
-                                    ->helperText('Institución que organiza el evento'),
+                                    ->rules(['regex:/^[0-9]{10}$/'])
+                                    ->readOnly(fn ($get) => (bool) $get('entity_contact_id')),
 
                                 Forms\Components\TextInput::make('organizer_email')
                                     ->label('Correo Electrónico')
@@ -248,7 +329,8 @@ class TrainingResource extends Resource
                                     ->required()
                                     ->maxLength(255)
                                     ->placeholder('Ej: contacto@organizacion.com')
-                                    ->helperText('Email de contacto del organizador')
+                                    ->helperText('Email de contacto del facilitador')
+                                    ->readOnly(fn ($get) => (bool) $get('entity_contact_id'))
                                     ->columnSpanFull(),
                             ]),
                     ])
@@ -274,6 +356,14 @@ class TrainingResource extends Resource
                                     ->helperText('Formato de realización del evento')
                                     ->live()
                                     ->reactive(),
+
+                                Forms\Components\TextInput::make('location')
+                                    ->label('Lugar de Realización')
+                                    ->maxLength(500)
+                                    ->placeholder('Ej: Auditorio Municipal, Calle 5 # 10-20')
+                                    ->helperText('Dirección o nombre del lugar donde se realizará')
+                                    ->visible(fn ($get) => in_array($get('modality'), ['in_person', 'hybrid']))
+                                    ->columnSpanFull(),
 
                                 Forms\Components\Textarea::make('objective')
                                     ->label('Objetivo o Descripción')
@@ -326,12 +416,12 @@ class TrainingResource extends Resource
                                     ]),
 
                                 Forms\Components\TextInput::make('recording_link')
-                                    ->label('Link de Grabación')
+                                    ->label('Enlace de la Sala Virtual')
                                     ->url()
-                                    ->maxLength(255)
-                                    ->placeholder('https://meet.google.com/xxx-xxxx-xxx o https://zoom.us/rec/share/...')
-                                    ->helperText('URL de la grabación (solo para modalidad virtual) - No obligatorio')
-                                    ->visible(fn ($get) => $get('modality') === 'virtual')
+                                    ->maxLength(500)
+                                    ->placeholder('https://meet.google.com/xxx-xxxx-xxx')
+                                    ->helperText('Enlace de acceso a la sala (Meet, Zoom, Teams, etc.) - No obligatorio')
+                                    ->visible(fn ($get) => in_array($get('modality'), ['virtual', 'hybrid']))
                                     ->prefixIcon('heroicon-o-video-camera'),
                             ]),
 
@@ -431,6 +521,25 @@ class TrainingResource extends Resource
                         default => $state,
                     })
                     ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Estado')
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'scheduled'          => 'gray',
+                        'attendance_pending' => 'warning',
+                        'support_pending'    => 'info',
+                        'complete'           => 'success',
+                        default              => 'gray',
+                    })
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'scheduled'          => 'Programada',
+                        'attendance_pending' => 'Pend. Asistencia',
+                        'support_pending'    => 'Pend. Soportes',
+                        'complete'           => 'Completa',
+                        default              => 'Programada',
+                    })
                     ->sortable(),
             ])
             ->filters([

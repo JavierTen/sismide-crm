@@ -12,6 +12,8 @@ use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Actor;
+use App\Models\EntityContact;
 
 class Training extends Model
 {
@@ -20,17 +22,21 @@ class Training extends Model
     protected $fillable = [
         'name',
         'city_id',
-        'training_date',      // ← Ahora es solo fecha (date)
-        'start_time',         // ← NUEVO
-        'end_time',           // ← NUEVO
-        'intensity_hours',    // ← NUEVO
+        'training_date',
+        'start_time',
+        'end_time',
+        'intensity_hours',
         'route',
+        'status',
         'organizer_name',
         'organizer_position',
         'organizer_phone',
         'organizer_entity',
         'organizer_email',
-        'modality',           // ← Ahora incluye 'hybrid'
+        'actor_id',
+        'entity_contact_id',
+        'modality',
+        'location',
         'ppt_file_path',
         'promotional_file_path',
         'recording_link',
@@ -85,6 +91,46 @@ class Training extends Model
                 Storage::disk('public')->delete($training->promotional_file_path);
             }
         });
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'scheduled'          => 'Programada',
+            'attendance_pending' => 'Pendiente de Asistencia',
+            'support_pending'    => 'Pendiente de Soportes',
+            'complete'           => 'Completa',
+            default              => $this->status ?? 'Programada',
+        };
+    }
+
+    public function computeStatus(): string
+    {
+        if ($this->participations()->count() === 0) {
+            return $this->training_date?->isFuture() ? 'scheduled' : 'attendance_pending';
+        }
+
+        $support = $this->support;
+
+        if (! $support) {
+            return 'support_pending';
+        }
+
+        $hasEvidence = match ($this->modality) {
+            'virtual'   => $support->connection_evidence_path && $support->visual_evidence_path,
+            'in_person' => $support->attendance_list_path && ! empty($support->photos) && count($support->photos) >= 2,
+            'hybrid'    => $support->attendance_list_path
+                           && ! empty($support->photos) && count($support->photos) >= 2
+                           && $support->connection_evidence_path && $support->visual_evidence_path,
+            default     => true,
+        };
+
+        return $hasEvidence ? 'complete' : 'support_pending';
+    }
+
+    public function syncStatus(): void
+    {
+        $this->update(['status' => $this->computeStatus()]);
     }
 
     public function city(): BelongsTo
@@ -212,6 +258,21 @@ class Training extends Model
     public function scopePast($query)
     {
         return $query->where('training_date', '<', now()->toDateString());
+    }
+
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(Actor::class);
+    }
+
+    public function entityContact(): BelongsTo
+    {
+        return $this->belongsTo(EntityContact::class);
+    }
+
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(TrainingSession::class);
     }
 
     public function support(): HasOne

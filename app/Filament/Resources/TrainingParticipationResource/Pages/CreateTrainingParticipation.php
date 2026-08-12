@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\TrainingParticipationResource\Pages;
 
 use App\Filament\Resources\TrainingParticipationResource;
-use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateTrainingParticipation extends CreateRecord

@@ -15,9 +15,11 @@ class TrainingParticipation extends Model
 
     protected $fillable = [
         'training_id',
+        'training_session_id',
         'entrepreneur_id',
         'manager_id',
-        'attended',                    // ← NUEVO
+        'attended',
+        'route_snapshot',
         'non_attendance_reason',
         'updated_by_id',
     ];
@@ -31,12 +33,14 @@ class TrainingParticipation extends Model
         static::addGlobalScope(new YearColumnScope('created_at'));
     }
 
-    /**
-     * Relación con la capacitación
-     */
     public function training(): BelongsTo
     {
         return $this->belongsTo(Training::class);
+    }
+
+    public function trainingSession(): BelongsTo
+    {
+        return $this->belongsTo(TrainingSession::class);
     }
 
     /**

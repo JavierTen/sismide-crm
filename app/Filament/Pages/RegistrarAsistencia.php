@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Resources\TrainingParticipationResource;
 use App\Models\Entrepreneur;
 use App\Models\Training;
 use App\Models\TrainingParticipation;
@@ -120,16 +121,17 @@ class RegistrarAsistencia extends Page implements HasForms
             return;
         }
 
-        // Verificar que no exista ya una sesión registrada
-        $exists = TrainingSession::where('training_id', $trainingId)
-            ->where('city_id', $cityId)
+        // Verificar que no exista ya una sesión para esta capacitación en esta fecha
+        $exists = TrainingSession::withTrashed()
+            ->where('training_id', $trainingId)
             ->where('session_date', $date)
             ->exists();
 
         if ($exists) {
             Notification::make()
                 ->danger()
-                ->title('Ya existe una sesión registrada para esta capacitación, municipio y fecha.')
+                ->title('Ya existe una sesión registrada para esta capacitación en esta fecha.')
+                ->body('No es posible registrar dos sesiones de la misma capacitación el mismo día.')
                 ->send();
             return;
         }
@@ -194,6 +196,21 @@ class RegistrarAsistencia extends Page implements HasForms
 
         $training = Training::find($trainingId);
 
+        // Segunda guarda antes del insert: misma validación sin city_id
+        $sessionExists = TrainingSession::withTrashed()
+            ->where('training_id', $trainingId)
+            ->where('session_date', $date)
+            ->exists();
+
+        if ($sessionExists) {
+            Notification::make()
+                ->danger()
+                ->title('Ya existe una sesión registrada para esta capacitación en esta fecha.')
+                ->body('No es posible registrar dos sesiones de la misma capacitación el mismo día.')
+                ->send();
+            return;
+        }
+
         DB::transaction(function () use ($trainingId, $cityId, $date, $training) {
             $session = TrainingSession::create([
                 'training_id'  => $trainingId,
@@ -222,8 +239,7 @@ class RegistrarAsistencia extends Page implements HasForms
             ->body(count($this->entrepreneurs) . ' registros guardados.')
             ->send();
 
-        $this->resetChecklist();
-        $this->form->fill();
+        $this->redirect(TrainingParticipationResource::getUrl('index'));
     }
 
     public function getRouteLabel(): string

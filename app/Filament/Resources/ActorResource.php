@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ActorResource\Pages;
 use App\Filament\Resources\ActorResource\RelationManagers\EntityContactsRelationManager;
+use App\Filament\Resources\ActorResource\RelationManagers\InstitutionalDocumentsRelationManager;
 use App\Models\Actor;
 use App\Models\EntityContact;
 use Closure;
@@ -186,6 +187,12 @@ class ActorResource extends Resource
                                             ->options(Actor::LINKAGE_STATUS_OPTIONS)
                                             ->required()
                                             ->placeholder('Seleccione el estado')
+                                            ->native(false),
+
+                                        Forms\Components\Select::make('project')
+                                            ->label('Proyecto')
+                                            ->options(Actor::PROJECT_OPTIONS)
+                                            ->placeholder('Seleccione el proyecto')
                                             ->native(false),
                                     ])
                                     ->columns(2)
@@ -1508,6 +1515,7 @@ class ActorResource extends Resource
     {
         return [
             EntityContactsRelationManager::class,
+            InstitutionalDocumentsRelationManager::class,
         ];
     }
 

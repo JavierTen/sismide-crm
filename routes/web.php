@@ -13,6 +13,14 @@ use Illuminate\Support\Facades\Auth;
 |
 */
 
+Route::get('/institutional-documents/download-evidences', [\App\Http\Controllers\EvidencesDownloadController::class, 'download'])
+    ->name('institutional-documents.download-evidences')
+    ->middleware('auth');
+
+Route::get('/institutional-documents/download-excel', [\App\Http\Controllers\EvidencesDownloadController::class, 'downloadExcel'])
+    ->name('institutional-documents.download-excel')
+    ->middleware('auth');
+
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect('/dashboard'); // Va al dashboard si ya está logueado

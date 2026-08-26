@@ -29,6 +29,7 @@ class Actor extends Model
         'website',
         'description',
         'linkage_status',
+        'project',
 
         // Contacto Principal (legacy — datos históricos)
         'contact_name',
@@ -206,6 +207,11 @@ class Actor extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(InstitutionalDocument::class, 'entity_id');
     }
 
     public function contacts(): HasMany
@@ -422,6 +428,11 @@ class Actor extends Model
         'business_rounds'          => 'Ruedas de negocio',
         'internationalization'     => 'Internacionalización',
         'other'                    => 'Otro',
+    ];
+
+    public const PROJECT_OPTIONS = [
+        'ruta_d' => 'Ruta D Magdalena',
+        'eje'    => 'EJE',
     ];
 
     public const ACTION_SCOPE_OPTIONS = [

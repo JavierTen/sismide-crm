@@ -19,11 +19,11 @@ class InstitutionalDocumentResource extends Resource
     protected static ?string $model = InstitutionalDocument::class;
 
     protected static ?string $navigationIcon  = 'heroicon-o-document-text';
-    protected static ?string $navigationGroup = 'Actores';
+    protected static ?string $navigationGroup = 'Parametros';
     protected static ?string $navigationLabel = 'Gestión Documental';
     protected static ?string $modelLabel      = 'Documento';
     protected static ?string $pluralModelLabel = 'Documentos';
-    protected static ?int    $navigationSort  = 2;
+    protected static ?int    $navigationSort  = 3;
 
     public static function canAccess(): bool
     {

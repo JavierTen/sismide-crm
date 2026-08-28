@@ -142,52 +142,44 @@ class BusinessPlanResource extends Resource
                                     ->label('Emprendimiento')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (! $entrepreneurId) {
-                                            return '----';
-                                        }
-
-                                        $entrepreneur = \App\Models\Entrepreneur::with('business')->find($entrepreneurId);
-
-                                        return $entrepreneur?->business?->business_name ?? 'Sin emprendimiento';
+                                        if (! $entrepreneurId) return '----';
+                                        $e = \App\Models\Entrepreneur::withoutGlobalScopes()
+                                            ->with(['business' => fn ($q) => $q->withoutGlobalScopes()])
+                                            ->find($entrepreneurId);
+                                        return $e?->business?->business_name ?? 'Sin emprendimiento';
                                     }),
 
                                 Forms\Components\Placeholder::make('city_name')
                                     ->label('Municipio')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (! $entrepreneurId) {
-                                            return '----';
-                                        }
-
-                                        $entrepreneur = \App\Models\Entrepreneur::with('city')->find($entrepreneurId);
-
-                                        return $entrepreneur?->city?->name ?? 'Sin ubicación';
+                                        if (! $entrepreneurId) return '----';
+                                        $e = \App\Models\Entrepreneur::withoutGlobalScopes()
+                                            ->with('city')
+                                            ->find($entrepreneurId);
+                                        return $e?->city?->name ?? 'Sin ubicación';
                                     }),
 
                                 Forms\Components\Placeholder::make('manager_name')
                                     ->label('Gestor Asignado')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (! $entrepreneurId) {
-                                            return '----';
-                                        }
-
-                                        $entrepreneur = \App\Models\Entrepreneur::with('manager')->find($entrepreneurId);
-
-                                        return $entrepreneur?->manager?->name ?? 'Sin gestor asignado';
+                                        if (! $entrepreneurId) return '----';
+                                        $e = \App\Models\Entrepreneur::withoutGlobalScopes()
+                                            ->with('manager')
+                                            ->find($entrepreneurId);
+                                        return $e?->manager?->name ?? 'Sin gestor asignado';
                                     }),
 
                                 Forms\Components\Placeholder::make('productive_line_name')
                                     ->label('Línea Productiva')
                                     ->content(function ($get) {
                                         $entrepreneurId = $get('entrepreneur_id');
-                                        if (! $entrepreneurId) {
-                                            return '----';
-                                        }
-
-                                        $entrepreneur = \App\Models\Entrepreneur::with('business.productiveLine')->find($entrepreneurId);
-
-                                        return $entrepreneur?->business?->productiveLine?->name ?? 'Sin línea productiva';
+                                        if (! $entrepreneurId) return '----';
+                                        $e = \App\Models\Entrepreneur::withoutGlobalScopes()
+                                            ->with(['business' => fn ($q) => $q->withoutGlobalScopes()->with('productiveLine')])
+                                            ->find($entrepreneurId);
+                                        return $e?->business?->productiveLine?->name ?? 'Sin línea productiva';
                                     }),
                             ]),
 
@@ -888,7 +880,13 @@ class BusinessPlanResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()
+            ->with([
+                'entrepreneur' => fn ($q) => $q->withoutGlobalScopes(),
+                'entrepreneur.business' => fn ($q) => $q->withoutGlobalScopes(),
+                'entrepreneur.city',
+                'entrepreneur.manager',
+            ]);
 
         if (auth()->user()->hasRole(['Admin', 'Viewer'])) {
             return $query;

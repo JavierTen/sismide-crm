@@ -72,4 +72,9 @@ class Student extends Model
     {
         return $this->hasMany(StudentCharacterization::class);
     }
+
+    public function studentCanvas(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\StudentCanvas::class);
+    }
 }

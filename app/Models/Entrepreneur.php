@@ -229,11 +229,77 @@ class Entrepreneur extends Authenticatable implements FilamentUser, HasName
         return $this->hasOne(BusinessPlan::class);
     }
 
+    public function businessCanvas(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\BusinessCanvas::class);
+    }
+
     /**
      * Relación con las evaluaciones de ferias
      */
     public function fairEvaluations(): HasMany
     {
         return $this->hasMany(\App\Models\FairEvaluation::class);
+    }
+
+    /**
+     * Determina la ruta del emprendedor según su último diagnóstico.
+     * Retorna 'route_1', 'route_2', 'route_3' o null si no tiene diagnóstico.
+     */
+    public function getRoute(): ?string
+    {
+        $diagnosis = $this->businessDiagnoses()->latest()->first();
+
+        if (! $diagnosis || $diagnosis->total_score === null) {
+            return null;
+        }
+
+        $year   = $diagnosis->created_at?->year ?? now()->year;
+        $phases = \App\Support\MaturityScale::getPhaseRanges($year);
+        $score  = (int) $diagnosis->total_score;
+
+        foreach ($phases as $phase => $range) {
+            if ($score >= $range['min'] && $score <= $range['max']) {
+                return 'route_' . $phase;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Retorna los IDs de emprendedores cuyo último diagnóstico los ubica en las rutas indicadas.
+     * Ejemplo: Entrepreneur::getIdsByRoute(['route_1']) para Ruta 1.
+     */
+    public static function getIdsByRoute(array|string $routes): array
+    {
+        $routes = (array) $routes;
+
+        $latestDiagnoses = \Illuminate\Support\Facades\DB::table('business_diagnoses')
+            ->select('entrepreneur_id', 'total_score', \Illuminate\Support\Facades\DB::raw('YEAR(created_at) as diag_year'))
+            ->whereIn('id', function ($q) {
+                $q->select(\Illuminate\Support\Facades\DB::raw('MAX(id)'))
+                    ->from('business_diagnoses')
+                    ->whereNull('deleted_at')
+                    ->groupBy('entrepreneur_id');
+            })
+            ->whereNotNull('total_score')
+            ->get();
+
+        return $latestDiagnoses
+            ->filter(function ($d) use ($routes) {
+                $year   = (int) $d->diag_year;
+                $score  = (int) $d->total_score;
+                $phases = \App\Support\MaturityScale::getPhaseRanges($year);
+
+                foreach ($phases as $phase => $range) {
+                    if ($score >= $range['min'] && $score <= $range['max']) {
+                        return in_array('route_' . $phase, $routes);
+                    }
+                }
+                return false;
+            })
+            ->pluck('entrepreneur_id')
+            ->toArray();
     }
 }

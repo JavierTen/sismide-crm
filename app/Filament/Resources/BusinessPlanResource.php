@@ -116,27 +116,25 @@ class BusinessPlanResource extends Resource
                     ->icon('heroicon-o-user')
                     ->schema([
                         Forms\Components\Select::make('entrepreneur_id')
-                            ->label('Emprendedor')
-                            ->relationship(
-                                'entrepreneur',
-                                'full_name',
-                                fn ($query) => $query->when(
-                                    ! auth()->user()->hasRole('Admin'),
-                                    fn ($q) => $q->where('manager_id', auth()->id())
-                                )
-                            )
+                            ->label('Emprendedor (Ruta 2 o 3)')
+                            ->options(fn () => static::getRoute23EntrepreneurOptions())
                             ->searchable()
-                            ->preload()
                             ->required()
                             ->live()
                             ->placeholder('Buscar emprendedor por nombre')
                             ->disabled(fn (string $operation): bool => $operation === 'edit')
+                            ->dehydrated(true)
                             ->helperText(
                                 fn (string $operation): string => $operation === 'edit'
                                     ? 'El emprendedor asignado no puede ser modificado.'
-                                    : 'Selecciona el emprendedor para autocompletar información relacionada'
+                                    : 'Solo se muestran emprendedores de Ruta 2 o Ruta 3'
                             )
-                            ->unique(table: 'business_plans', column: 'entrepreneur_id', ignoreRecord: true),
+                            ->rules(fn ($record) => [
+                                \Illuminate\Validation\Rule::unique('business_plans', 'entrepreneur_id')
+                                    ->where(fn ($q) => $q->whereYear('created_at', now()->year))
+                                    ->ignore($record?->id),
+                            ])
+                            ->validationMessages(['unique' => 'Este emprendedor ya tiene un Plan de Negocio registrado para el año en curso.']),
 
                         Forms\Components\Grid::make(4)
                             ->schema([
@@ -612,27 +610,20 @@ class BusinessPlanResource extends Resource
                     ->placeholder('Sin fecha')
                     ->toggleable(),
 
-                // ✅ NUEVO: Priorizado
-                Tables\Columns\IconColumn::make('is_prioritized')
+                Tables\Columns\TextColumn::make('is_prioritized')
                     ->label('Priorizado')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-star')
-                    ->falseIcon('heroicon-o-minus-circle')
-                    ->trueColor('warning')
-                    ->falseColor('gray')
+                    ->badge()
+                    ->getStateUsing(fn ($record) => $record->is_prioritized ? 'Sí' : 'No')
+                    ->color(fn ($state) => $state === 'Sí' ? 'warning' : 'gray')
                     ->sortable()
-                    ->alignCenter()
                     ->toggleable(),
 
-                Tables\Columns\IconColumn::make('is_capitalized')
+                Tables\Columns\TextColumn::make('is_capitalized')
                     ->label('Capitalizado')
-                    ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('gray')
+                    ->badge()
+                    ->getStateUsing(fn ($record) => $record->is_capitalized ? 'Sí' : 'No')
+                    ->color(fn ($state) => $state === 'Sí' ? 'success' : 'gray')
                     ->sortable()
-                    ->alignCenter()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('manager.name')
@@ -931,5 +922,20 @@ class BusinessPlanResource extends Resource
         }
 
         return $query->count();
+    }
+
+    private static function getRoute23EntrepreneurOptions(): array
+    {
+        $route23Ids = \App\Models\Entrepreneur::getIdsByRoute(['route_2', 'route_3']);
+
+        return \App\Models\Entrepreneur::withoutGlobalScopes()
+            ->whereIn('id', $route23Ids)
+            ->when(
+                ! auth()->user()->hasRole(['Admin', 'Viewer']),
+                fn ($q) => $q->where('manager_id', auth()->id())
+            )
+            ->orderBy('full_name')
+            ->pluck('full_name', 'id')
+            ->toArray();
     }
 }

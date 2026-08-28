@@ -292,8 +292,7 @@ class BusinessCanvasResource extends Resource
     {
         $route1Ids = Entrepreneur::getIdsByRoute(['route_1']);
 
-        return Entrepreneur::withoutGlobalScopes()
-            ->whereIn('id', $route1Ids)
+        return Entrepreneur::whereIn('id', $route1Ids)
             ->when(
                 ! auth()->user()->hasRole(['Admin', 'Viewer']),
                 fn ($q) => $q->where('manager_id', auth()->id())

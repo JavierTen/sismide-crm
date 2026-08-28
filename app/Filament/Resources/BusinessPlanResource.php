@@ -926,8 +926,7 @@ class BusinessPlanResource extends Resource
     {
         $route23Ids = \App\Models\Entrepreneur::getIdsByRoute(['route_2', 'route_3']);
 
-        return \App\Models\Entrepreneur::withoutGlobalScopes()
-            ->whereIn('id', $route23Ids)
+        return \App\Models\Entrepreneur::whereIn('id', $route23Ids)
             ->when(
                 ! auth()->user()->hasRole(['Admin', 'Viewer']),
                 fn ($q) => $q->where('manager_id', auth()->id())

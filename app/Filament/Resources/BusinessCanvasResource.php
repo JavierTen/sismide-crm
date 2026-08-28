@@ -61,6 +61,7 @@ class BusinessCanvasResource extends Resource
                         ->columnSpan(2)
                         ->options(fn () => static::getRoute1EntrepreneurOptions())
                         ->searchable()
+                        ->optionsLimit(500)
                         ->required()
                         ->disabled(fn (string $operation) => $operation === 'edit')
                         ->dehydrated(true)

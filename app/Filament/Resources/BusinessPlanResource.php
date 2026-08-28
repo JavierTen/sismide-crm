@@ -119,6 +119,7 @@ class BusinessPlanResource extends Resource
                             ->label('Emprendedor (Ruta 2 o 3)')
                             ->options(fn () => static::getRoute23EntrepreneurOptions())
                             ->searchable()
+                            ->optionsLimit(500)
                             ->required()
                             ->live()
                             ->placeholder('Buscar emprendedor por nombre')

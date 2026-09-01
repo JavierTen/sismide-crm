@@ -29,7 +29,8 @@ class BusinessCanvasResource extends Resource
     public static function canCreate(): bool    { return auth()->user()?->can('createBusinessCanvas') ?? false; }
     public static function canEdit($r): bool    { return auth()->user()?->can('editBusinessCanvas') ?? false; }
     public static function canDelete($r): bool  { return auth()->user()?->can('deleteBusinessCanvas') ?? false; }
-    public static function canRestore($r): bool { return auth()->user()?->can('deleteBusinessCanvas') ?? false; }
+    public static function canRestore($r): bool      { return auth()->user()?->can('deleteBusinessCanvas') ?? false; }
+    public static function canForceDelete($r): bool   { return auth()->user()?->hasRole('Admin') ?? false; }
     // Canvas no aparece en el nav propio — se accede vía tab en Planes de Negocio
     public static function shouldRegisterNavigation(): bool { return false; }
 
@@ -251,18 +252,56 @@ class BusinessCanvasResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make()->label('')->tooltip('Ver'),
-                Tables\Actions\EditAction::make()->label('')->tooltip('Editar')
-                    ->visible(fn ($record) => ! $record->trashed()),
-                Tables\Actions\DeleteAction::make()->label('')->tooltip('Deshabilitar')
-                    ->visible(fn ($record) => ! $record->trashed()),
-                Tables\Actions\RestoreAction::make()->label('')->tooltip('Restaurar')
-                    ->visible(fn ($record) => $record->trashed()),
+                Tables\Actions\ViewAction::make()
+                    ->label('')
+                    ->icon('heroicon-o-eye')
+                    ->tooltip('Ver detalles')
+                    ->visible(fn () => auth()->user()->can('listBusinessCanvases')),
+
+                Tables\Actions\EditAction::make()
+                    ->label('')
+                    ->icon('heroicon-o-pencil-square')
+                    ->tooltip('Editar canvas')
+                    ->visible(fn ($record) => ! $record->trashed()
+                        && auth()->user()->can('editBusinessCanvas')
+                        && (auth()->user()->hasRole('Admin') || $record->manager_id === auth()->id())
+                    ),
+
+                Tables\Actions\DeleteAction::make()
+                    ->label('')
+                    ->icon('heroicon-o-archive-box-arrow-down')
+                    ->color('primary')
+                    ->tooltip('Deshabilitar')
+                    ->visible(fn ($record) => ! $record->trashed()
+                        && auth()->user()->can('deleteBusinessCanvas')
+                        && (auth()->user()->hasRole('Admin') || $record->manager_id === auth()->id())
+                    ),
+
+                Tables\Actions\RestoreAction::make()
+                    ->label('')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->color('success')
+                    ->tooltip('Restaurar canvas')
+                    ->visible(fn ($record) => $record->trashed() && auth()->user()->can('deleteBusinessCanvas')),
+
+                Tables\Actions\ForceDeleteAction::make()
+                    ->label('')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->tooltip('Eliminar permanentemente')
+                    ->requiresConfirmation()
+                    ->modalHeading('¿Eliminar permanentemente?')
+                    ->modalDescription('Esta acción NO se puede deshacer y eliminará todos los archivos adjuntos.')
+                    ->visible(fn () => auth()->user()->hasRole('Admin')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()->can('deleteBusinessCanvas')),
+                    Tables\Actions\ForceDeleteBulkAction::make()
+                        ->visible(fn () => auth()->user()->hasRole('Admin')),
+                    Tables\Actions\RestoreBulkAction::make()
+                        ->visible(fn () => auth()->user()->can('deleteBusinessCanvas')),
                 ]),
             ]);
     }

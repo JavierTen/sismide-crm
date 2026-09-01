@@ -5,11 +5,14 @@ namespace App\Exports;
 use App\Models\Actor;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
 
-class ActorContactsExport implements FromCollection, WithHeadings, WithStyles
+class ActorContactsExport implements FromCollection, WithHeadings, WithEvents
 {
     public function __construct(private ?array $ids = null) {}
 
@@ -118,10 +121,36 @@ class ActorContactsExport implements FromCollection, WithHeadings, WithStyles
         ];
     }
 
-    public function styles(Worksheet $sheet): array
+    public function registerEvents(): array
     {
         return [
-            1 => ['font' => ['bold' => true]],
+            AfterSheet::class => function (AfterSheet $event) {
+                $sheet   = $event->sheet->getDelegate();
+                $lastCol = $sheet->getHighestColumn();
+                $lastRow = $sheet->getHighestRow();
+
+                $sheet->getStyle('1:1')->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => [
+                        'fillType'   => Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => '1E40AF'],
+                    ],
+                    'alignment' => [
+                        'wrapText'   => true,
+                        'vertical'   => Alignment::VERTICAL_CENTER,
+                        'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    ],
+                ]);
+
+                $sheet->freezePane('A2');
+                $sheet->setAutoFilter('A1:' . $lastCol . '1');
+
+                $lastColIdx = Coordinate::columnIndexFromString($lastCol);
+                for ($i = 1; $i <= $lastColIdx; $i++) {
+                    $col = Coordinate::stringFromColumnIndex($i);
+                    $sheet->getColumnDimension($col)->setAutoSize(true);
+                }
+            },
         ];
     }
 }

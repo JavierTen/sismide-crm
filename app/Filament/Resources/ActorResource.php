@@ -19,10 +19,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
-use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
-use pxlrbt\FilamentExcel\Columns\Column;
+use App\Exports\ActorContactsExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ActorResource extends Resource
 {
@@ -1390,102 +1388,25 @@ class ActorResource extends Resource
                     ->visible(fn() => auth()->user()->hasRole('Admin')),
             ])
             ->headerActions([
-                ExportAction::make()
+                Tables\Actions\Action::make('export_all')
                     ->label('Exportar Excel')
-                    ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
-                    ->exports([
-                        ExcelExport::make()
-                            ->withFilename(fn() => 'entidades-actores-' . now()->format('Y-m-d-His'))
-                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                            ->modifyQueryUsing(fn($query) => $query->with(['department', 'city', 'manager']))
-                            ->withColumns([
-                                Column::make('name')->heading('Nombre de la Entidad'),
-                                Column::make('nit')->heading('NIT'),
-                                Column::make('type')->heading('Tipo de Entidad')
-                                    ->formatStateUsing(fn($state) => Actor::TYPE_OPTIONS[$state] ?? $state),
-                                Column::make('nature')->heading('Naturaleza')
-                                    ->formatStateUsing(fn($state) => Actor::NATURE_OPTIONS[$state] ?? $state),
-                                Column::make('economic_sector')->heading('Sector Económico'),
-                                Column::make('institutional_phone')->heading('Teléfono Institucional'),
-                                Column::make('institutional_email')->heading('Correo Institucional'),
-                                Column::make('website')->heading('Sitio Web'),
-                                Column::make('linkage_status')->heading('Estado de Vinculación')
-                                    ->formatStateUsing(fn($state) => Actor::LINKAGE_STATUS_OPTIONS[$state] ?? $state),
-                                Column::make('action_scope')->heading('Ámbito de Acción')
-                                    ->formatStateUsing(fn($state) => Actor::ACTION_SCOPE_OPTIONS[$state] ?? $state),
-                                Column::make('has_physical_office')->heading('Tiene Oficina Física')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('office_address')->heading('Dirección'),
-                                Column::make('department.name')->heading('Departamento'),
-                                Column::make('city.name')->heading('Municipio'),
-                                Column::make('territorial_coverage')->heading('Cobertura Territorial')
-                                    ->formatStateUsing(function ($state) {
-                                        if (!$state) return '';
-                                        $arr = is_array($state) ? $state : json_decode($state, true);
-                                        return collect($arr ?? [])->map(fn($k) => Actor::TERRITORIAL_COVERAGE_OPTIONS[$k] ?? $k)->join(', ');
-                                    }),
-                                Column::make('contribution_areas')->heading('Áreas de Aporte')
-                                    ->formatStateUsing(function ($state) {
-                                        if (!$state) return '';
-                                        $arr = is_array($state) ? $state : json_decode($state, true);
-                                        return collect($arr ?? [])->map(fn($k) => Actor::CONTRIBUTION_AREAS_OPTIONS[$k] ?? $k)->join(', ');
-                                    }),
-                                Column::make('has_entrepreneurship_experience')->heading('Tiene Experiencia')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('experience_entrepreneurships_count')->heading('Emprendimientos Atendidos'),
-                                Column::make('commitments_confirmed')->heading('Compromisos con Ruta D')
-                                    ->formatStateUsing(fn($state) => Actor::COMMITMENTS_CONFIRMED_OPTIONS[$state] ?? $state),
-                                Column::make('market_connection_enabled')->heading('Conexión con Mercados')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('authority_management_enabled')->heading('Gestiones con Autoridades')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('financing_access_enabled')->heading('Acceso a Financiación')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('training_advisory_enabled')->heading('Capacitación/Mentorías')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('logistic_support_enabled')->heading('Apoyo Logístico')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('organizational_strengthening_enabled')->heading('Fortalecimiento Organizacional')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('innovation_digital_enabled')->heading('Innovación y Digital')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('route_1_enabled')->heading('Articulado Ruta 1')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('route_2_enabled')->heading('Articulado Ruta 2')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('route_3_enabled')->heading('Articulado Ruta 3')
-                                    ->formatStateUsing(fn($state) => $state ? 'Sí' : 'No'),
-                                Column::make('manager.name')->heading('Registrado por'),
-                                Column::make('created_at')->heading('Fecha de Registro')
-                                    ->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
-                            ]),
-                    ])
+                    ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
-                    ->icon('heroicon-o-arrow-down-tray'),
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->action(fn () => Excel::download(
+                        new ActorContactsExport(),
+                        'entidades-actores-' . now()->format('Y-m-d-His') . '.xlsx'
+                    )),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    ExportBulkAction::make()
+                    Tables\Actions\BulkAction::make('export_selected')
                         ->label('Exportar Excel')
-                        ->exports([
-                            ExcelExport::make()
-                                ->withFilename(fn() => 'entidades-actores-' . now()->format('Y-m-d-His'))
-                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                                ->modifyQueryUsing(fn($query) => $query->with(['department', 'city', 'manager']))
-                                ->withColumns([
-                                    Column::make('name')->heading('Nombre de la Entidad'),
-                                    Column::make('nit')->heading('NIT'),
-                                    Column::make('type')->heading('Tipo de Entidad')
-                                        ->formatStateUsing(fn($state) => Actor::TYPE_OPTIONS[$state] ?? $state),
-                                    Column::make('nature')->heading('Naturaleza')
-                                        ->formatStateUsing(fn($state) => Actor::NATURE_OPTIONS[$state] ?? $state),
-                                    Column::make('linkage_status')->heading('Estado de Vinculación')
-                                        ->formatStateUsing(fn($state) => Actor::LINKAGE_STATUS_OPTIONS[$state] ?? $state),
-                                    Column::make('manager.name')->heading('Registrado por'),
-                                    Column::make('created_at')->heading('Fecha de Registro')
-                                        ->formatStateUsing(fn($state) => $state->format('d/m/Y H:i')),
-                                ]),
-                        ]),
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->action(fn ($records) => Excel::download(
+                            new ActorContactsExport($records->pluck('id')->toArray()),
+                            'entidades-actores-' . now()->format('Y-m-d-His') . '.xlsx'
+                        )),
                     Tables\Actions\ForceDeleteBulkAction::make()
                         ->visible(fn() => auth()->user()->hasRole('Admin')),
                 ]),

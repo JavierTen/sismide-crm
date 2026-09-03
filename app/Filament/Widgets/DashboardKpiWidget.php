@@ -61,7 +61,7 @@ class DashboardKpiWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-chart-bar')
                 ->color('success'),
 
-            Stat::make('Pendientes', number_format($pending))
+            Stat::make('Finalizado', number_format($pending))
                 ->description('Sin caracterización')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('danger'),

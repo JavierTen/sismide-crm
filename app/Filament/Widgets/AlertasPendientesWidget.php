@@ -16,6 +16,8 @@ class AlertasPendientesWidget extends BaseWidget
     protected static ?int $sort = 7;
     protected static ?string $pollingInterval = '60s';
 
+    public static function canView(): bool { return false; }
+
     protected int | string | array $columnSpan = 'full';
 
     protected function getStats(): array

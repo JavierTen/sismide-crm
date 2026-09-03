@@ -388,6 +388,7 @@ class TrainingIndicators extends Page
             ->whereNull('bd.deleted_at')
             ->whereNull('e.deleted_at')
             ->whereNotNull('e.city_id')
+            ->when(\App\Support\YearContext::effectiveYear(), fn($q, $year) => $q->whereYear('e.created_at', $year))
             ->when($this->filterCityId, fn($q) => $q->where('e.city_id', $this->filterCityId))
             ->select(
                 'bd.entrepreneur_id',
@@ -420,16 +421,15 @@ class TrainingIndicators extends Page
      */
     private function getTrainingsPerCityRoute(): \Illuminate\Support\Collection
     {
-        return DB::table('training_sessions as ts')
-            ->join('trainings as t', 'ts.training_id', '=', 't.id')
-            ->whereNull('ts.deleted_at')
+        return DB::table('trainings as t')
             ->whereNull('t.deleted_at')
+            ->when(\App\Support\YearContext::effectiveYear(), fn($q, $year) => $q->whereYear('t.created_at', $year))
             ->when($this->filterRuta,      fn($q) => $q->where('t.route', $this->filterRuta))
             ->when($this->filterModalidad, fn($q) => $q->where('t.modality', $this->filterModalidad))
             ->when($this->filterEstado,    fn($q) => $q->where('t.status', $this->filterEstado))
-            ->when($this->filterCityId,    fn($q) => $q->where('ts.city_id', $this->filterCityId))
-            ->select('ts.city_id', 't.route', DB::raw('COUNT(DISTINCT ts.training_id) as cap_count'))
-            ->groupBy('ts.city_id', 't.route')
+            ->when($this->filterCityId,    fn($q) => $q->where('t.city_id', $this->filterCityId))
+            ->select('t.city_id', 't.route', DB::raw('COUNT(DISTINCT t.id) as cap_count'))
+            ->groupBy('t.city_id', 't.route')
             ->get()
             ->groupBy('city_id');
     }

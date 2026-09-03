@@ -107,6 +107,14 @@ class TrainingIndicators extends Page
             ->distinct()
             ->count('tp.entrepreneur_id');
 
+        $habilitadosUnicos = $this->participationsQuery()
+            ->distinct()
+            ->count('tp.entrepreneur_id');
+
+        $cobertura = $habilitadosUnicos > 0
+            ? round(($emprendedoresUnicos / $habilitadosUnicos) * 100, 1)
+            : 0;
+
         // Horas de formación: sum de intensity_hours de trainings con sesiones (multiplicada por nro de sesiones)
         $horasFormacion = (clone $sesiones)
             ->sum('t.intensity_hours') ?? 0;
@@ -120,7 +128,9 @@ class TrainingIndicators extends Page
 
         return [
             'capacitaciones_realizadas' => $capacitacionesRealizadas,
+            'habilitados_unicos'        => $habilitadosUnicos,
             'emprendedores_unicos'      => $emprendedoresUnicos,
+            'cobertura'                 => $cobertura,
             'horas_formacion'           => round($horasFormacion, 1),
             'pct_asistencia'            => $pctAsistencia,
             'total_asistentes'          => $totalAsistentes,
@@ -148,20 +158,22 @@ class TrainingIndicators extends Page
             ->select(
                 'c.name',
                 DB::raw('COUNT(DISTINCT ts.training_id) as cap_realizadas'),
-                DB::raw('COUNT(tp.id) as habilitados'),
-                DB::raw('SUM(CASE WHEN tp.attended = 1 THEN 1 ELSE 0 END) as asistentes')
+                DB::raw('COUNT(DISTINCT tp.entrepreneur_id) as habilitados_unicos'),
+                DB::raw('COUNT(tp.id) as participaciones_esperadas'),
+                DB::raw('SUM(CASE WHEN tp.attended = 1 THEN 1 ELSE 0 END) as asistencias_registradas')
             )
             ->groupBy('c.id', 'c.name')
             ->orderBy('c.name')
             ->get();
 
         return $rows->map(fn($r) => [
-            'ciudad'           => $r->name,
-            'cap_realizadas'   => $r->cap_realizadas,
-            'habilitados'      => $r->habilitados,
-            'asistentes'       => $r->asistentes,
-            'pct'              => $r->habilitados > 0
-                ? round(($r->asistentes / $r->habilitados) * 100, 1)
+            'ciudad'                    => $r->name,
+            'cap_realizadas'            => $r->cap_realizadas,
+            'habilitados_unicos'        => $r->habilitados_unicos,
+            'participaciones_esperadas' => $r->participaciones_esperadas,
+            'asistencias_registradas'   => $r->asistencias_registradas,
+            'pct'                       => $r->participaciones_esperadas > 0
+                ? round(($r->asistencias_registradas / $r->participaciones_esperadas) * 100, 1)
                 : 0,
         ])->toArray();
     }

@@ -49,12 +49,14 @@
 </x-filament::section>
 
 {{-- ── KPIs (mismo estilo que StatsOverviewWidget) ─────────────────────────── --}}
-<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:1.5rem;">
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem;">
     @foreach([
-        ['label' => 'Capacitaciones realizadas', 'value' => $kpis['capacitaciones_realizadas'], 'desc' => 'con ejecución registrada',      'icon' => 'heroicon-m-book-open',    'color' => 'primary'],
-        ['label' => 'Emprendedores capacitados', 'value' => $kpis['emprendedores_unicos'],      'desc' => 'personas únicas con asistencia','icon' => 'heroicon-m-users',         'color' => 'warning'],
-        ['label' => 'Horas de formación',        'value' => $kpis['horas_formacion'].' h',      'desc' => 'intensidad horaria ejecutada',   'icon' => 'heroicon-m-clock',         'color' => 'info'],
-        ['label' => '% de asistencia',           'value' => $kpis['pct_asistencia'].'%',        'desc' => $kpis['total_asistentes'].'/'.$kpis['total_participaciones'].' asistencias', 'icon' => 'heroicon-m-check-circle', 'color' => 'success'],
+        ['label' => 'Capacitaciones realizadas',  'value' => $kpis['capacitaciones_realizadas'], 'desc' => 'con ejecución registrada',                          'icon' => 'heroicon-m-book-open',    'color' => 'primary'],
+        ['label' => 'Habilitados únicos',          'value' => $kpis['habilitados_unicos'],         'desc' => 'personas distintas habilitadas en al menos una cap.','icon' => 'heroicon-m-user-group',   'color' => 'info'],
+        ['label' => 'Emprendedores capacitados',   'value' => $kpis['emprendedores_unicos'],       'desc' => 'personas únicas con asistencia registrada',           'icon' => 'heroicon-m-users',         'color' => 'warning'],
+        ['label' => 'Cobertura de capacitación',   'value' => $kpis['cobertura'].'%',              'desc' => 'capacitados ÷ habilitados únicos',                   'icon' => 'heroicon-m-trophy',        'color' => 'success'],
+        ['label' => 'Horas de formación',          'value' => $kpis['horas_formacion'].' h',       'desc' => 'intensidad horaria ejecutada',                       'icon' => 'heroicon-m-clock',         'color' => 'info'],
+        ['label' => '% de asistencia',             'value' => $kpis['pct_asistencia'].'%',         'desc' => $kpis['total_asistentes'].'/'.$kpis['total_participaciones'].' asistencias registradas', 'icon' => 'heroicon-m-check-circle', 'color' => 'success'],
     ] as $stat)
     @php $c = $stat['color']; @endphp
     <div class="fi-wi-stats-overview-stat relative rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
@@ -88,9 +90,10 @@
                 <tr class="border-b border-gray-200 dark:border-gray-700">
                     <th class="py-2 px-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Municipio</th>
                     <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Capacitaciones</th>
-                    <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Habilitados</th>
-                    <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Asistentes</th>
-                    <th class="py-2 px-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Avance</th>
+                    <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Habilitados únicos</th>
+                    <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Participaciones esperadas</th>
+                    <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Asistencias registradas</th>
+                    <th class="py-2 px-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">% Asistencia</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -98,8 +101,9 @@
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <td class="py-2.5 px-3 font-medium text-gray-900 dark:text-gray-100">{{ $row['ciudad'] }}</td>
                     <td class="py-2.5 px-3 text-center text-gray-600 dark:text-gray-300">{{ $row['cap_realizadas'] }}</td>
-                    <td class="py-2.5 px-3 text-center text-gray-600 dark:text-gray-300">{{ $row['habilitados'] }}</td>
-                    <td class="py-2.5 px-3 text-center text-gray-600 dark:text-gray-300">{{ $row['asistentes'] }}</td>
+                    <td class="py-2.5 px-3 text-center text-gray-600 dark:text-gray-300">{{ $row['habilitados_unicos'] }}</td>
+                    <td class="py-2.5 px-3 text-center text-gray-600 dark:text-gray-300">{{ $row['participaciones_esperadas'] }}</td>
+                    <td class="py-2.5 px-3 text-center text-gray-600 dark:text-gray-300">{{ $row['asistencias_registradas'] }}</td>
                     <td class="py-2.5 px-3">
                         <div class="flex items-center gap-2">
                             <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 min-w-[60px]">
@@ -114,7 +118,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="py-8 text-center text-sm text-gray-400 dark:text-gray-500">
+                    <td colspan="6" class="py-8 text-center text-sm text-gray-400 dark:text-gray-500">
                         Sin datos para los filtros seleccionados.
                     </td>
                 </tr>
@@ -122,16 +126,18 @@
             </tbody>
             @if(count($municipios) > 1)
             @php
-                $totHab   = array_sum(array_column($municipios, 'habilitados'));
-                $totAsist = array_sum(array_column($municipios, 'asistentes'));
-                $totCaps  = array_sum(array_column($municipios, 'cap_realizadas'));
-                $totPct   = $totHab > 0 ? round($totAsist / $totHab * 100, 1) : 0;
+                $totCaps      = array_sum(array_column($municipios, 'cap_realizadas'));
+                $totHabUnicos = array_sum(array_column($municipios, 'habilitados_unicos'));
+                $totPart      = array_sum(array_column($municipios, 'participaciones_esperadas'));
+                $totAsist     = array_sum(array_column($municipios, 'asistencias_registradas'));
+                $totPct       = $totPart > 0 ? round($totAsist / $totPart * 100, 1) : 0;
             @endphp
             <tfoot>
                 <tr class="border-t-2 border-gray-300 dark:border-gray-600 font-bold">
                     <td class="py-2.5 px-3 text-gray-900 dark:text-gray-100">TOTAL</td>
                     <td class="py-2.5 px-3 text-center text-gray-900 dark:text-gray-100">{{ $totCaps }}</td>
-                    <td class="py-2.5 px-3 text-center text-gray-900 dark:text-gray-100">{{ $totHab }}</td>
+                    <td class="py-2.5 px-3 text-center text-gray-900 dark:text-gray-100">{{ $totHabUnicos }}</td>
+                    <td class="py-2.5 px-3 text-center text-gray-900 dark:text-gray-100">{{ $totPart }}</td>
                     <td class="py-2.5 px-3 text-center text-gray-900 dark:text-gray-100">{{ $totAsist }}</td>
                     <td class="py-2.5 px-3">
                         <div class="flex items-center gap-2">

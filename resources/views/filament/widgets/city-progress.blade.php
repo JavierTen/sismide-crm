@@ -9,7 +9,7 @@
                         <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Registrados</th>
                         <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Caracterizados</th>
                         <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Diagnosticados</th>
-                        <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Pendientes</th>
+                        <th class="py-2 px-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Finalizado</th>
                         <th class="py-2 px-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Avance</th>
                     </tr>
                 </thead>

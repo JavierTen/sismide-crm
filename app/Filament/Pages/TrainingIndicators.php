@@ -107,20 +107,29 @@ class TrainingIndicators extends Page
             ->distinct()
             ->count('tp.entrepreneur_id');
 
-        $habilitadosUnicos = $this->participationsQuery()
-            ->distinct()
-            ->count('tp.entrepreneur_id');
+        // Habilitados únicos = total diagnosticados (base: diagnóstico, no inscripción)
+        $diagMap = $this->getDiagnosticadosMap();
+        $habilitadosUnicos = 0;
+        foreach ($diagMap as $routes) {
+            $habilitadosUnicos += array_sum($routes);
+        }
+
+        // Participaciones esperadas = Σ (capacitaciones × diagnosticados por ruta por municipio)
+        $trainingsMap = $this->getTrainingsPerCityRoute();
+        $totalParticipaciones = 0;
+        foreach ($trainingsMap as $cityId => $cityTrainings) {
+            $cityDiag = $diagMap[$cityId] ?? [];
+            foreach ($cityTrainings as $t) {
+                $totalParticipaciones += (int) $t->cap_count * ($cityDiag[$t->route] ?? 0);
+            }
+        }
 
         $cobertura = $habilitadosUnicos > 0
             ? round(($emprendedoresUnicos / $habilitadosUnicos) * 100, 1)
             : 0;
 
-        // Horas de formación: sum de intensity_hours de trainings con sesiones (multiplicada por nro de sesiones)
-        $horasFormacion = (clone $sesiones)
-            ->sum('t.intensity_hours') ?? 0;
-
-        $totalParticipaciones = $this->participationsQuery()->count();
-        $totalAsistentes      = $this->participationsQuery()->where('tp.attended', true)->count();
+        $horasFormacion  = (clone $sesiones)->sum('t.intensity_hours') ?? 0;
+        $totalAsistentes = $this->participationsQuery()->where('tp.attended', true)->count();
 
         $pctAsistencia = $totalParticipaciones > 0
             ? round(($totalAsistentes / $totalParticipaciones) * 100, 1)
@@ -142,40 +151,55 @@ class TrainingIndicators extends Page
 
     public function getAvancePorMunicipio(): array
     {
-        $rows = DB::table('training_sessions as ts')
+        $diagMap      = $this->getDiagnosticadosMap();
+        $trainingsMap = $this->getTrainingsPerCityRoute();
+
+        $asistPerCity = DB::table('training_participations as tp')
+            ->join('training_sessions as ts', 'tp.training_session_id', '=', 'ts.id')
             ->join('trainings as t', 'ts.training_id', '=', 't.id')
-            ->join('cities as c', 'ts.city_id', '=', 'c.id')
-            ->leftJoin('training_participations as tp', function ($j) {
-                $j->on('tp.training_session_id', '=', 'ts.id')
-                  ->whereNull('tp.deleted_at');
-            })
+            ->whereNull('tp.deleted_at')
             ->whereNull('ts.deleted_at')
             ->whereNull('t.deleted_at')
-            ->when($this->filterRuta, fn($q) => $q->where('t.route', $this->filterRuta))
+            ->when($this->filterRuta,      fn($q) => $q->where('t.route', $this->filterRuta))
             ->when($this->filterModalidad, fn($q) => $q->where('t.modality', $this->filterModalidad))
-            ->when($this->filterEstado, fn($q) => $q->where('t.status', $this->filterEstado))
-            ->when($this->filterCityId, fn($q) => $q->where('ts.city_id', $this->filterCityId))
-            ->select(
-                'c.name',
-                DB::raw('COUNT(DISTINCT ts.training_id) as cap_realizadas'),
-                DB::raw('COUNT(DISTINCT tp.entrepreneur_id) as habilitados_unicos'),
-                DB::raw('COUNT(tp.id) as participaciones_esperadas'),
-                DB::raw('SUM(CASE WHEN tp.attended = 1 THEN 1 ELSE 0 END) as asistencias_registradas')
-            )
-            ->groupBy('c.id', 'c.name')
-            ->orderBy('c.name')
-            ->get();
+            ->when($this->filterEstado,    fn($q) => $q->where('t.status', $this->filterEstado))
+            ->when($this->filterCityId,    fn($q) => $q->where('ts.city_id', $this->filterCityId))
+            ->select('ts.city_id', DB::raw('SUM(CASE WHEN tp.attended = 1 THEN 1 ELSE 0 END) as asistencias'))
+            ->groupBy('ts.city_id')
+            ->pluck('asistencias', 'city_id');
 
-        return $rows->map(fn($r) => [
-            'ciudad'                    => $r->name,
-            'cap_realizadas'            => $r->cap_realizadas,
-            'habilitados_unicos'        => $r->habilitados_unicos,
-            'participaciones_esperadas' => $r->participaciones_esperadas,
-            'asistencias_registradas'   => $r->asistencias_registradas,
-            'pct'                       => $r->participaciones_esperadas > 0
-                ? round(($r->asistencias_registradas / $r->participaciones_esperadas) * 100, 1)
-                : 0,
-        ])->toArray();
+        $cityIds = $trainingsMap->keys()->toArray();
+        $cities  = DB::table('cities')->whereIn('id', $cityIds)->orderBy('name')->pluck('name', 'id');
+
+        $rows = [];
+        foreach ($cities as $cityId => $cityName) {
+            $cityTrainings = $trainingsMap->get($cityId, collect());
+            $cityDiag      = $diagMap[$cityId] ?? [];
+
+            $capRealizadas            = 0;
+            $participacionesEsperadas = 0;
+
+            foreach ($cityTrainings as $t) {
+                $capRealizadas            += (int) $t->cap_count;
+                $participacionesEsperadas += (int) $t->cap_count * ($cityDiag[$t->route] ?? 0);
+            }
+
+            $habilitadosUnicos = array_sum($cityDiag);
+            $asistencias       = (int) ($asistPerCity[$cityId] ?? 0);
+
+            $rows[] = [
+                'ciudad'                    => $cityName,
+                'cap_realizadas'            => $capRealizadas,
+                'habilitados_unicos'        => $habilitadosUnicos,
+                'participaciones_esperadas' => $participacionesEsperadas,
+                'asistencias_registradas'   => $asistencias,
+                'pct'                       => $participacionesEsperadas > 0
+                    ? round(($asistencias / $participacionesEsperadas) * 100, 1)
+                    : 0,
+            ];
+        }
+
+        return $rows;
     }
 
     // ── Distribución por Ruta (donut) ────────────────────────────────────────
@@ -342,6 +366,72 @@ class TrainingIndicators extends Page
             'emp_mun_labels'       => array_column($empMun, 'ciudad'),
             'emp_mun_data'         => array_column($empMun, 'emprendedores'),
         ];
+    }
+
+    // ── Helpers privados de cálculo ──────────────────────────────────────────
+
+    /**
+     * Devuelve [city_id => [route => count]] con el número de emprendedores diagnosticados
+     * por municipio y ruta, aplicando los filtros activos de ciudad y ruta.
+     */
+    private function getDiagnosticadosMap(): array
+    {
+        $rows = DB::table('business_diagnoses as bd')
+            ->join('entrepreneurs as e', 'e.id', '=', 'bd.entrepreneur_id')
+            ->whereIn('bd.id', function ($q) {
+                $q->select(DB::raw('MAX(id)'))
+                  ->from('business_diagnoses')
+                  ->whereNull('deleted_at')
+                  ->groupBy('entrepreneur_id');
+            })
+            ->whereNotNull('bd.total_score')
+            ->whereNull('bd.deleted_at')
+            ->whereNull('e.deleted_at')
+            ->whereNotNull('e.city_id')
+            ->when($this->filterCityId, fn($q) => $q->where('e.city_id', $this->filterCityId))
+            ->select(
+                'bd.entrepreneur_id',
+                'bd.total_score',
+                DB::raw('YEAR(bd.created_at) as diag_year'),
+                'e.city_id'
+            )
+            ->get();
+
+        $map = [];
+        foreach ($rows as $d) {
+            $phases = \App\Support\MaturityScale::getPhaseRanges((int) $d->diag_year);
+            foreach ($phases as $phase => $range) {
+                if ((int) $d->total_score >= $range['min'] && (int) $d->total_score <= $range['max']) {
+                    $route = 'route_' . $phase;
+                    if (! $this->filterRuta || $this->filterRuta === $route) {
+                        $map[$d->city_id][$route] = ($map[$d->city_id][$route] ?? 0) + 1;
+                    }
+                    break;
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Devuelve Collection agrupada por city_id con el conteo de capacitaciones distintas
+     * por ruta, aplicando los filtros activos.
+     */
+    private function getTrainingsPerCityRoute(): \Illuminate\Support\Collection
+    {
+        return DB::table('training_sessions as ts')
+            ->join('trainings as t', 'ts.training_id', '=', 't.id')
+            ->whereNull('ts.deleted_at')
+            ->whereNull('t.deleted_at')
+            ->when($this->filterRuta,      fn($q) => $q->where('t.route', $this->filterRuta))
+            ->when($this->filterModalidad, fn($q) => $q->where('t.modality', $this->filterModalidad))
+            ->when($this->filterEstado,    fn($q) => $q->where('t.status', $this->filterEstado))
+            ->when($this->filterCityId,    fn($q) => $q->where('ts.city_id', $this->filterCityId))
+            ->select('ts.city_id', 't.route', DB::raw('COUNT(DISTINCT ts.training_id) as cap_count'))
+            ->groupBy('ts.city_id', 't.route')
+            ->get()
+            ->groupBy('city_id');
     }
 
     public function getEmprendedoresPorMunicipio(): array

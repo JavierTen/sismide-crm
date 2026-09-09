@@ -341,7 +341,6 @@ class BusinessPlanResource extends Resource
                                     ->suffix('%')
                                     ->placeholder('0.00')
                                     ->helperText('Rentabilidad bruta en porcentaje')
-                                    ->maxLength(5)
                                     ->rules(['numeric', 'between:0,100']),
 
                                 Forms\Components\TextInput::make('cash_flow_growth_rate')
@@ -350,7 +349,6 @@ class BusinessPlanResource extends Resource
                                     ->suffix('%')
                                     ->placeholder('0.00')
                                     ->helperText('Proyección de crecimiento del flujo de caja')
-                                    ->maxLength(5)
                                     ->rules(['numeric', 'between:0,100']),
 
                                 Forms\Components\TextInput::make('internal_return_rate')
@@ -359,7 +357,6 @@ class BusinessPlanResource extends Resource
                                     ->suffix('%')
                                     ->placeholder('0.00')
                                     ->helperText('TIR del proyecto')
-                                    ->maxLength(5)
                                     ->rules(['numeric', 'between:0,100']),
                             ]),
                     ])
@@ -498,20 +495,14 @@ class BusinessPlanResource extends Resource
                             ->columnSpanFull(),
 
                         Forms\Components\FileUpload::make('logo_path')
-                            ->label('Logo del Emprendimiento (PNG)')
+                            ->label('Logo del Emprendimiento')
                             ->directory('logos')
                             ->disk('public')
                             ->image()
                             ->maxSize(5120) // 5 MB
-                            ->acceptedFileTypes(['image/png'])
-                            ->required()
                             ->downloadable()
                             ->openable()
-                            ->helperText('Sube el logo del emprendimiento en formato PNG (máximo 5MB)')
-                            ->validationMessages([
-                                'required' => 'El logo del emprendimiento es obligatorio.',
-                                'max' => 'El archivo no puede superar los 5MB.',
-                            ])
+                            ->helperText('Sube el logo del emprendimiento en formato PNG, JPG o WEBP (máximo 5MB)')
                             ->columnSpanFull(),
 
                         Forms\Components\TextInput::make('fire_pitch_video_url')

@@ -504,12 +504,7 @@ class BusinessPlanResource extends Resource
                             ->image()
                             ->maxSize(5120) // 5 MB
                             ->acceptedFileTypes(['image/png'])
-                            ->imageEditor()
-                            ->imageEditorAspectRatios([
-                                '1:1',
-                                '16:9',
-                                '4:3',
-                            ])
+                            ->required()
                             ->downloadable()
                             ->openable()
                             ->helperText('Sube el logo del emprendimiento en formato PNG (máximo 5MB)')

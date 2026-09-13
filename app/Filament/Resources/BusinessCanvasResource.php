@@ -8,6 +8,7 @@ use App\Models\Entrepreneur;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -257,6 +258,91 @@ class BusinessCanvasResource extends Resource
                     ->icon('heroicon-o-eye')
                     ->tooltip('Ver detalles')
                     ->visible(fn () => auth()->user()->can('listBusinessCanvases')),
+
+                Tables\Actions\Action::make('evaluar_potencial')
+                    ->label('')
+                    ->icon('heroicon-o-star')
+                    ->color('warning')
+                    ->tooltip('Evaluar Potencial')
+                    ->visible(fn ($record) => $record->is_potential === null
+                        && ! $record->trashed()
+                        && auth()->user()->can('evaluarPotencialBusinessCanvas')
+                    )
+                    ->requiresConfirmation()
+                    ->modalIcon('heroicon-o-star')
+                    ->modalIconColor('warning')
+                    ->modalWidth('md')
+                    ->modalHeading('Evaluar Potencial')
+                    ->modalDescription('Determina si el emprendedor tiene potencial de crecimiento para ser priorizado en la siguiente etapa.')
+                    ->modalSubmitActionLabel('Guardar evaluación')
+                    ->form([
+                        Forms\Components\Radio::make('is_potential')
+                            ->label('¿El emprendedor tiene potencial?')
+                            ->options([
+                                '1' => 'Sí, tiene potencial',
+                                '0' => 'No, no tiene el potencial requerido',
+                            ])
+                            ->required()
+                            ->inline(false),
+                    ])
+                    ->action(function ($record, array $data): void {
+                        $record->update(['is_potential' => (bool) $data['is_potential']]);
+                        $label = (bool) $data['is_potential'] ? 'marcado como potencial' : 'marcado sin potencial';
+                        Notification::make()
+                            ->success()
+                            ->title('Evaluación guardada')
+                            ->body("El emprendimiento fue {$label} correctamente.")
+                            ->send();
+                    }),
+
+                Tables\Actions\Action::make('marcar_priorizado')
+                    ->label('')
+                    ->icon('heroicon-o-bookmark')
+                    ->color(fn ($record) => $record->is_prioritized ? 'gray' : 'warning')
+                    ->tooltip(fn ($record) => $record->is_prioritized ? 'Quitar prioridad' : 'Marcar priorizado')
+                    ->visible(fn ($record) => ($record->is_potential === true || $record->is_potential == 1)
+                        && ! $record->trashed()
+                        && auth()->user()->can('marcarPriorizadoBusinessCanvas')
+                    )
+                    ->form(function ($record): array {
+                        if ($record->is_prioritized || ! empty($record->fire_pitch_video_url)) {
+                            return [];
+                        }
+                        return [
+                            Forms\Components\TextInput::make('fire_pitch_video_url')
+                                ->label('Video Fire Pitch (URL)')
+                                ->helperText('Es obligatorio para marcar el emprendimiento como priorizado.')
+                                ->url()
+                                ->required()
+                                ->maxLength(500),
+                        ];
+                    })
+                    ->requiresConfirmation()
+                    ->modalIcon(fn ($record) => $record->is_prioritized ? 'heroicon-o-bookmark-slash' : 'heroicon-o-bookmark')
+                    ->modalIconColor(fn ($record) => $record->is_prioritized ? 'gray' : 'warning')
+                    ->modalWidth('md')
+                    ->modalHeading(fn ($record) => $record->is_prioritized ? 'Quitar prioridad' : 'Marcar como priorizado')
+                    ->modalDescription(fn ($record) => $record->is_prioritized
+                        ? '¿Estás seguro de que deseas quitar la prioridad a este emprendimiento?'
+                        : (empty($record->fire_pitch_video_url)
+                            ? 'Ingresa la URL del video Fire Pitch para continuar. Este campo es obligatorio para priorizar el emprendimiento.'
+                            : '¿Estás seguro de que deseas marcar este emprendimiento como priorizado?'
+                        )
+                    )
+                    ->modalSubmitActionLabel(fn ($record) => $record->is_prioritized ? 'Sí, quitar prioridad' : 'Sí, priorizar')
+                    ->action(function ($record, array $data): void {
+                        $newState = ! $record->is_prioritized;
+                        $updateData = ['is_prioritized' => $newState];
+                        if (! empty($data['fire_pitch_video_url'])) {
+                            $updateData['fire_pitch_video_url'] = $data['fire_pitch_video_url'];
+                        }
+                        $record->update($updateData);
+
+                        Notification::make()
+                            ->success()
+                            ->title($newState ? 'Emprendedor priorizado' : 'Prioridad removida')
+                            ->send();
+                    }),
 
                 Tables\Actions\EditAction::make()
                     ->label('')

@@ -511,12 +511,11 @@ class BusinessPlanResource extends Resource
                             ->placeholder('https://www.youtube.com/watch?v=...')
                             ->helperText('Ingresa el enlace del video de Fire Pitch en YouTube')
                             ->rules([
-                                'required',
+                                'nullable',
                                 'url',
                                 'regex:/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/'
                             ])
                             ->validationMessages([
-                                'required' => 'El video de Fire Pitch es obligatorio.',
                                 'url' => 'Debe ser una URL válida.',
                                 'regex' => 'Debe ser un enlace válido de YouTube.',
                             ])
@@ -528,12 +527,11 @@ class BusinessPlanResource extends Resource
                             ->placeholder('https://www.youtube.com/watch?v=...')
                             ->helperText('Ingresa el enlace del video del ciclo productivo en YouTube')
                             ->rules([
-                                'required',
+                                'nullable',
                                 'url',
                                 'regex:/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/'
                             ])
                             ->validationMessages([
-                                'required' => 'El video del ciclo productivo es obligatorio.',
                                 'url' => 'Debe ser una URL válida.',
                                 'regex' => 'Debe ser un enlace válido de YouTube.',
                             ])

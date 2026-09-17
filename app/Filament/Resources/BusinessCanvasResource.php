@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\FormattedExcelExport;
 use App\Filament\Resources\BusinessCanvasResource\Pages;
 use App\Models\BusinessCanvas;
 use App\Models\Entrepreneur;
@@ -14,6 +15,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Columns\Column;
 
 class BusinessCanvasResource extends Resource
 {
@@ -380,8 +384,34 @@ class BusinessCanvasResource extends Resource
                     ->modalDescription('Esta acción NO se puede deshacer y eliminará todos los archivos adjuntos.')
                     ->visible(fn () => auth()->user()->hasRole('Admin')),
             ])
+            ->headerActions([
+                ExportAction::make()
+                    ->label('Exportar Excel')
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->exports([
+                        FormattedExcelExport::make()
+                            ->withFilename(fn () => 'canvas-'.now()->format('Y-m-d-His'))
+                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                            ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                            ->withColumns(self::exportColumns())
+                            ->afterSheet(self::afterSheetCallback()),
+                    ])
+                    ->color('success')
+                    ->icon('heroicon-o-arrow-down-tray'),
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    ExportBulkAction::make()
+                        ->label('Exportar Excel')
+                        ->exports([
+                            FormattedExcelExport::make()
+                                ->withFilename(fn () => 'canvas-'.now()->format('Y-m-d-His'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                                ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                                ->withColumns(self::exportColumns())
+                                ->afterSheet(self::afterSheetCallback()),
+                        ]),
+
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn () => auth()->user()->can('deleteBusinessCanvas')),
                     Tables\Actions\ForceDeleteBulkAction::make()
@@ -399,6 +429,117 @@ class BusinessCanvasResource extends Resource
             'create' => Pages\CreateBusinessCanvas::route('/create'),
             'edit'   => Pages\EditBusinessCanvas::route('/{record}/edit'),
         ];
+    }
+
+    private static function exportWith(): array
+    {
+        return [
+            'entrepreneur.business',
+            'entrepreneur.city',
+            'manager',
+        ];
+    }
+
+    private static function exportColumns(): array
+    {
+        return [
+            Column::make('entrepreneur_name')
+                ->heading('Emprendedor')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->full_name ?? ''),
+
+            Column::make('business_name')
+                ->heading('Emprendimiento')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->business?->business_name ?? ''),
+
+            Column::make('city_name')
+                ->heading('Municipio')
+                ->getStateUsing(fn ($record) => $record->entrepreneur?->city?->name ?? ''),
+
+            Column::make('problem_identification')
+                ->heading('El problema'),
+
+            Column::make('business_idea')
+                ->heading('Tu idea / Solución'),
+
+            Column::make('differentiator')
+                ->heading('¿Qué te hace diferente?'),
+
+            Column::make('achievements')
+                ->heading('Resultados logrados'),
+
+            Column::make('business_model_description')
+                ->heading('¿Cómo funciona?'),
+
+            Column::make('next_steps')
+                ->heading('Próximo paso / Necesidades'),
+
+            Column::make('canvas_file_path')
+                ->heading('Documento Canvas')
+                ->getStateUsing(fn ($record) => ! empty($record->canvas_file_path) ? 'Sí' : 'No'),
+
+            Column::make('fire_pitch_video_url')
+                ->heading('Video Fire Pitch'),
+
+            Column::make('is_potential')
+                ->heading('Potencial')
+                ->getStateUsing(fn ($record) => match (true) {
+                    $record->is_potential === null => 'Pendiente',
+                    (bool) $record->is_potential   => 'Sí',
+                    default                        => 'No',
+                }),
+
+            Column::make('is_prioritized')
+                ->heading('Priorizado')
+                ->getStateUsing(fn ($record) => $record->is_prioritized ? 'Sí' : 'No'),
+
+            Column::make('manager_name')
+                ->heading('Registrado por')
+                ->getStateUsing(fn ($record) => $record->manager?->name ?? ''),
+
+            Column::make('created_at')
+                ->heading('Fecha Registro')
+                ->getStateUsing(fn ($record) => $record->created_at?->format('d/m/Y H:i') ?? ''),
+        ];
+    }
+
+    private static function afterSheetCallback(): \Closure
+    {
+        return function (\Maatwebsite\Excel\Events\AfterSheet $event) {
+            $sheet        = $event->sheet->getDelegate();
+            $highest      = $sheet->getHighestRowAndColumn();
+            $lastCol      = $highest['column'];
+            $lastRow      = $highest['row'];
+            $lastColIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+
+            $sheet->getStyle('A1:'.$lastCol.'1')->applyFromArray([
+                'font' => [
+                    'bold'  => true,
+                    'color' => ['argb' => 'FFFFFFFF'],
+                ],
+                'fill' => [
+                    'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['argb' => 'FF1E40AF'],
+                ],
+                'alignment' => [
+                    'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                    'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                    'wrapText'   => true,
+                ],
+            ]);
+
+            if ($lastRow > 1) {
+                $sheet->getStyle('A2:'.$lastCol.$lastRow)->getAlignment()
+                    ->setWrapText(true)
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+            }
+
+            for ($i = 1; $i <= $lastColIndex; $i++) {
+                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+            }
+
+            $sheet->freezePane('A2');
+            $sheet->setAutoFilter('A1:'.$lastCol.'1');
+        };
     }
 
     public static function getNavigationBadge(): ?string

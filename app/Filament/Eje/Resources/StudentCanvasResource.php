@@ -2,6 +2,7 @@
 
 namespace App\Filament\Eje\Resources;
 
+use App\Exports\FormattedExcelExport;
 use App\Filament\Eje\Resources\StudentCanvasResource\Pages;
 use App\Models\Student;
 use App\Models\StudentCanvas;
@@ -13,6 +14,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Columns\Column;
 
 class StudentCanvasResource extends Resource
 {
@@ -171,23 +175,17 @@ class StudentCanvasResource extends Resource
                     ->label('Grado')
                     ->formatStateUsing(fn ($state) => $state ? $state . '°' : '—'),
 
-                Tables\Columns\IconColumn::make('canvas_file_path')
-                    ->label('Canvas')
-                    ->boolean()
-                    ->getStateUsing(fn ($record) => ! empty($record->canvas_file_path))
-                    ->trueIcon('heroicon-o-document-check')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
+                Tables\Columns\TextColumn::make('canvas_file_path')
+                    ->label('Archivo')
+                    ->getStateUsing(fn ($record) => ! empty($record->canvas_file_path) ? 'Sí' : 'No')
+                    ->badge()
+                    ->color(fn ($state) => $state === 'Sí' ? 'success' : 'danger'),
 
-                Tables\Columns\IconColumn::make('fire_pitch_video_url')
+                Tables\Columns\TextColumn::make('fire_pitch_video_url')
                     ->label('Fire Pitch')
-                    ->boolean()
-                    ->getStateUsing(fn ($record) => ! empty($record->fire_pitch_video_url))
-                    ->trueIcon('heroicon-o-play-circle')
-                    ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
-                    ->falseColor('danger'),
+                    ->getStateUsing(fn ($record) => ! empty($record->fire_pitch_video_url) ? 'Sí' : 'No')
+                    ->badge()
+                    ->color(fn ($state) => $state === 'Sí' ? 'success' : 'danger'),
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
@@ -195,15 +193,41 @@ class StudentCanvasResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make()->label('')->tooltip('Ver'),
                 Tables\Actions\EditAction::make()->label('')->tooltip('Editar')
-                    ->visible(fn ($record) => ! $record->trashed()),
+                    ->visible(fn ($record) => ! $record->trashed() && static::userCanEdit() && (auth()->user()->hasRole('Admin') || $record->manager_id === auth()->id())),
                 Tables\Actions\DeleteAction::make()->label('')->tooltip('Deshabilitar')
-                    ->visible(fn ($record) => ! $record->trashed()),
+                    ->visible(fn ($record) => ! $record->trashed() && static::userCanDelete() && (auth()->user()->hasRole('Admin') || $record->manager_id === auth()->id())),
                 Tables\Actions\RestoreAction::make()->label('')->tooltip('Restaurar')
                     ->visible(fn ($record) => $record->trashed()),
             ])
+            ->headerActions([
+                ExportAction::make()
+                    ->label('Exportar Excel')
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->exports([
+                        FormattedExcelExport::make()
+                            ->withFilename(fn () => 'canvas-estudiantes-'.now()->format('Y-m-d-His'))
+                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                            ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                            ->withColumns(self::exportColumns())
+                            ->afterSheet(self::afterSheetCallback()),
+                    ])
+                    ->color('success')
+                    ->icon('heroicon-o-arrow-down-tray'),
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make()
+                        ->label('Exportar Excel')
+                        ->exports([
+                            FormattedExcelExport::make()
+                                ->withFilename(fn () => 'canvas-estudiantes-'.now()->format('Y-m-d-His'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                                ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                                ->withColumns(self::exportColumns())
+                                ->afterSheet(self::afterSheetCallback()),
+                        ]),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn () => static::userCanDelete()),
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
@@ -216,6 +240,72 @@ class StudentCanvasResource extends Resource
             'create' => Pages\CreateStudentCanvas::route('/create'),
             'edit'   => Pages\EditStudentCanvas::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getEloquentQuery()->count();
+    }
+
+    private static function exportWith(): array
+    {
+        return ['student.educationalInstitution.city', 'manager'];
+    }
+
+    private static function exportColumns(): array
+    {
+        return [
+            Column::make('student_name')->heading('Estudiante')
+                ->getStateUsing(fn ($record) => $record->student?->name ?? ''),
+            Column::make('institution')->heading('Institución Educativa')
+                ->getStateUsing(fn ($record) => $record->student?->educationalInstitution?->display_name ?? ''),
+            Column::make('city')->heading('Municipio')
+                ->getStateUsing(fn ($record) => $record->student?->educationalInstitution?->city?->name ?? ''),
+            Column::make('grade')->heading('Grado')
+                ->getStateUsing(fn ($record) => $record->student?->grade ? $record->student->grade.'°' : ''),
+            Column::make('problem_identification')->heading('El problema'),
+            Column::make('business_idea')->heading('Tu idea / Solución'),
+            Column::make('differentiator')->heading('¿Qué te hace diferente?'),
+            Column::make('achievements')->heading('Resultados logrados'),
+            Column::make('business_model_description')->heading('¿Cómo funciona?'),
+            Column::make('next_steps')->heading('Próximo paso / Necesidades'),
+            Column::make('canvas_file_path')->heading('Documento Canvas')
+                ->getStateUsing(fn ($record) => ! empty($record->canvas_file_path) ? 'Sí' : 'No'),
+            Column::make('fire_pitch_video_url')->heading('Video Fire Pitch'),
+            Column::make('manager_name')->heading('Registrado por')
+                ->getStateUsing(fn ($record) => $record->manager?->name ?? ''),
+            Column::make('created_at')->heading('Fecha Registro')
+                ->getStateUsing(fn ($record) => $record->created_at?->format('d/m/Y H:i') ?? ''),
+        ];
+    }
+
+    private static function afterSheetCallback(): \Closure
+    {
+        return function (\Maatwebsite\Excel\Events\AfterSheet $event) {
+            $sheet        = $event->sheet->getDelegate();
+            $highest      = $sheet->getHighestRowAndColumn();
+            $lastCol      = $highest['column'];
+            $lastRow      = $highest['row'];
+            $lastColIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+
+            $sheet->getStyle('A1:'.$lastCol.'1')->applyFromArray([
+                'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+                'fill'      => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1E40AF']],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER, 'wrapText' => true],
+            ]);
+
+            if ($lastRow > 1) {
+                $sheet->getStyle('A2:'.$lastCol.$lastRow)->getAlignment()
+                    ->setWrapText(true)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+            }
+
+            for ($i = 1; $i <= $lastColIndex; $i++) {
+                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+            }
+
+            $sheet->freezePane('A2');
+            $sheet->setAutoFilter('A1:'.$lastCol.'1');
+        };
     }
 
     // ── HELPERS ─────────────────────────────────────────────────────────────────

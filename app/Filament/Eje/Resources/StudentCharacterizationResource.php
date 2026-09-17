@@ -2,6 +2,7 @@
 
 namespace App\Filament\Eje\Resources;
 
+use App\Exports\FormattedExcelExport;
 use App\Filament\Eje\Resources\StudentCharacterizationResource\Pages;
 use App\Models\Student;
 use App\Models\StudentCharacterization;
@@ -11,6 +12,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Columns\Column;
 
 class StudentCharacterizationResource extends Resource
 {
@@ -292,8 +296,33 @@ class StudentCharacterizationResource extends Resource
                 Tables\Actions\ForceDeleteAction::make()
                     ->visible(fn ($record) => $record->trashed() && auth()->user()->hasRole('Admin')),
             ])
+            ->headerActions([
+                ExportAction::make()
+                    ->label('Exportar Excel')
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->exports([
+                        FormattedExcelExport::make()
+                            ->withFilename(fn () => 'caracterizaciones-estudiantes-'.now()->format('Y-m-d-His'))
+                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                            ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                            ->withColumns(self::exportColumns())
+                            ->afterSheet(self::afterSheetCallback()),
+                    ])
+                    ->color('success')
+                    ->icon('heroicon-o-arrow-down-tray'),
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    ExportBulkAction::make()
+                        ->label('Exportar Excel')
+                        ->exports([
+                            FormattedExcelExport::make()
+                                ->withFilename(fn () => 'caracterizaciones-estudiantes-'.now()->format('Y-m-d-His'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                                ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                                ->withColumns(self::exportColumns())
+                                ->afterSheet(self::afterSheetCallback()),
+                        ]),
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn () => static::userCanDelete()),
                 ]),
@@ -323,5 +352,82 @@ class StudentCharacterizationResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         return static::getEloquentQuery()->count();
+    }
+
+    private static function exportWith(): array
+    {
+        return ['student.educationalInstitution.city', 'student.documentType', 'student.gender', 'manager'];
+    }
+
+    private static function exportColumns(): array
+    {
+        return [
+            Column::make('student_name')->heading('Estudiante')
+                ->getStateUsing(fn ($record) => $record->student?->name ?? ''),
+            Column::make('institution')->heading('Institución Educativa')
+                ->getStateUsing(fn ($record) => $record->student?->educationalInstitution?->display_name ?? ''),
+            Column::make('city')->heading('Municipio')
+                ->getStateUsing(fn ($record) => $record->student?->educationalInstitution?->city?->name ?? ''),
+            Column::make('doc_type')->heading('Tipo de Documento')
+                ->getStateUsing(fn ($record) => $record->student?->documentType?->name ?? ''),
+            Column::make('document_number')->heading('Documento')
+                ->getStateUsing(fn ($record) => $record->student?->document_number ?? ''),
+            Column::make('age')->heading('Edad')
+                ->getStateUsing(fn ($record) => $record->student?->age ?? ''),
+            Column::make('gender')->heading('Género')
+                ->getStateUsing(fn ($record) => $record->student?->gender?->name ?? ''),
+            Column::make('grade')->heading('Grado')
+                ->getStateUsing(fn ($record) => Student::gradeOptions()[$record->student?->grade] ?? $record->student?->grade ?? ''),
+            Column::make('course')->heading('Curso')
+                ->getStateUsing(fn ($record) => $record->student?->course ?? ''),
+            Column::make('zone')->heading('Zona')
+                ->getStateUsing(fn ($record) => StudentCharacterization::zoneOptions()[$record->zone] ?? $record->zone ?? ''),
+            Column::make('main_interest')->heading('Interés Principal')
+                ->getStateUsing(fn ($record) => $record->main_interest === 'other'
+                    ? ($record->main_interest_other ?? 'Otro')
+                    : (StudentCharacterization::mainInterestOptions()[$record->main_interest] ?? $record->main_interest ?? '')),
+            Column::make('life_project')->heading('Proyecto de Vida'),
+            Column::make('has_prior_experience')->heading('Experiencia Previa')
+                ->getStateUsing(fn ($record) => $record->has_prior_experience ? 'Sí' : 'No'),
+            Column::make('participation_status')->heading('Estado de Participación')
+                ->getStateUsing(fn ($record) => StudentCharacterization::participationStatusOptions()[$record->participation_status] ?? $record->participation_status ?? ''),
+            Column::make('program_join_date')->heading('Fecha de Ingreso')
+                ->getStateUsing(fn ($record) => $record->program_join_date?->format('d/m/Y') ?? ''),
+            Column::make('data_authorization')->heading('Autorización de Datos')
+                ->getStateUsing(fn ($record) => $record->data_authorization ? 'Sí' : 'No'),
+            Column::make('manager_name')->heading('Registrado por')
+                ->getStateUsing(fn ($record) => $record->manager?->name ?? ''),
+            Column::make('created_at')->heading('Fecha Registro')
+                ->getStateUsing(fn ($record) => $record->created_at?->format('d/m/Y H:i') ?? ''),
+        ];
+    }
+
+    private static function afterSheetCallback(): \Closure
+    {
+        return function (\Maatwebsite\Excel\Events\AfterSheet $event) {
+            $sheet        = $event->sheet->getDelegate();
+            $highest      = $sheet->getHighestRowAndColumn();
+            $lastCol      = $highest['column'];
+            $lastRow      = $highest['row'];
+            $lastColIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+
+            $sheet->getStyle('A1:'.$lastCol.'1')->applyFromArray([
+                'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+                'fill'      => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1E40AF']],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER, 'wrapText' => true],
+            ]);
+
+            if ($lastRow > 1) {
+                $sheet->getStyle('A2:'.$lastCol.$lastRow)->getAlignment()
+                    ->setWrapText(true)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+            }
+
+            for ($i = 1; $i <= $lastColIndex; $i++) {
+                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+            }
+
+            $sheet->freezePane('A2');
+            $sheet->setAutoFilter('A1:'.$lastCol.'1');
+        };
     }
 }

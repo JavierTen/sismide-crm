@@ -11,10 +11,10 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 // Exportar en excel
+use App\Exports\FormattedExcelExport;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use pxlrbt\FilamentExcel\Columns\Column;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
 
 class BusinessPlanResource extends Resource
 {
@@ -701,86 +701,12 @@ class BusinessPlanResource extends Resource
                     ->label('Exportar Excel')
                     ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
-                        ExcelExport::make()
+                        FormattedExcelExport::make()
                             ->withFilename(fn () => 'planes-negocio-'.now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                            ->modifyQueryUsing(fn ($query) => $query->with([
-                                'entrepreneur.business.productiveLine',
-                                'entrepreneur.city',
-                                'entrepreneur.manager',
-                                'manager',
-                            ]))
-                            ->withColumns([
-                                // === INFORMACIÓN BÁSICA ===
-                                Column::make('entrepreneur.full_name')->heading('Emprendedor'),
-                                Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
-                                Column::make('entrepreneur.city.name')->heading('Municipio'),
-                                Column::make('entrepreneur.business.productiveLine.name')->heading('Línea Productiva'),
-                                Column::make('creation_date')->heading('Fecha del Plan')->formatStateUsing(fn ($state) => $state?->format('d/m/Y')),
-
-                                // ✅ NUEVO CAMPO
-                                Column::make('is_prioritized')->heading('Priorizado para Sustentar')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-
-                                // === DEFINICIÓN DEL NEGOCIO ===
-                                Column::make('business_definition')->heading('Definición del Negocio'),
-                                Column::make('problems_to_solve')->heading('Problemas a Resolver'),
-                                Column::make('mission')->heading('Misión'),
-                                Column::make('vision')->heading('Visión'),
-                                Column::make('value_proposition')->heading('Propuesta de Valor'),
-
-                                // === CAPITALIZACIÓN ===
-                                Column::make('is_capitalized')->heading('Capitalizado')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-                                Column::make('capitalization_year')->heading('Año de Capitalización')->formatStateUsing(fn ($state) => $state ?? 'N/A'),
-
-                                // === REQUERIMIENTOS ===
-                                Column::make('requirements_needs')->heading('Requerimientos/Necesidades'),
-
-                                // === VENTAS Y PRODUCCIÓN ===
-                                Column::make('monthly_sales_cop')->heading('Ventas Mensuales (COP)')->formatStateUsing(fn ($state) => $state ? '$'.number_format($state, 2) : 'N/A'),
-                                Column::make('monthly_sales_units')->heading('Ventas Mensuales (Unidades)'),
-                                Column::make('production_frequency')->heading('Frecuencia de Producción')->formatStateUsing(fn ($state) => match ($state) {
-                                    'daily' => 'Diaria',
-                                    'weekly' => 'Semanal',
-                                    'biweekly' => 'Quincenal',
-                                    'monthly' => 'Mensual',
-                                    'quarterly' => 'Trimestral',
-                                    'biannual' => 'Semestral',
-                                    'annual' => 'Anual',
-                                    default => $state ?? 'N/A',
-                                }),
-
-                                // === INDICADORES FINANCIEROS ===
-                                Column::make('gross_profitability_rate')->heading('Tasa Rentabilidad Bruta (%)'),
-                                Column::make('cash_flow_growth_rate')->heading('Tasa Crecimiento Flujo Caja (%)'),
-                                Column::make('internal_return_rate')->heading('TIR (%)'),
-
-                                // === PUNTO DE EQUILIBRIO ===
-                                Column::make('break_even_units')->heading('Punto Equilibrio (Unidades)'),
-                                Column::make('break_even_cop')->heading('Punto Equilibrio (COP)')->formatStateUsing(fn ($state) => $state ? '$'.number_format($state, 2) : 'N/A'),
-
-                                // === INVERSIÓN Y EMPLEOS ===
-                                Column::make('current_investment_value')->heading('Inversión Actual (COP)')->formatStateUsing(fn ($state) => $state ? '$'.number_format($state, 2) : 'N/A'),
-                                Column::make('jobs_generated')->heading('Empleos Generados'),
-
-                                // === MERCADO ===
-                                Column::make('direct_competitors')->heading('Competidores Directos'),
-                                Column::make('target_market')->heading('Mercado Objetivo'),
-
-                                // === OTROS ===
-                                Column::make('observations')->heading('Observaciones'),
-
-                                // ✅ ARCHIVOS ADJUNTOS
-                                Column::make('business_plan_path')->heading('Plan de Negocio')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('acquisition_matrix_path')->heading('Matriz de Adquisición')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('business_model_path')->heading('Modelo de Negocio')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('logo_path')->heading('Logo')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                Column::make('fire_pitch_video_url')->heading('Video Fire Pitch'),
-                                Column::make('production_cycle_video_url')->heading('Video Ciclo Productivo'),
-
-                                // === INFORMACIÓN ADICIONAL ===
-                                Column::make('manager.name')->heading('Registrado por'),
-                                Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
-                            ]),
+                            ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                            ->withColumns(self::exportColumns())
+                            ->afterSheet(self::afterSheetCallback()),
                     ])
                     ->color('success')
                     ->icon('heroicon-o-arrow-down-tray'),
@@ -790,62 +716,12 @@ class BusinessPlanResource extends Resource
                     ExportBulkAction::make()
                         ->label('Exportar Excel')
                         ->exports([
-                            ExcelExport::make()
+                            FormattedExcelExport::make()
                                 ->withFilename(fn () => 'planes-negocio-'.now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                                ->modifyQueryUsing(fn ($query) => $query->with([
-                                    'entrepreneur.business.productiveLine',
-                                    'entrepreneur.city',
-                                    'entrepreneur.manager',
-                                    'manager',
-                                ]))
-                                ->withColumns([
-                                    // Mismas columnas que el export action
-                                    Column::make('entrepreneur.full_name')->heading('Emprendedor'),
-                                    Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
-                                    Column::make('entrepreneur.city.name')->heading('Municipio'),
-                                    Column::make('entrepreneur.business.productiveLine.name')->heading('Línea Productiva'),
-                                    Column::make('creation_date')->heading('Fecha del Plan')->formatStateUsing(fn ($state) => $state?->format('d/m/Y')),
-                                    Column::make('is_prioritized')->heading('Priorizado para Sustentar')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-                                    Column::make('business_definition')->heading('Definición del Negocio'),
-                                    Column::make('problems_to_solve')->heading('Problemas a Resolver'),
-                                    Column::make('mission')->heading('Misión'),
-                                    Column::make('vision')->heading('Visión'),
-                                    Column::make('value_proposition')->heading('Propuesta de Valor'),
-                                    Column::make('is_capitalized')->heading('Capitalizado')->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
-                                    Column::make('capitalization_year')->heading('Año de Capitalización')->formatStateUsing(fn ($state) => $state ?? 'N/A'),
-                                    Column::make('requirements_needs')->heading('Requerimientos/Necesidades'),
-                                    Column::make('monthly_sales_cop')->heading('Ventas Mensuales (COP)')->formatStateUsing(fn ($state) => $state ? '$'.number_format($state, 2) : 'N/A'),
-                                    Column::make('monthly_sales_units')->heading('Ventas Mensuales (Unidades)'),
-                                    Column::make('production_frequency')->heading('Frecuencia de Producción')->formatStateUsing(fn ($state) => match ($state) {
-                                        'daily' => 'Diaria',
-                                        'weekly' => 'Semanal',
-                                        'biweekly' => 'Quincenal',
-                                        'monthly' => 'Mensual',
-                                        'quarterly' => 'Trimestral',
-                                        'biannual' => 'Semestral',
-                                        'annual' => 'Anual',
-                                        default => $state ?? 'N/A',
-                                    }),
-                                    Column::make('gross_profitability_rate')->heading('Tasa Rentabilidad Bruta (%)'),
-                                    Column::make('cash_flow_growth_rate')->heading('Tasa Crecimiento Flujo Caja (%)'),
-                                    Column::make('internal_return_rate')->heading('TIR (%)'),
-                                    Column::make('break_even_units')->heading('Punto Equilibrio (Unidades)'),
-                                    Column::make('break_even_cop')->heading('Punto Equilibrio (COP)')->formatStateUsing(fn ($state) => $state ? '$'.number_format($state, 2) : 'N/A'),
-                                    Column::make('current_investment_value')->heading('Inversión Actual (COP)')->formatStateUsing(fn ($state) => $state ? '$'.number_format($state, 2) : 'N/A'),
-                                    Column::make('jobs_generated')->heading('Empleos Generados'),
-                                    Column::make('direct_competitors')->heading('Competidores Directos'),
-                                    Column::make('target_market')->heading('Mercado Objetivo'),
-                                    Column::make('observations')->heading('Observaciones'),
-                                    Column::make('business_plan_path')->heading('Plan de Negocio')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('acquisition_matrix_path')->heading('Matriz de Adquisición')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('business_model_path')->heading('Modelo de Negocio')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('logo_path')->heading('Logo')->formatStateUsing(fn ($state) => !empty($state) ? 'Sí' : 'No'),
-                                    Column::make('fire_pitch_video_url')->heading('Video Fire Pitch'),
-                                    Column::make('production_cycle_video_url')->heading('Video Ciclo Productivo'),
-                                    Column::make('manager.name')->heading('Registrado por'),
-                                    Column::make('created_at')->heading('Fecha Registro')->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
-                                ]),
+                                ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                                ->withColumns(self::exportColumns())
+                                ->afterSheet(self::afterSheetCallback()),
                         ]),
 
                     Tables\Actions\DeleteBulkAction::make()
@@ -894,6 +770,119 @@ class BusinessPlanResource extends Resource
             'create' => Pages\CreateBusinessPlan::route('/create'),
             'edit' => Pages\EditBusinessPlan::route('/{record}/edit'),
         ];
+    }
+
+    private static function exportWith(): array
+    {
+        return [
+            'entrepreneur.business.productiveLine',
+            'entrepreneur.city',
+            'entrepreneur.manager',
+            'manager',
+        ];
+    }
+
+    private static function exportColumns(): array
+    {
+        return [
+            Column::make('entrepreneur.full_name')->heading('Emprendedor'),
+            Column::make('entrepreneur.business.business_name')->heading('Emprendimiento'),
+            Column::make('entrepreneur.city.name')->heading('Municipio'),
+            Column::make('entrepreneur.business.productiveLine.name')->heading('Línea Productiva'),
+            Column::make('creation_date')->heading('Fecha del Plan')
+                ->formatStateUsing(fn ($state) => $state?->format('d/m/Y')),
+            Column::make('is_prioritized')->heading('Priorizado para Sustentar')
+                ->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
+            Column::make('business_definition')->heading('Definición del Negocio'),
+            Column::make('problems_to_solve')->heading('Problemas a Resolver'),
+            Column::make('mission')->heading('Misión'),
+            Column::make('vision')->heading('Visión'),
+            Column::make('value_proposition')->heading('Propuesta de Valor'),
+            Column::make('is_capitalized')->heading('Capitalizado')
+                ->formatStateUsing(fn ($state) => $state ? 'Sí' : 'No'),
+            Column::make('capitalization_year')->heading('Año de Capitalización')
+                ->formatStateUsing(fn ($state) => $state ?? 'N/A'),
+            Column::make('requirements_needs')->heading('Requerimientos/Necesidades'),
+            Column::make('monthly_sales_cop')->heading('Ventas Mensuales (COP)')
+                ->formatStateUsing(fn ($state) => $state ? '$'.number_format($state, 2) : 'N/A'),
+            Column::make('monthly_sales_units')->heading('Ventas Mensuales (Unidades)'),
+            Column::make('production_frequency')->heading('Frecuencia de Producción')
+                ->formatStateUsing(fn ($state) => match ($state) {
+                    'daily'     => 'Diaria',
+                    'weekly'    => 'Semanal',
+                    'biweekly'  => 'Quincenal',
+                    'monthly'   => 'Mensual',
+                    'quarterly' => 'Trimestral',
+                    'biannual'  => 'Semestral',
+                    'annual'    => 'Anual',
+                    default     => $state ?? 'N/A',
+                }),
+            Column::make('gross_profitability_rate')->heading('Tasa Rentabilidad Bruta (%)'),
+            Column::make('cash_flow_growth_rate')->heading('Tasa Crecimiento Flujo Caja (%)'),
+            Column::make('internal_return_rate')->heading('TIR (%)'),
+            Column::make('break_even_units')->heading('Punto Equilibrio (Unidades)'),
+            Column::make('break_even_cop')->heading('Punto Equilibrio (COP)')
+                ->formatStateUsing(fn ($state) => $state ? '$'.number_format($state, 2) : 'N/A'),
+            Column::make('current_investment_value')->heading('Inversión Actual (COP)')
+                ->formatStateUsing(fn ($state) => $state ? '$'.number_format($state, 2) : 'N/A'),
+            Column::make('jobs_generated')->heading('Empleos Generados'),
+            Column::make('direct_competitors')->heading('Competidores Directos'),
+            Column::make('target_market')->heading('Mercado Objetivo'),
+            Column::make('observations')->heading('Observaciones'),
+            Column::make('business_plan_path')->heading('Plan de Negocio')
+                ->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+            Column::make('acquisition_matrix_path')->heading('Matriz de Adquisición')
+                ->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+            Column::make('business_model_path')->heading('Modelo de Negocio')
+                ->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+            Column::make('logo_path')->heading('Logo')
+                ->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
+            Column::make('fire_pitch_video_url')->heading('Video Fire Pitch'),
+            Column::make('production_cycle_video_url')->heading('Video Ciclo Productivo'),
+            Column::make('manager.name')->heading('Registrado por'),
+            Column::make('created_at')->heading('Fecha Registro')
+                ->formatStateUsing(fn ($state) => $state->format('d/m/Y H:i')),
+        ];
+    }
+
+    private static function afterSheetCallback(): \Closure
+    {
+        return function (\Maatwebsite\Excel\Events\AfterSheet $event) {
+            $sheet         = $event->sheet->getDelegate();
+            $highest       = $sheet->getHighestRowAndColumn();
+            $lastCol       = $highest['column'];
+            $lastRow       = $highest['row'];
+            $lastColIndex  = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+
+            $sheet->getStyle('A1:'.$lastCol.'1')->applyFromArray([
+                'font' => [
+                    'bold'  => true,
+                    'color' => ['argb' => 'FFFFFFFF'],
+                ],
+                'fill' => [
+                    'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['argb' => 'FF1E40AF'],
+                ],
+                'alignment' => [
+                    'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                    'vertical'   => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+                    'wrapText'   => true,
+                ],
+            ]);
+
+            if ($lastRow > 1) {
+                $sheet->getStyle('A2:'.$lastCol.$lastRow)->getAlignment()
+                    ->setWrapText(true)
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+            }
+
+            for ($i = 1; $i <= $lastColIndex; $i++) {
+                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+            }
+
+            $sheet->freezePane('A2');
+            $sheet->setAutoFilter('A1:'.$lastCol.'1');
+        };
     }
 
     public static function getNavigationBadge(): ?string

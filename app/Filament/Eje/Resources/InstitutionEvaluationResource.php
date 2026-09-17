@@ -2,6 +2,7 @@
 
 namespace App\Filament\Eje\Resources;
 
+use App\Exports\FormattedExcelExport;
 use App\Filament\Eje\Resources\InstitutionEvaluationResource\Pages;
 use App\Models\EducationalInstitution;
 use App\Models\InstitutionEvaluation;
@@ -14,6 +15,9 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Columns\Column;
 
 class InstitutionEvaluationResource extends Resource
 {
@@ -660,8 +664,33 @@ class InstitutionEvaluationResource extends Resource
                 Tables\Actions\ForceDeleteAction::make()
                     ->visible(fn ($record) => $record->trashed() && auth()->user()->hasRole('Admin')),
             ])
+            ->headerActions([
+                ExportAction::make()
+                    ->label('Exportar Excel')
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->exports([
+                        FormattedExcelExport::make()
+                            ->withFilename(fn () => 'evaluaciones-instituciones-'.now()->format('Y-m-d-His'))
+                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                            ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                            ->withColumns(self::exportColumns())
+                            ->afterSheet(self::afterSheetCallback()),
+                    ])
+                    ->color('success')
+                    ->icon('heroicon-o-arrow-down-tray'),
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    ExportBulkAction::make()
+                        ->label('Exportar Excel')
+                        ->exports([
+                            FormattedExcelExport::make()
+                                ->withFilename(fn () => 'evaluaciones-instituciones-'.now()->format('Y-m-d-His'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                                ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                                ->withColumns(self::exportColumns())
+                                ->afterSheet(self::afterSheetCallback()),
+                        ]),
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn () => static::userCanDelete()),
                 ]),
@@ -691,5 +720,88 @@ class InstitutionEvaluationResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         return static::getEloquentQuery()->count();
+    }
+
+    private static function exportWith(): array
+    {
+        return ['educationalInstitution.city', 'manager'];
+    }
+
+    private static function exportColumns(): array
+    {
+        $peiOptions = [
+            'full'     => 'Incorporado en PEI, currículo y proyectos',
+            'partial'  => 'Incorporado en PEI y algunas áreas',
+            'isolated' => 'Proyecto transversal aislado',
+            'none'     => 'No existe evidencia',
+        ];
+        $verdictOptions = [
+            'favorable'                 => 'Favorable',
+            'favorable_with_conditions' => 'Favorable con condiciones',
+            'not_favorable'             => 'No favorable',
+        ];
+        $vulnerableOptions = ['high' => 'Más del 70%', 'medium' => 'Entre 40% y 70%', 'low' => 'Menos del 40%'];
+
+        return [
+            Column::make('institution')->heading('Institución Educativa')
+                ->getStateUsing(fn ($record) => $record->educationalInstitution?->display_name ?? ''),
+            Column::make('city')->heading('Municipio')
+                ->getStateUsing(fn ($record) => $record->educationalInstitution?->city?->name ?? ''),
+            Column::make('total_score')->heading('Puntaje Total'),
+            Column::make('result_category')->heading('Categoría'),
+            Column::make('technical_verdict')->heading('Concepto Técnico')
+                ->getStateUsing(fn ($record) => $verdictOptions[$record->technical_verdict] ?? $record->technical_verdict ?? ''),
+            Column::make('technical_conditions')->heading('Condiciones'),
+            Column::make('technical_concept')->heading('Observaciones Generales'),
+            Column::make('pei_articulation')->heading('Articulación PEI')
+                ->getStateUsing(fn ($record) => $peiOptions[$record->pedagogical_section['pei_articulation'] ?? ''] ?? ''),
+            Column::make('pei_observations')->heading('Observaciones PEI')
+                ->getStateUsing(fn ($record) => $record->pedagogical_section['pei_observations'] ?? ''),
+            Column::make('students_count')->heading('Estudiantes 10° y 11°')
+                ->getStateUsing(fn ($record) => $record->operational_capacity_section['students_count'] ?? ''),
+            Column::make('can_link_min_students')->heading('¿Puede vincular mín. 30 estudiantes?')
+                ->getStateUsing(fn ($record) => match ($record->operational_capacity_section['can_link_min_students'] ?? null) {
+                    'yes' => 'Sí', 'no' => 'No', default => '',
+                }),
+            Column::make('can_link_min_teachers')->heading('¿Puede vincular mín. 3 docentes?')
+                ->getStateUsing(fn ($record) => match ($record->operational_capacity_section['can_link_min_teachers'] ?? null) {
+                    'yes' => 'Sí', 'no' => 'No', default => '',
+                }),
+            Column::make('vulnerable_population')->heading('Población Vulnerable')
+                ->getStateUsing(fn ($record) => $vulnerableOptions[$record->territorial_impact_section['vulnerable_population'] ?? ''] ?? ''),
+            Column::make('manager_name')->heading('Registrado por')
+                ->getStateUsing(fn ($record) => $record->manager?->name ?? ''),
+            Column::make('created_at')->heading('Fecha Registro')
+                ->getStateUsing(fn ($record) => $record->created_at?->format('d/m/Y H:i') ?? ''),
+        ];
+    }
+
+    private static function afterSheetCallback(): \Closure
+    {
+        return function (\Maatwebsite\Excel\Events\AfterSheet $event) {
+            $sheet        = $event->sheet->getDelegate();
+            $highest      = $sheet->getHighestRowAndColumn();
+            $lastCol      = $highest['column'];
+            $lastRow      = $highest['row'];
+            $lastColIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+
+            $sheet->getStyle('A1:'.$lastCol.'1')->applyFromArray([
+                'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+                'fill'      => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1E40AF']],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER, 'wrapText' => true],
+            ]);
+
+            if ($lastRow > 1) {
+                $sheet->getStyle('A2:'.$lastCol.$lastRow)->getAlignment()
+                    ->setWrapText(true)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+            }
+
+            for ($i = 1; $i <= $lastColIndex; $i++) {
+                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+            }
+
+            $sheet->freezePane('A2');
+            $sheet->setAutoFilter('A1:'.$lastCol.'1');
+        };
     }
 }

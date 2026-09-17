@@ -2,6 +2,7 @@
 
 namespace App\Filament\Eje\Resources;
 
+use App\Exports\FormattedExcelExport;
 use App\Filament\Eje\Resources\EducationalInstitutionResource\Pages;
 use App\Models\City;
 use App\Models\EducationalInstitution;
@@ -11,6 +12,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
+use pxlrbt\FilamentExcel\Columns\Column;
 
 class EducationalInstitutionResource extends Resource
 {
@@ -144,8 +148,33 @@ class EducationalInstitutionResource extends Resource
                 Tables\Actions\ForceDeleteAction::make()
                     ->visible(fn ($record) => $record->trashed() && auth()->user()->hasRole('Admin')),
             ])
+            ->headerActions([
+                ExportAction::make()
+                    ->label('Exportar Excel')
+                    ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
+                    ->exports([
+                        FormattedExcelExport::make()
+                            ->withFilename(fn () => 'instituciones-educativas-'.now()->format('Y-m-d-His'))
+                            ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                            ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                            ->withColumns(self::exportColumns())
+                            ->afterSheet(self::afterSheetCallback()),
+                    ])
+                    ->color('success')
+                    ->icon('heroicon-o-arrow-down-tray'),
+            ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    ExportBulkAction::make()
+                        ->label('Exportar Excel')
+                        ->exports([
+                            FormattedExcelExport::make()
+                                ->withFilename(fn () => 'instituciones-educativas-'.now()->format('Y-m-d-His'))
+                                ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
+                                ->modifyQueryUsing(fn ($query) => $query->with(self::exportWith()))
+                                ->withColumns(self::exportColumns())
+                                ->afterSheet(self::afterSheetCallback()),
+                        ]),
                     Tables\Actions\DeleteBulkAction::make()
                         ->visible(fn () => static::userCanDelete()),
                 ]),
@@ -175,5 +204,57 @@ class EducationalInstitutionResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         return static::getEloquentQuery()->count();
+    }
+
+    private static function exportWith(): array
+    {
+        return ['city', 'manager'];
+    }
+
+    private static function exportColumns(): array
+    {
+        return [
+            Column::make('display_name')->heading('Institución Educativa')
+                ->getStateUsing(fn ($record) => $record->display_name),
+            Column::make('city_name')->heading('Municipio')
+                ->getStateUsing(fn ($record) => $record->city?->name ?? ''),
+            Column::make('principal_name')->heading('Rector(a)'),
+            Column::make('proposed_teacher')->heading('Docente Propuesto'),
+            Column::make('phone')->heading('Teléfono'),
+            Column::make('email')->heading('Correo'),
+            Column::make('manager_name')->heading('Registrado por')
+                ->getStateUsing(fn ($record) => $record->manager?->name ?? ''),
+            Column::make('created_at')->heading('Fecha Registro')
+                ->getStateUsing(fn ($record) => $record->created_at?->format('d/m/Y H:i') ?? ''),
+        ];
+    }
+
+    private static function afterSheetCallback(): \Closure
+    {
+        return function (\Maatwebsite\Excel\Events\AfterSheet $event) {
+            $sheet        = $event->sheet->getDelegate();
+            $highest      = $sheet->getHighestRowAndColumn();
+            $lastCol      = $highest['column'];
+            $lastRow      = $highest['row'];
+            $lastColIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastCol);
+
+            $sheet->getStyle('A1:'.$lastCol.'1')->applyFromArray([
+                'font'      => ['bold' => true, 'color' => ['argb' => 'FFFFFFFF']],
+                'fill'      => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF1E40AF']],
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER, 'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER, 'wrapText' => true],
+            ]);
+
+            if ($lastRow > 1) {
+                $sheet->getStyle('A2:'.$lastCol.$lastRow)->getAlignment()
+                    ->setWrapText(true)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+            }
+
+            for ($i = 1; $i <= $lastColIndex; $i++) {
+                $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
+            }
+
+            $sheet->freezePane('A2');
+            $sheet->setAutoFilter('A1:'.$lastCol.'1');
+        };
     }
 }

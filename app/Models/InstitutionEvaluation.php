@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,6 +38,8 @@ class InstitutionEvaluation extends Model
 
     protected static function booted(): void
     {
+        static::addGlobalScope(new YearColumnScope('created_at'));
+
         static::saving(function (InstitutionEvaluation $evaluation) {
             $evaluation->total_score = $evaluation->calculateTotalScore();
             $evaluation->result_category = $evaluation->calculateResultCategory();

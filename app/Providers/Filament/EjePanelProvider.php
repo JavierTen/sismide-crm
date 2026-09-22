@@ -10,7 +10,9 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
@@ -32,6 +34,12 @@ class EjePanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Emerald,
             ])
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => auth()->user()?->can('viewAllYears')
+                    ? Blade::render('@livewire(\'year-switcher\')')
+                    : '',
+            )
             ->discoverResources(in: app_path('Filament/Eje/Resources'), for: 'App\\Filament\\Eje\\Resources')
             ->discoverPages(in: app_path('Filament/Eje/Pages'), for: 'App\\Filament\\Eje\\Pages')
             ->discoverWidgets(in: app_path('Filament/Eje/Widgets'), for: 'App\\Filament\\Eje\\Widgets')

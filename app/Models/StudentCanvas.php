@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\YearColumnScope;
 use App\Traits\TracksUpdatedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +30,8 @@ class StudentCanvas extends Model
 
     protected static function booted(): void
     {
+        static::addGlobalScope(new YearColumnScope('created_at'));
+
         static::updating(function (self $canvas) {
             $original = $canvas->getOriginal();
             if ($original['canvas_file_path'] && $original['canvas_file_path'] !== $canvas->canvas_file_path) {

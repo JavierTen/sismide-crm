@@ -29,6 +29,8 @@ class YearContext
         'fair_evaluations' => 'created_at',
         'pqrfs' => 'created_at',
         'actors' => 'created_at',
+        'student_fairs' => 'created_at',
+        'student_fair_participations' => 'created_at',
     ];
 
     /**

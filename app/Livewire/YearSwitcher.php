@@ -26,8 +26,12 @@ class YearSwitcher extends Component
 
     public function render()
     {
+        $panel = str_starts_with(parse_url($this->currentUrl, PHP_URL_PATH) ?? '', '/eje')
+            ? 'eje'
+            : 'dashboard';
+
         return view('livewire.year-switcher', [
-            'years' => YearContext::availableYears(),
+            'years' => YearContext::availableYears($panel),
         ]);
     }
 }

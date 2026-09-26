@@ -11,10 +11,7 @@ class YearContext
 
     public const ALL_YEARS = 'all';
 
-    /**
-     * Tables scoped by year, all keyed off their own created_at.
-     */
-    protected const YEAR_COLUMNS = [
+    protected const DASHBOARD_YEAR_COLUMNS = [
         'entrepreneurs' => 'created_at',
         'businesses' => 'created_at',
         'visits' => 'created_at',
@@ -29,7 +26,9 @@ class YearContext
         'fair_evaluations' => 'created_at',
         'pqrfs' => 'created_at',
         'actors' => 'created_at',
-        // EJE
+    ];
+
+    protected const EJE_YEAR_COLUMNS = [
         'student_canvases' => 'created_at',
         'student_characterizations' => 'created_at',
         'institution_evaluations' => 'created_at',
@@ -55,18 +54,21 @@ class YearContext
     }
 
     /**
-     * Years that actually have data, derived from the min/max of the
-     * relevant date column across every year-scoped table.
+     * Years that actually have data for the given panel ('dashboard' or 'eje').
+     * Each panel only considers its own tables, so EJE never muestra años
+     * con datos exclusivos del Dashboard y viceversa.
      *
      * @return array<int, int>
      */
-    public static function availableYears(): array
+    public static function availableYears(string $panel = 'dashboard'): array
     {
-        return Cache::remember('year-context:available-years', now()->addHour(), function () {
+        $tables = $panel === 'eje' ? self::EJE_YEAR_COLUMNS : self::DASHBOARD_YEAR_COLUMNS;
+
+        return Cache::remember("year-context:available-years:{$panel}", now()->addHour(), function () use ($tables) {
             $min = null;
             $max = null;
 
-            foreach (self::YEAR_COLUMNS as $table => $column) {
+            foreach ($tables as $table => $column) {
                 $row = DB::table($table)
                     ->whereNotNull($column)
                     ->selectRaw("MIN(YEAR({$column})) as min_year, MAX(YEAR({$column})) as max_year")
@@ -83,7 +85,6 @@ class YearContext
             $min ??= now()->year;
             $max ??= now()->year;
 
-            // El año en curso siempre debe poder elegirse, aunque todavía no tenga datos.
             $min = min($min, now()->year);
             $max = max($max, now()->year);
 

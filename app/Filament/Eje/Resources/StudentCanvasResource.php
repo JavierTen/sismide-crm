@@ -198,6 +198,8 @@ class StudentCanvasResource extends Resource
                     ->visible(fn ($record) => ! $record->trashed() && static::userCanDelete() && (auth()->user()->hasRole('Admin') || $record->manager_id === auth()->id())),
                 Tables\Actions\RestoreAction::make()->label('')->tooltip('Restaurar')
                     ->visible(fn ($record) => $record->trashed()),
+                Tables\Actions\ForceDeleteAction::make()->label('')->tooltip('Eliminar definitivamente')
+                    ->visible(fn ($record) => $record->trashed() && auth()->user()->hasRole('Admin')),
             ])
             ->headerActions([
                 ExportAction::make()

@@ -39,8 +39,12 @@ class StudentCanvas extends Model
             }
         });
 
+        // El evento `deleting` también se dispara al deshabilitar (soft delete),
+        // así que el archivo sólo se borra del disco en el eliminado definitivo.
+        // De lo contrario, restaurar un canvas dejaría el registro apuntando a
+        // un archivo inexistente.
         static::deleting(function (self $canvas) {
-            if ($canvas->canvas_file_path) {
+            if ($canvas->isForceDeleting() && $canvas->canvas_file_path) {
                 Storage::disk('public')->delete($canvas->canvas_file_path);
             }
         });

@@ -62,10 +62,8 @@ class Pqrf extends Model
             }
         });
 
-        // Evento al eliminar (soft delete)
-        static::deleted(function ($pqrf) {
-            static::deleteAllFiles($pqrf);
-        });
+        // Al deshabilitar (soft delete) los archivos se conservan, para que
+        // restaurar devuelva el registro completo.
 
         // Evento al eliminar permanentemente
         static::forceDeleted(function ($pqrf) {

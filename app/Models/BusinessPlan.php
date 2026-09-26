@@ -90,12 +90,9 @@ class BusinessPlan extends Model
             }
         });
 
-        // Eliminar archivos cuando se elimina (soft delete)
-        static::deleting(function (BusinessPlan $plan) {
-            $plan->deleteAllFiles();
-        });
-
-        // Eliminar archivos cuando se elimina permanentemente
+        // Los archivos se conservan al deshabilitar (soft delete) para que
+        // restaurar devuelva el registro completo; sólo se borran en el
+        // eliminado permanente.
         static::forceDeleting(function (BusinessPlan $plan) {
             $plan->deleteAllFiles();
         });

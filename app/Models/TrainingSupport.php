@@ -69,30 +69,9 @@ class TrainingSupport extends Model
             }
         });
 
-        // Eliminar archivos cuando se elimina el registro (soft delete)
-        static::deleting(function (TrainingSupport $support) {
-            $filesToDelete = array_merge(
-                array_filter([
-                    $support->attendance_list_path,
-                    $support->georeference_photo_path,
-                    $support->additional_photo_1_path,
-                    $support->additional_photo_2_path,
-                    $support->additional_photo_3_path,
-                    $support->connection_evidence_path,
-                    $support->visual_evidence_path,
-                    $support->recording_file_path,
-                    $support->material_path,
-                    $support->additional_documents_path,
-                ]),
-                $support->photos ?? []
-            );
-
-            foreach ($filesToDelete as $file) {
-                if ($file) {
-                    Storage::disk('public')->delete($file);
-                }
-            }
-        });
+        // Los archivos se conservan al deshabilitar (soft delete) para que
+        // restaurar devuelva el registro completo; sólo se borran en el
+        // eliminado permanente (ver static::forceDeleting más abajo).
 
         static::saved(function (TrainingSupport $support) {
             $support->training?->syncStatus();

@@ -72,16 +72,9 @@ class Training extends Model
             }
         });
 
-        static::deleting(function (Training $training) {
-            if ($training->ppt_file_path) {
-                Storage::disk('public')->delete($training->ppt_file_path);
-            }
-
-            if ($training->promotional_file_path) {
-                Storage::disk('public')->delete($training->promotional_file_path);
-            }
-        });
-
+        // Los archivos se conservan al deshabilitar (soft delete) para que
+        // restaurar devuelva el registro completo; sólo se borran en el
+        // eliminado permanente.
         static::forceDeleting(function (Training $training) {
             if ($training->ppt_file_path) {
                 Storage::disk('public')->delete($training->ppt_file_path);

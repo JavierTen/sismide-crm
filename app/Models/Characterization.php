@@ -132,10 +132,8 @@ class Characterization extends Model
             }
         });
 
-        // Evento al eliminar (soft delete)
-        static::deleted(function ($characterization) {
-            static::deleteAllFiles($characterization);
-        });
+        // Al deshabilitar (soft delete) los archivos se conservan, para que
+        // restaurar devuelva el registro completo.
 
         // Evento al eliminar permanentemente
         static::forceDeleted(function ($characterization) {

@@ -194,14 +194,14 @@ class TeacherResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()
+                Tables\Actions\ViewAction::make()->label('')->tooltip('Ver'),
+                Tables\Actions\EditAction::make()->label('')->tooltip('Editar')
                     ->visible(fn ($record) => !$record->trashed() && static::userCanEdit() && (auth()->user()->hasRole('Admin') || $record->manager_id === auth()->id())),
-                Tables\Actions\DeleteAction::make()
+                Tables\Actions\DeleteAction::make()->label('')->tooltip('Deshabilitar')
                     ->visible(fn ($record) => !$record->trashed() && static::userCanDelete() && (auth()->user()->hasRole('Admin') || $record->manager_id === auth()->id())),
-                Tables\Actions\RestoreAction::make()
+                Tables\Actions\RestoreAction::make()->label('')->tooltip('Restaurar')
                     ->visible(fn ($record) => $record->trashed() && auth()->user()->hasRole('Admin')),
-                Tables\Actions\ForceDeleteAction::make()
+                Tables\Actions\ForceDeleteAction::make()->label('')->tooltip('Eliminar definitivamente')
                     ->visible(fn ($record) => $record->trashed() && auth()->user()->hasRole('Admin')),
             ])
             ->headerActions([

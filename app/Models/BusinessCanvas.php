@@ -43,8 +43,11 @@ class BusinessCanvas extends Model
             }
         });
 
+        // `deleting` también se dispara al deshabilitar (soft delete), así que
+        // el archivo sólo se borra del disco en el eliminado definitivo. De lo
+        // contrario, restaurar dejaría el registro sin su archivo.
         static::deleting(function (self $canvas) {
-            if ($canvas->canvas_file_path) {
+            if ($canvas->isForceDeleting() && $canvas->canvas_file_path) {
                 Storage::disk('public')->delete($canvas->canvas_file_path);
             }
         });

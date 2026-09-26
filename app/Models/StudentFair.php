@@ -68,32 +68,58 @@ class StudentFair extends Model
         return Attribute::make(set: fn ($v) => $v ? mb_strtoupper($v) : null);
     }
 
-    public const ARTICULATIONS_COUNT_OPTIONS = [
-        '1'    => '1',
-        '2-5'  => '2 – 5',
-        '6-10' => '6 – 10',
-        '>10'  => 'Más de 10',
+    /** ¿Con qué tipo de actor se articuló? (selección múltiple) */
+    public const ARTICULATION_ACTOR_TYPE_OPTIONS = [
+        'empresa_privada'       => 'Empresa privada',
+        'entidad_publica'       => 'Entidad pública',
+        'institucion_educativa' => 'Otra institución educativa',
+        'ong'                   => 'ONG',
+        'otro_emprendimiento'   => 'Otro emprendimiento',
+        'ninguno'               => 'Ninguno',
     ];
 
+    /** ¿Cuántas articulaciones concretas se generaron? */
+    public const ARTICULATIONS_COUNT_OPTIONS = [
+        'ninguna' => 'Ninguna',
+        '1_2'     => '1 a 2',
+        '3_5'     => '3 a 5',
+        'mas_5'   => 'Más de 5',
+    ];
+
+    /** ¿En qué eslabón de la cadena se identificó la oportunidad? */
     public const CHAIN_LINK_OPTIONS = [
-        'proveedor'    => 'Proveedor',
-        'cliente'      => 'Cliente',
-        'distribuidor' => 'Distribuidor',
-        'transformador'=> 'Transformador',
+        'proveeduria'      => 'Proveeduría de insumos',
+        'produccion'       => 'Producción',
+        'transformacion'   => 'Transformación',
+        'comercializacion' => 'Comercialización',
+        'distribucion'     => 'Distribución',
+        'otro'             => 'Otro',
+    ];
+
+    /** ¿Con qué tipo de actor se generó el encadenamiento? (selección múltiple) */
+    public const CHAIN_ACTOR_TYPE_OPTIONS = [
+        'proveedor'           => 'Proveedor',
+        'cliente'             => 'Cliente',
+        'aliado_comercial'    => 'Aliado comercial',
+        'distribuidor'        => 'Distribuidor',
+        'otro_emprendimiento' => 'Otro emprendimiento',
+        'ninguno'             => 'Ninguno',
     ];
 
     public const SALES_RANGE_OPTIONS = [
         'sin_ventas' => 'Sin ventas',
         'lt50k'      => 'Menos de $50.000',
-        '50k_200k'   => '$50.000 – $200.000',
-        '200k_500k'  => '$200.000 – $500.000',
+        '50k_200k'   => '$50.000 a $200.000',
+        '200k_500k'  => '$200.000 a $500.000',
         'gt500k'     => 'Más de $500.000',
     ];
 
+    /** ¿El balance de la feria fue positivo para el emprendimiento? */
     public const SALES_BALANCE_OPTIONS = [
-        'positivo' => 'Positivo',
-        'neutro'   => 'Neutro',
-        'negativo' => 'Negativo',
+        'positivo_ganancia' => 'Sí, cubrió costos y generó ganancia',
+        'positivo_costos'   => 'Sí, cubrió costos únicamente',
+        'negativo'          => 'No, no cubrió costos',
+        'no_aplica'         => 'No aplica',
     ];
 
     public const ORGANIZATION_RATING_OPTIONS = [
@@ -104,8 +130,8 @@ class StudentFair extends Model
     ];
 
     public const VISITOR_FLOW_OPTIONS = [
-        'alto'  => 'Alto',
-        'medio' => 'Medio',
-        'bajo'  => 'Bajo',
+        'muy_alto' => 'Muy alto',
+        'adecuado' => 'Adecuado',
+        'bajo'     => 'Bajo',
     ];
 }

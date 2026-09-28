@@ -34,6 +34,8 @@ class YearContext
         'institution_evaluations' => 'created_at',
         'student_fairs' => 'created_at',
         'student_fair_participations' => 'created_at',
+        'student_trainings' => 'created_at',
+        'student_training_sessions' => 'created_at',
     ];
 
     /**

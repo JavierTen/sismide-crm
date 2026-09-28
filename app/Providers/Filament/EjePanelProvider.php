@@ -71,6 +71,9 @@ class EjePanelProvider extends PanelProvider
                 NavigationGroup::make()
                     ->label('Ferias Estudiantiles')
                     ->collapsible(),
+                NavigationGroup::make()
+                    ->label('Capacitaciones')
+                    ->collapsible(),
             ]);
     }
 }

@@ -21,7 +21,7 @@ class StudentFair extends Model
 
     protected $fillable = [
         'name',
-        'location',
+        'city_id',
         'address',
         'latitude',
         'longitude',
@@ -48,6 +48,11 @@ class StudentFair extends Model
         return $this->belongsTo(User::class, 'manager_id');
     }
 
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
+    }
+
     public function participations(): HasMany
     {
         return $this->hasMany(StudentFairParticipation::class);
@@ -58,17 +63,15 @@ class StudentFair extends Model
         return Attribute::make(set: fn ($v) => mb_strtoupper($v));
     }
 
-    protected function location(): Attribute
-    {
-        return Attribute::make(set: fn ($v) => mb_strtoupper($v));
-    }
-
     protected function address(): Attribute
     {
         return Attribute::make(set: fn ($v) => $v ? mb_strtoupper($v) : null);
     }
 
     /** ¿Con qué tipo de actor se articuló? (selección múltiple) */
+    /** Municipios del Magdalena habilitados para el subproyecto. */
+    public const ALLOWED_CITY_IDS = [21, 49, 219, 352, 1096];
+
     public const ARTICULATION_ACTOR_TYPE_OPTIONS = [
         'empresa_privada'       => 'Empresa privada',
         'entidad_publica'       => 'Entidad pública',

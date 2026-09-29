@@ -4,6 +4,7 @@ namespace App\Filament\Eje\Resources;
 
 use App\Exports\FormattedExcelExport;
 use App\Filament\Eje\Resources\StudentFairResource\Pages;
+use App\Models\City;
 use App\Models\StudentFair;
 use App\Support\ColombiaBounds;
 use Closure;
@@ -43,7 +44,8 @@ class StudentFairResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->withoutGlobalScopes([SoftDeletingScope::class]);
+            ->withoutGlobalScopes([SoftDeletingScope::class])
+            ->with('city');
     }
 
     public static function form(Form $form): Form
@@ -67,16 +69,18 @@ class StudentFairResource extends Resource
                                 ->rule(static::uniqueNameRule())
                                 ->columnSpanFull(),
 
-                            Forms\Components\TextInput::make('location')
+                            Forms\Components\Select::make('city_id')
                                 ->label('Municipio / Lugar de Realización')
+                                ->options(fn () => City::whereIn('id', StudentFair::ALLOWED_CITY_IDS)
+                                    ->orderBy('name')
+                                    ->pluck('name', 'id'))
+                                ->placeholder('Seleccione el municipio')
+                                ->searchable()
                                 ->required()
-                                ->maxLength(255)
-                                ->extraInputAttributes(['style' => 'text-transform:uppercase'])
-                                ->dehydrateStateUsing(fn (?string $state) => $state ? mb_strtoupper($state) : null)
                                 ->columnSpanFull(),
 
                             Forms\Components\Textarea::make('address')
-                                ->label('Dirección Exacta / Espacio Asignado')
+                                ->label('Dirección Completa')
                                 ->required()
                                 ->rows(3)
                                 ->extraInputAttributes(['style' => 'text-transform:uppercase'])
@@ -101,7 +105,23 @@ class StudentFairResource extends Resource
                                 ->minValue(ColombiaBounds::longitudeRange()[0])
                                 ->maxValue(ColombiaBounds::longitudeRange()[1])
                                 ->placeholder('Ej: -74.7965423')
-                                ->helperText('La longitud en Colombia siempre es negativa.')
+                                ->helperText('En Colombia siempre es negativa: si escribe un valor positivo se corrige solo.')
+                                // Se normaliza al salir del campo, antes de validar, para que
+                                // escribirla en positivo no dispare el error de rango.
+                                ->live(onBlur: true)
+                                ->afterStateUpdated(static function (?string $state, Forms\Set $set): void {
+                                    $value = trim((string) $state);
+
+                                    if ($value === '' || ! is_numeric($value)) {
+                                        return;
+                                    }
+
+                                    // Se antepone el signo en lugar de operar con floats,
+                                    // para no perder decimales de la coordenada.
+                                    $set('longitude', str_starts_with($value, '-')
+                                        ? $value
+                                        : '-'.ltrim($value, '+'));
+                                })
                                 ->rule(static::colombiaCoordinatesRule()),
 
                             Forms\Components\DatePicker::make('start_date')
@@ -196,7 +216,7 @@ class StudentFairResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('location')
+                Tables\Columns\TextColumn::make('city.name')
                     ->label('Municipio')
                     ->sortable(),
 
@@ -367,7 +387,8 @@ class StudentFairResource extends Resource
     {
         return [
             Column::make('name')->heading('Nombre Feria'),
-            Column::make('location')->heading('Municipio'),
+            Column::make('city')->heading('Municipio')
+                ->getStateUsing(fn ($record) => $record->city?->name ?? ''),
             Column::make('address')->heading('Dirección'),
             Column::make('latitude')->heading('Latitud'),
             Column::make('longitude')->heading('Longitud'),

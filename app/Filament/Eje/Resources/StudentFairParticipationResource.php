@@ -57,7 +57,7 @@ class StudentFairParticipationResource extends Resource
     {
         return parent::getEloquentQuery()
             ->withoutGlobalScopes([SoftDeletingScope::class])
-            ->with(['fair', 'educationalInstitution']);
+            ->with(['fair.city', 'educationalInstitution']);
     }
 
     public static function form(Form $form): Form
@@ -76,23 +76,40 @@ class StudentFairParticipationResource extends Resource
                             Forms\Components\Select::make('student_fair_id')
                                 ->label('Feria')
                                 ->options(fn () => StudentFair::withoutTrashed()
+                                    ->with('city')
                                     ->orderBy('start_date', 'desc')
                                     ->get()
                                     ->mapWithKeys(fn ($f) => [
-                                        $f->id => $f->name.' — '.$f->location.' ('.$f->start_date->format('d/m/Y').')',
+                                        $f->id => $f->name.' — '.($f->city?->name ?? 'Sin municipio').' ('.$f->start_date->format('d/m/Y').')',
                                     ])
                                 )
                                 ->searchable()
                                 ->required()
-                                ->live(),
+                                ->live()
+                                // Cambiar de feria cambia el municipio, así que la
+                                // institución elegida deja de ser válida.
+                                ->afterStateUpdated(function (Set $set): void {
+                                    $set('educational_institution_id', null);
+                                    $set('students', []);
+                                    $set('teachers', []);
+                                }),
 
                             Forms\Components\Select::make('educational_institution_id')
                                 ->label('Institución Educativa')
-                                ->options(fn () => EducationalInstitution::withoutTrashed()
-                                    ->orderBy('name')
-                                    ->get()
-                                    ->mapWithKeys(fn ($i) => [$i->id => $i->display_name])
-                                )
+                                ->options(function (Get $get): array {
+                                    $fair = static::fairFor($get('student_fair_id'));
+
+                                    if (! $fair || blank($fair->city_id)) {
+                                        return [];
+                                    }
+
+                                    return EducationalInstitution::withoutTrashed()
+                                        ->where('city_id', $fair->city_id)
+                                        ->orderBy('name')
+                                        ->get()
+                                        ->mapWithKeys(fn ($institution) => [$institution->id => $institution->display_name])
+                                        ->all();
+                                })
                                 ->searchable()
                                 ->required()
                                 ->live()
@@ -104,9 +121,19 @@ class StudentFairParticipationResource extends Resource
                                     $set('students', []);
                                     $set('teachers', []);
                                 })
-                                ->helperText(fn (Get $get): string => blank($get('student_fair_id'))
-                                    ? 'Seleccione primero la feria.'
-                                    : 'La institución debe estar registrada previamente para aparecer en el listado.')
+                                ->helperText(function (Get $get): string {
+                                    $fair = static::fairFor($get('student_fair_id'));
+
+                                    if (! $fair) {
+                                        return 'Seleccione primero la feria.';
+                                    }
+
+                                    if (blank($fair->city_id)) {
+                                        return 'La feria no tiene municipio asignado. Edítela para asignarlo.';
+                                    }
+
+                                    return 'Solo se listan las instituciones de '.($fair->city?->name ?? 'el municipio de la feria').'.';
+                                })
                                 ->rule(static::uniqueFairInstitutionRule()),
 
                             Forms\Components\DatePicker::make('participation_date')
@@ -419,7 +446,7 @@ class StudentFairParticipationResource extends Resource
                         FormattedExcelExport::make()
                             ->withFilename(fn () => 'participaciones-ferias-'.now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                            ->modifyQueryUsing(fn ($query) => $query->with(['fair', 'educationalInstitution', 'students', 'teachers', 'actors', 'manager']))
+                            ->modifyQueryUsing(fn ($query) => $query->with(['fair.city', 'educationalInstitution', 'students', 'teachers', 'actors', 'manager']))
                             ->withColumns(self::exportColumns())
                             ->afterSheet(self::afterSheetCallback()),
                     ])
@@ -434,7 +461,7 @@ class StudentFairParticipationResource extends Resource
                             FormattedExcelExport::make()
                                 ->withFilename(fn () => 'participaciones-ferias-'.now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
-                                ->modifyQueryUsing(fn ($query) => $query->with(['fair', 'educationalInstitution', 'students', 'teachers', 'actors', 'manager']))
+                                ->modifyQueryUsing(fn ($query) => $query->with(['fair.city', 'educationalInstitution', 'students', 'teachers', 'actors', 'manager']))
                                 ->withColumns(self::exportColumns())
                                 ->afterSheet(self::afterSheetCallback()),
                         ]),
@@ -573,7 +600,7 @@ class StudentFairParticipationResource extends Resource
             Column::make('fair_name')->heading('Feria')
                 ->getStateUsing(fn ($record) => $record->fair?->name ?? ''),
             Column::make('fair_location')->heading('Municipio Feria')
-                ->getStateUsing(fn ($record) => $record->fair?->location ?? ''),
+                ->getStateUsing(fn ($record) => $record->fair?->city?->name ?? ''),
             Column::make('institution')->heading('Institución Educativa')
                 ->getStateUsing(fn ($record) => $record->educationalInstitution?->display_name ?? ''),
             Column::make('participation_date')->heading('Fecha Participación')

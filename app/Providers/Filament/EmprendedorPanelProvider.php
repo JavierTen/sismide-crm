@@ -53,6 +53,11 @@ class EmprendedorPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            // Persistente para que también cuenten las interacciones Livewire,
+            // no solo las cargas de página completas.
+            ->authMiddleware([
+                \App\Http\Middleware\TrackLoginActivity::class,
+            ], isPersistent: true);
     }
 }

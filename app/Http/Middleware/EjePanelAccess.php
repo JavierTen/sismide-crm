@@ -16,6 +16,10 @@ class EjePanelAccess
     public function handle(Request $request, Closure $next): Response
     {
         if (auth()->check() && ! auth()->user()->can('accessEjePanel')) {
+            // Se marca antes del logout para que el registro de sesiones lo
+            // distinga de un cierre voluntario.
+            $request->attributes->set(\App\Listeners\RecordLoginActivity::FORCED_LOGOUT_ATTRIBUTE, true);
+
             auth()->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

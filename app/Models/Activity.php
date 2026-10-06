@@ -25,6 +25,9 @@ class Activity extends SpatieActivity
         'cascade_deleted'    => 'Deshabilitó en cascada',
         'cascade_restored'   => 'Restauró en cascada',
         'relation_updated'   => 'Actualizó asignación',
+        'password_changed'   => 'Cambió la contraseña',
+        'access_granted'     => 'Creó acceso',
+        'access_revoked'     => 'Eliminó acceso',
     ];
 
     public const EVENT_COLORS = [
@@ -39,6 +42,9 @@ class Activity extends SpatieActivity
         'cascade_deleted'    => 'warning',
         'cascade_restored'   => 'gray',
         'relation_updated'   => 'info',
+        'password_changed'   => 'warning',
+        'access_granted'     => 'success',
+        'access_revoked'     => 'danger',
     ];
 
     protected static function booted(): void

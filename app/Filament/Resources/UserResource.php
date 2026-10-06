@@ -155,6 +155,7 @@ class UserResource extends Resource
                         Forms\Components\Select::make('roles')
                             ->label('Roles del Usuario')
                             ->relationship('roles', 'name')
+                            ->auditRelationship('roles')
                             ->multiple()
                             ->preload()
                             ->searchable()

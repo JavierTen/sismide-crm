@@ -262,6 +262,8 @@ class EntrepreneurUserResource extends Resource
                             $password = Str::random(8);
 
                             // Actualizar contraseña
+                            request()->attributes->set(\App\Support\AuditTrail::CONTEXT_ATTRIBUTE, 'Reenvió credenciales');
+
                             $record->update([
                                 'password' => Hash::make($password),
                             ]);
@@ -337,6 +339,8 @@ class EntrepreneurUserResource extends Resource
                                 if (!empty($record->email)) {
                                     try {
                                         $password = Str::random(8);
+
+                                        request()->attributes->set(\App\Support\AuditTrail::CONTEXT_ATTRIBUTE, 'Reenvió credenciales');
 
                                         $record->update([
                                             'password' => Hash::make($password),

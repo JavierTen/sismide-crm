@@ -18,6 +18,12 @@ use Throwable;
  */
 class AuditTrail
 {
+    /**
+     * Atributo de petición con el que una pantalla precisa el motivo de un
+     * cambio de contraseña ("Reenvió credenciales").
+     */
+    public const CONTEXT_ATTRIBUTE = 'audit_context_description';
+
     public const EVALUATOR_LABELS = [
         'evaluator' => 'evaluador',
         'manager'   => 'gestor',

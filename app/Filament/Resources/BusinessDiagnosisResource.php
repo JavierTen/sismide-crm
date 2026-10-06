@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 //Exportar en excel
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use App\Exports\FormattedExcelExport;
 use pxlrbt\FilamentExcel\Columns\Column;
 
 class BusinessDiagnosisResource extends Resource
@@ -856,7 +856,7 @@ class BusinessDiagnosisResource extends Resource
                     ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->color('success')
                     ->exports([
-                        ExcelExport::make()
+                        FormattedExcelExport::make()
                             ->fromTable()
                             ->modifyQueryUsing(fn($query) => $query->with(['entrepreneur.business', 'entrepreneur.city', 'entrepreneur.manager']))
                             ->withFilename(fn() => 'diagnosticos-empresariales-' . date('Y-m-d'))
@@ -920,7 +920,7 @@ class BusinessDiagnosisResource extends Resource
                         ->label('Exportar Excel')
                         ->color('success')
                         ->exports([
-                            ExcelExport::make()
+                            FormattedExcelExport::make()
                                 ->fromTable()
                                 ->modifyQueryUsing(fn($query) => $query->with(['entrepreneur.business', 'entrepreneur.city', 'entrepreneur.manager']))
                                 ->withFilename(fn() => 'diagnosticos-empresariales-' . date('Y-m-d'))

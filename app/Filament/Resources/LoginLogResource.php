@@ -69,6 +69,12 @@ class LoginLogResource extends Resource
         return $table
             ->defaultSort('login_at', 'desc')
             ->columns([
+                Tables\Columns\TextColumn::make('id')
+                    ->label('N.º')
+                    ->formatStateUsing(fn (int $state): string => '#'.$state)
+                    ->sortable()
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('user_name')
                     ->label('Usuario')
                     ->description(fn (LoginLog $record): ?string => $record->user_email)
@@ -99,17 +105,19 @@ class LoginLogResource extends Resource
 
                 Tables\Columns\TextColumn::make('login_at')
                     ->label('Inicio')
-                    ->dateTime('d/m/Y h:i A')
-                    ->description(fn (LoginLog $record): ?string => $record->via_remember ? 'Con "Recordarme"' : null)
+                    ->date('d/m/Y')
+                    ->description(fn (LoginLog $record): string => $record->login_at->format('h:i A')
+                        .($record->via_remember ? ' · Con "Recordarme"' : ''))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('ended_at')
                     ->label('Cierre')
                     ->getStateUsing(fn (LoginLog $record) => $record->ended_at)
-                    ->dateTime('d/m/Y h:i A')
+                    ->date('d/m/Y')
                     ->placeholder('En curso')
-                    ->description(fn (LoginLog $record): ?string => $record->status === LoginLog::STATUS_EXPIRED
-                        ? 'Última actividad registrada'
+                    ->description(fn (LoginLog $record): ?string => $record->ended_at
+                        ? $record->ended_at->format('h:i A')
+                            .($record->status === LoginLog::STATUS_EXPIRED ? ' · Última actividad registrada' : '')
                         : null),
 
                 Tables\Columns\TextColumn::make('duration')
@@ -131,7 +139,7 @@ class LoginLogResource extends Resource
 
                 Tables\Columns\TextColumn::make('ip_address')
                     ->label('IP')
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('user_agent')
                     ->label('Navegador')
@@ -226,7 +234,15 @@ class LoginLogResource extends Resource
                             : [];
                     }),
             ])
-            ->actions([])
+            ->actions([
+                Tables\Actions\Action::make('activity')
+                    ->label('')
+                    ->tooltip('Ver acciones de esta sesión')
+                    ->icon('heroicon-o-queue-list')
+                    ->color('gray')
+                    ->visible(fn (): bool => ActivityLogResource::canViewAny())
+                    ->url(fn (LoginLog $record): string => ActivityLogResource::urlForSession($record->getKey())),
+            ])
             ->headerActions([
                 ExportAction::make()
                     ->label('Exportar Excel')

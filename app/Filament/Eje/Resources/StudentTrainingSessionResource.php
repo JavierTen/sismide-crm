@@ -185,6 +185,7 @@ class StudentTrainingSessionResource extends Resource
                             Forms\Components\CheckboxList::make('teachers')
                                 ->label('Docentes Participantes')
                                 ->relationship('teachers', 'name')
+                                ->auditRelationship('docentes')
                                 ->options(fn (Get $get) => blank($get('educational_institution_id'))
                                     ? []
                                     : Teacher::withoutTrashed()

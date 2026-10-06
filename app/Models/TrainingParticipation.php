@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\TracksUpdatedBy;
+use App\Traits\LogsModelActivity;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TrainingParticipation extends Model
 {
-    use HasFactory, SoftDeletes, TracksUpdatedBy;
+    use HasFactory, SoftDeletes, TracksUpdatedBy, LogsModelActivity;
 
     protected $fillable = [
         'training_id',

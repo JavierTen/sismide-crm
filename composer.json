@@ -12,7 +12,8 @@
         "laravel/framework": "^10.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
-        "pxlrbt/filament-excel": "^2.5"
+        "pxlrbt/filament-excel": "^2.5",
+        "spatie/laravel-activitylog": "^4.8"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",

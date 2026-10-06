@@ -156,6 +156,7 @@ class StudentFairParticipationResource extends Resource
                             Forms\Components\CheckboxList::make('students')
                                 ->label('Estudiantes Participantes')
                                 ->relationship('students', 'name')
+                                ->auditRelationship('estudiantes')
                                 ->options(fn (Get $get) => blank($get('educational_institution_id'))
                                     ? []
                                     : Student::withoutTrashed()
@@ -177,6 +178,7 @@ class StudentFairParticipationResource extends Resource
                             Forms\Components\CheckboxList::make('teachers')
                                 ->label('Docentes Acompañantes')
                                 ->relationship('teachers', 'name')
+                                ->auditRelationship('docentes')
                                 ->options(fn (Get $get) => blank($get('educational_institution_id'))
                                     ? []
                                     : Teacher::withoutTrashed()
@@ -203,6 +205,7 @@ class StudentFairParticipationResource extends Resource
                             Forms\Components\CheckboxList::make('actors')
                                 ->label('Aliados Invitados')
                                 ->relationship('actors', 'name')
+                                ->auditRelationship('aliados')
                                 ->options(fn () => Actor::withoutTrashed()
                                     ->orderBy('name')
                                     ->pluck('name', 'id')

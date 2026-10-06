@@ -80,6 +80,11 @@ class EvidencesDownloadController extends Controller
 
         $filename = 'Evidencias_Articulacion_' . $year . '.zip';
 
+        \App\Support\ExportLogger::log('Evidencias de articulación (ZIP)', [
+            'file'    => $filename,
+            'records' => is_countable($ids) ? count($ids) : null,
+        ]);
+
         return response()->download($zipPath, $filename)->deleteFileAfterSend(true);
     }
 
@@ -103,6 +108,11 @@ class EvidencesDownloadController extends Controller
             public function array(): array    { return $this->rows; }
             public function headings(): array { return $this->headings; }
         };
+
+        \App\Support\ExportLogger::log(pathinfo($filename, PATHINFO_FILENAME), [
+            'file'    => $filename,
+            'records' => count($rows),
+        ]);
 
         return Excel::download($export, $filename);
     }

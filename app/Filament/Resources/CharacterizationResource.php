@@ -1881,6 +1881,11 @@ class CharacterizationResource extends Resource
                 ->body("Se han empaquetado {$filesAdded} archivos en el ZIP.")
                 ->send();
 
+            \App\Support\ExportLogger::log('Evidencias fotográficas de caracterizaciones (ZIP)', [
+                'file'  => $zipFileName,
+                'files' => $filesAdded,
+            ]);
+
             return response()->download($zipFilePath, $zipFileName)->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {

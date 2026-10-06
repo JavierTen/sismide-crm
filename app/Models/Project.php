@@ -5,11 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\TracksUpdatedBy;
+use App\Traits\LogsModelActivity;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Project extends Model
 {
-    use HasFactory, SoftDeletes, TracksUpdatedBy;
+    use HasFactory, SoftDeletes, TracksUpdatedBy, LogsModelActivity;
 
     protected $fillable = [
         'name',

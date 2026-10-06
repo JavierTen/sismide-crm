@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 use pxlrbt\FilamentExcel\Columns\Column;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use App\Exports\FormattedExcelExport;
 
 class TrainingResource extends Resource
 {
@@ -617,7 +617,7 @@ class TrainingResource extends Resource
                     ->label('Exportar Excel')
                     ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
-                        ExcelExport::make()
+                        FormattedExcelExport::make()
                             ->withFilename(fn () => 'capacitaciones-'.now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                             ->modifyQueryUsing(fn ($query) => $query->with([
@@ -673,7 +673,7 @@ class TrainingResource extends Resource
                     ExportBulkAction::make()
                         ->label('Exportar Excel')
                         ->exports([
-                            ExcelExport::make()
+                            FormattedExcelExport::make()
                                 ->withFilename(fn () => 'capacitaciones-'.now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                                 ->modifyQueryUsing(fn ($query) => $query->with([

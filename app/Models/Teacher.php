@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Traits\TracksUpdatedBy;
+use App\Traits\LogsModelActivity;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Teacher extends Model
 {
-    use HasFactory, SoftDeletes, TracksUpdatedBy;
+    use HasFactory, SoftDeletes, TracksUpdatedBy, LogsModelActivity;
 
     protected $fillable = [
         'educational_institution_id',

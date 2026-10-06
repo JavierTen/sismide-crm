@@ -312,10 +312,19 @@ class BusinessPlanEvaluationResource extends Resource
                         try {
                             DB::beginTransaction();
 
-                            $deleted = BusinessPlanEvaluation::where('business_plan_id', $record->id)
+                            $query = BusinessPlanEvaluation::where('business_plan_id', $record->id)
                                 ->where('evaluator_id', auth()->id())
-                                ->where('evaluator_type', 'evaluator')
-                                ->delete();
+                                ->where('evaluator_type', 'evaluator');
+
+                            // El borrado masivo no dispara eventos de modelo: se guarda
+                            // copia de las calificaciones y se registra una sola acción.
+                            $ratings = (clone $query)->with('question')->get();
+
+                            $deleted = $query->delete();
+
+                            if ($deleted) {
+                                \App\Support\AuditTrail::evaluationDeleted($record, 'evaluator', $ratings);
+                            }
 
                             if (!$deleted) {
                                 throw new \Exception('No se encontró la evaluación para eliminar.');

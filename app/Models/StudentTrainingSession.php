@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Scopes\YearColumnScope;
 use App\Traits\TracksUpdatedBy;
+use App\Traits\LogsModelActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 
 class StudentTrainingSession extends Model
 {
-    use SoftDeletes, TracksUpdatedBy;
+    use SoftDeletes, TracksUpdatedBy, LogsModelActivity;
 
     protected static function booted(): void
     {
@@ -111,6 +112,54 @@ class StudentTrainingSession extends Model
             ->mapWithKeys(fn ($id) => [$id => ['attended' => in_array((int) $id, $attendedIds, true)]])
             ->all();
 
+        $before = $this->attendees()->pluck('students.id')->map(fn ($id) => (int) $id)->all();
+
         $this->students()->sync($payload);
+
+        $this->logAttendanceChange($before, $payload);
+    }
+
+    /**
+     * La asistencia vive en la tabla pivote y `sync()` no dispara eventos de
+     * modelo, así que el historial de actividad no la vería. Se registra aquí,
+     * solo cuando algo cambió, con quién quedó marcado y desmarcado.
+     *
+     * @param  array<int>  $before
+     * @param  array<int|string, array{attended: bool}>  $payload
+     */
+    private function logAttendanceChange(array $before, array $payload): void
+    {
+        $after = array_map('intval', array_keys(array_filter($payload, fn ($row) => $row['attended'])));
+
+        $marked   = array_values(array_diff($after, $before));
+        $unmarked = array_values(array_diff($before, $after));
+
+        if ($marked === [] && $unmarked === []) {
+            return;
+        }
+
+        $names = Student::withoutGlobalScopes()
+            ->whereIn('id', [...$marked, ...$unmarked])
+            ->pluck('name', 'id');
+
+        $summoned  = count($payload);
+        $attendees = count($after);
+
+        activity('attendance')
+            ->performedOn($this)
+            ->event('attendance_updated')
+            ->withProperties([
+                'summoned'  => $summoned,
+                'attendees' => $attendees,
+                'marked'    => collect($marked)->map(fn ($id) => $names[$id] ?? "#{$id}")->values()->all(),
+                'unmarked'  => collect($unmarked)->map(fn ($id) => $names[$id] ?? "#{$id}")->values()->all(),
+            ])
+            ->log(sprintf(
+                'Actualizó la asistencia: %d de %d asistentes (+%d / -%d)',
+                $attendees,
+                $summoned,
+                count($marked),
+                count($unmarked),
+            ));
     }
 }

@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\TracksUpdatedBy;
+use App\Traits\LogsModelActivity;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EntityContact extends Model
 {
-    use SoftDeletes, TracksUpdatedBy;
+    use SoftDeletes, TracksUpdatedBy, LogsModelActivity;
 
     protected $table = 'entity_contacts';
 

@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Traits\TracksUpdatedBy;
+use App\Traits\LogsModelActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InstitutionalDocument extends Model
 {
-    use SoftDeletes, TracksUpdatedBy;
+    use SoftDeletes, TracksUpdatedBy, LogsModelActivity;
 
     protected $fillable = [
         'entity_id',

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Scopes\YearColumnScope;
 use App\Traits\TracksUpdatedBy;
+use App\Traits\LogsModelActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class StudentFair extends Model
 {
-    use SoftDeletes, TracksUpdatedBy;
+    use SoftDeletes, TracksUpdatedBy, LogsModelActivity;
 
     protected static function booted(): void
     {

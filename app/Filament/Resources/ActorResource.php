@@ -1393,20 +1393,33 @@ class ActorResource extends Resource
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
                     ->visible(fn () => auth()->user()->hasRole(['Admin', 'Viewer']))
-                    ->action(fn () => Excel::download(
-                        new ActorContactsExport(),
-                        'entidades-actores-' . now()->format('Y-m-d-His') . '.xlsx'
-                    )),
+                    ->action(function () {
+                        $filename = 'entidades-actores-' . now()->format('Y-m-d-His') . '.xlsx';
+
+                        \App\Support\ExportLogger::log('Entidades y contactos de Ruta D', [
+                            'file'      => $filename,
+                            'selection' => 'Listado completo',
+                        ]);
+
+                        return Excel::download(new ActorContactsExport(), $filename);
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\BulkAction::make('export_selected')
                         ->label('Exportar Excel')
                         ->icon('heroicon-o-arrow-down-tray')
-                        ->action(fn ($records) => Excel::download(
-                            new ActorContactsExport($records->pluck('id')->toArray()),
-                            'entidades-actores-' . now()->format('Y-m-d-His') . '.xlsx'
-                        )),
+                        ->action(function ($records) {
+                            $filename = 'entidades-actores-' . now()->format('Y-m-d-His') . '.xlsx';
+
+                            \App\Support\ExportLogger::log('Entidades y contactos de Ruta D', [
+                                'file'      => $filename,
+                                'records'   => $records->count(),
+                                'selection' => 'Registros seleccionados',
+                            ]);
+
+                            return Excel::download(new ActorContactsExport($records->pluck('id')->toArray()), $filename);
+                        }),
                     Tables\Actions\ForceDeleteBulkAction::make()
                         ->visible(fn() => auth()->user()->hasRole('Admin')),
                 ]),

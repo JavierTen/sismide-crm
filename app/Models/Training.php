@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Traits\TracksUpdatedBy;
+use App\Traits\LogsModelActivity;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -17,7 +18,7 @@ use App\Models\EntityContact;
 
 class Training extends Model
 {
-    use HasFactory, SoftDeletes, TracksUpdatedBy;
+    use HasFactory, SoftDeletes, TracksUpdatedBy, LogsModelActivity;
 
     protected $fillable = [
         'name',

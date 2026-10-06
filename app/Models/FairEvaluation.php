@@ -5,13 +5,14 @@ namespace App\Models;
 use App\Scopes\YearColumnScope;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\TracksUpdatedBy;
+use App\Traits\LogsModelActivity;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class FairEvaluation extends Model
 {
-    use SoftDeletes, TracksUpdatedBy;
+    use SoftDeletes, TracksUpdatedBy, LogsModelActivity;
 
     protected $fillable = [
         // Datos del Emprendimiento

@@ -17,7 +17,7 @@ use Filament\Forms\Get;
 //Exportar en excel
 use pxlrbt\FilamentExcel\Actions\Tables\ExportAction;
 use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
-use pxlrbt\FilamentExcel\Exports\ExcelExport;
+use App\Exports\FormattedExcelExport;
 use pxlrbt\FilamentExcel\Columns\Column;
 
 class FairEvaluationResource extends Resource
@@ -356,7 +356,7 @@ class FairEvaluationResource extends Resource
                     ->label('Exportar Excel')
                     ->visible(fn() => auth()->user()->hasRole(['Admin', 'Viewer']))
                     ->exports([
-                        ExcelExport::make()
+                        FormattedExcelExport::make()
                             ->withFilename(fn() => 'participación-ferias-' . now()->format('Y-m-d-His'))
                             ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                             ->modifyQueryUsing(fn($query) => $query->with([
@@ -475,7 +475,7 @@ class FairEvaluationResource extends Resource
                     ExportBulkAction::make()
                         ->label('Exportar Excel')
                         ->exports([
-                            ExcelExport::make()
+                            FormattedExcelExport::make()
                                 ->withFilename(fn() => 'participación-ferias-' . now()->format('Y-m-d-His'))
                                 ->withWriterType(\Maatwebsite\Excel\Excel::XLSX)
                                 ->modifyQueryUsing(fn($query) => $query->with([

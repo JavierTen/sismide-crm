@@ -88,6 +88,7 @@ class StudentResource extends Resource
                                 modifyQueryUsing: fn (Builder $query, Forms\Get $get) => $query
                                     ->where('educational_institution_id', $get('educational_institution_id')),
                             )
+                            ->auditRelationship('docentes a cargo')
                             ->placeholder('Primero seleccione la institución')
                             ->helperText('Solo se muestran los docentes registrados en la institución seleccionada.')
                             ->multiple()

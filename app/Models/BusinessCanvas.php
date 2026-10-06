@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\TracksUpdatedBy;
+use App\Traits\LogsModelActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
 
 class BusinessCanvas extends Model
 {
-    use HasFactory, SoftDeletes, TracksUpdatedBy;
+    use HasFactory, SoftDeletes, TracksUpdatedBy, LogsModelActivity;
 
     protected $fillable = [
         'entrepreneur_id',

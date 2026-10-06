@@ -203,6 +203,11 @@ class EvaluationResultResource extends Resource
 
                             $fileName = 'Evaluacion_' . \Illuminate\Support\Str::slug($record->entrepreneur->full_name) . '.xlsx';
 
+                            \App\Support\ExportLogger::log('Evaluación del plan de negocio de ' . $record->entrepreneur->full_name, [
+                                'file'    => $fileName,
+                                'records' => 1,
+                            ]);
+
                             return response()->download($tempFile, $fileName, [
                                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                             ])->deleteFileAfterSend(true);

@@ -129,17 +129,14 @@ class BusinessPlanEvaluationResource extends Resource
                     ->alignCenter(),
             ])
             ->filters([
+                // Solo los municipios que tienen algún emprendedor para calificar.
                 Tables\Filters\SelectFilter::make('city_id')
                     ->label('Municipio')
-                    ->relationship('entrepreneur.city', 'name', function ($query) {
-                        return $query->where('status', true)
-                            ->whereHas('department', function ($q) {
-                                $q->where('status', true);
-                            })
-                            ->orderBy('name', 'asc');
-                    })
-                    ->searchable()
-                    ->preload(),
+                    ->options(fn (): array => static::citiesToEvaluate())
+                    ->query(fn (\Illuminate\Database\Eloquent\Builder $query, array $data) => filled($data['value'] ?? null)
+                        ? $query->whereHas('entrepreneur', fn ($q) => $q->where('city_id', $data['value']))
+                        : $query)
+                    ->searchable(),
 
                 Tables\Filters\Filter::make('my_pending')
                     ->label('Pendientes por evaluar')
@@ -637,6 +634,27 @@ class BusinessPlanEvaluationResource extends Resource
                 ->persistent()
                 ->send();
         }
+    }
+
+    /**
+     * Municipios con al menos un plan priorizado (para calificar) en el año
+     * que se está consultando.
+     *
+     * @return array<int, string>
+     */
+    private static function citiesToEvaluate(): array
+    {
+        $entrepreneurIds = BusinessPlan::query()
+            ->where('is_prioritized', true)
+            ->pluck('entrepreneur_id');
+
+        $cityIds = \App\Models\Entrepreneur::withoutGlobalScope(\App\Scopes\YearColumnScope::class)
+            ->whereIn('id', $entrepreneurIds)
+            ->whereNotNull('city_id')
+            ->distinct()
+            ->pluck('city_id');
+
+        return \App\Models\City::whereIn('id', $cityIds)->orderBy('name')->pluck('name', 'id')->all();
     }
 
     public static function getPages(): array

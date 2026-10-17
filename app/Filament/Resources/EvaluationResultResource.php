@@ -330,7 +330,7 @@ class EvaluationResultResource extends Resource
 
         // Encabezado
         $sheet->setCellValue('A' . $row, 'EVALUACIÓN DE PLAN DE NEGOCIO - EVALUADOR');
-        $sheet->mergeCells('A' . $row . ':E' . $row);
+        $sheet->mergeCells('A' . $row . ':D' . $row);
         static::styleHeader($sheet, 'A' . $row);
         $row += 2;
 
@@ -352,8 +352,7 @@ class EvaluationResultResource extends Resource
         $sheet->setCellValue('B' . $row, 'Pregunta');
         $sheet->setCellValue('C' . $row, 'Ponderación');
         $sheet->setCellValue('D' . $row, 'Calificación');
-        $sheet->setCellValue('E' . $row, 'Comentarios');
-        static::styleTableHeader($sheet, 'A' . $row . ':E' . $row);
+        static::styleTableHeader($sheet, 'A' . $row . ':D' . $row);
         $row++;
 
         $startRow = $row;
@@ -364,28 +363,46 @@ class EvaluationResultResource extends Resource
             $sheet->setCellValue('B' . $row, $evaluation->question->question_text);
             $sheet->setCellValue('C' . $row, $evaluation->question->weight);
             $sheet->setCellValue('D' . $row, $evaluation->score);
-            $sheet->setCellValue('E' . $row, $evaluation->comments ?? '');
 
             // Formatear peso como porcentaje
             $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('0%');
 
-            static::styleTableRow($sheet, 'A' . $row . ':E' . $row);
+            static::styleTableRow($sheet, 'A' . $row . ':D' . $row);
             $row++;
         }
 
-        // Promedio ponderado
+        $endRow = $row - 1;
+
+        // Comentarios: son los mismos para todo el formulario, van una sola vez.
         $row++;
-        $sheet->setCellValue('C' . $row, 'PROMEDIO PONDERADO:');
-        $sheet->setCellValue('D' . $row, '=SUMPRODUCT(D' . $startRow . ':D' . ($row - 2) . ',C' . $startRow . ':C' . ($row - 2) . ')');
+        $comments = (string) ($evaluations->first()->comments ?? '');
+
+        $sheet->setCellValue('A' . $row, 'Comentarios');
+        static::styleTableHeader($sheet, 'A' . $row);
+        $sheet->setCellValue('B' . $row, $comments);
+        $sheet->mergeCells('B' . $row . ':D' . $row);
+        $sheet->getStyle('B' . $row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+        $sheet->getStyle('A' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+
+        // Las celdas combinadas no se ajustan solas al texto: alto según su largo.
+        $lines = max(1, (int) ceil(mb_strlen($comments) / 85) + substr_count($comments, "\n"));
+        $sheet->getRowDimension($row)->setRowHeight(max(15, $lines * 15));
+        $row += 2;
+
+        // Promedio ponderado: dividido por la suma de las ponderaciones, igual
+        // que en la pantalla (el formato 2025 no suma exactamente 100 %).
+        $sheet->setCellValue('B' . $row, 'PROMEDIO PONDERADO:');
+        $sheet->mergeCells('B' . $row . ':C' . $row);
+        $sheet->setCellValue('D' . $row, "=SUMPRODUCT(D{$startRow}:D{$endRow},C{$startRow}:C{$endRow})/SUM(C{$startRow}:C{$endRow})");
         $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('0.00');
-        static::styleTotalRow($sheet, 'C' . $row . ':D' . $row);
+        static::styleTotalRow($sheet, 'B' . $row . ':D' . $row);
+        $sheet->getStyle('B' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
         // Ajustar anchos
-        $sheet->getColumnDimension('A')->setWidth(8);
+        $sheet->getColumnDimension('A')->setWidth(16);
         $sheet->getColumnDimension('B')->setWidth(50);
         $sheet->getColumnDimension('C')->setWidth(15);
         $sheet->getColumnDimension('D')->setWidth(15);
-        $sheet->getColumnDimension('E')->setWidth(50);
     }
 
     private static function createManagerSheet($sheet, $businessPlan, $manager, $evaluations)

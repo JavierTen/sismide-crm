@@ -173,17 +173,29 @@ class EvaluationResultResource extends Resource
                     ->size(Tables\Columns\TextColumn\TextColumnSize::Large),
             ])
             ->filters([
+                Tables\Filters\SelectFilter::make('score_order')
+                    ->label('Puntaje')
+                    ->options([
+                        'desc' => 'De mayor a menor',
+                        'asc'  => 'De menor a mayor',
+                    ])
+                    ->default('desc')
+                    ->selectablePlaceholder(false)
+                    // El orden por defecto no cuenta como filtro activo.
+                    ->indicateUsing(fn (array $data): array => ($data['value'] ?? null) === 'asc'
+                        ? ['Puntaje: de menor a mayor']
+                        : [])
+                    // No filtra registros: el orden lo aplica ListEvaluationResults.
+                    ->query(fn (Builder $query): Builder => $query),
+
+                // Solo los municipios que tienen algún emprendedor en el consolidado.
                 Tables\Filters\SelectFilter::make('city_id')
                     ->label('Municipio')
-                    ->relationship('entrepreneur.city', 'name', function ($query) {
-                        return $query->where('status', true)
-                            ->whereHas('department', function ($q) {
-                                $q->where('status', true);
-                            })
-                            ->orderBy('name', 'asc');
-                    })
-                    ->searchable()
-                    ->preload(),
+                    ->options(fn (): array => static::evaluatedCities())
+                    ->query(fn (Builder $query, array $data): Builder => filled($data['value'] ?? null)
+                        ? $query->whereHas('entrepreneur', fn (Builder $q) => $q->where('city_id', $data['value']))
+                        : $query)
+                    ->searchable(),
 
                 Tables\Filters\Filter::make('fully_evaluated')
                     ->label('Completamente evaluados')
@@ -613,6 +625,28 @@ class EvaluationResultResource extends Resource
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Municipios con al menos un emprendedor en el consolidado (plan
+     * priorizado y evaluado) en el año que se está consultando.
+     *
+     * @return array<int, string>
+     */
+    private static function evaluatedCities(): array
+    {
+        $entrepreneurIds = BusinessPlan::query()
+            ->where('is_prioritized', true)
+            ->whereHas('evaluations')
+            ->pluck('entrepreneur_id');
+
+        $cityIds = \App\Models\Entrepreneur::withoutGlobalScope(\App\Scopes\YearColumnScope::class)
+            ->whereIn('id', $entrepreneurIds)
+            ->whereNotNull('city_id')
+            ->distinct()
+            ->pluck('city_id');
+
+        return \App\Models\City::whereIn('id', $cityIds)->orderBy('name')->pluck('name', 'id')->all();
     }
 
     public static function getPages(): array

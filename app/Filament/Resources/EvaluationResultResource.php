@@ -5,6 +5,11 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\EvaluationResultResource\Pages;
 use App\Models\BusinessPlan;
 use App\Models\BusinessPlanEvaluation;
+use App\Models\BusinessPlanEvaluationQuestion;
+use App\Exports\EvaluationResultsExport;
+use App\Support\YearContext;
+use Illuminate\Database\Eloquent\Builder;
+use Maatwebsite\Excel\Facades\Excel;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -74,6 +79,8 @@ class EvaluationResultResource extends Resource
     {
         // Solo mostrar planes priorizados que tengan evaluaciones
         return parent::getEloquentQuery()
+            ->select('business_plans.*')
+            ->selectRaw(BusinessPlanEvaluation::finalScoreSql() . ' AS final_score_value')
             ->where('is_prioritized', true)
             ->whereHas('evaluations')
             ->with([
@@ -87,7 +94,8 @@ class EvaluationResultResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->defaultSort('created_at', 'desc')
+            // De mayor a menor nota; quien aún no tiene nota va al final.
+            ->defaultSort('final_score', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('entrepreneur.full_name')
                     ->label('Emprendedor')
@@ -120,7 +128,13 @@ class EvaluationResultResource extends Resource
 
                 Tables\Columns\TextColumn::make('managers_score')
                     ->label('Gestores')
+                    // Desde 2026 el gestor ya no califica.
+                    ->visible(fn (): bool => BusinessPlanEvaluationQuestion::managerApplies(YearContext::effectiveYear()))
                     ->getStateUsing(function (BusinessPlan $record): string {
+                        if (! BusinessPlanEvaluation::managerAppliesToPlan($record->id)) {
+                            return 'No aplica';
+                        }
+
                         $average = BusinessPlanEvaluation::getAllManagersAverage($record->id);
                         $count = BusinessPlanEvaluation::getManagersCount($record->id);
 
@@ -131,22 +145,17 @@ class EvaluationResultResource extends Resource
                         return number_format($average, 2) . ' (' . $count . ' gestor' . ($count > 1 ? 'es' : '') . ')';
                     })
                     ->badge()
-                    ->color(fn (string $state) => str_contains($state, 'Sin') ? 'gray' : 'warning')
+                    ->color(fn (string $state) => str_contains($state, 'Sin') || $state === 'No aplica' ? 'gray' : 'warning')
                     ->alignCenter(),
 
                 Tables\Columns\TextColumn::make('final_score')
                     ->label('Calificación Final')
-                    ->getStateUsing(function (BusinessPlan $record): string {
-                        $evaluatorsAvg = BusinessPlanEvaluation::getAllEvaluatorsAverage($record->id);
-                        $managersAvg = BusinessPlanEvaluation::getAllManagersAverage($record->id);
-
-                        if ($evaluatorsAvg == 0 && $managersAvg == 0) {
-                            return 'Pendiente';
-                        }
-
-                        $finalScore = BusinessPlanEvaluation::getFinalScore($record->id);
-                        return number_format($finalScore, 2) . ' / 10';
-                    })
+                    ->getStateUsing(fn (BusinessPlan $record): string => $record->final_score_value === null
+                        ? 'Pendiente'
+                        : number_format((float) $record->final_score_value, 2) . ' / 10')
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => $query
+                        ->orderByRaw('final_score_value IS NULL')
+                        ->orderBy('final_score_value', $direction))
                     ->badge()
                     ->color(function (string $state) {
                         if (str_contains($state, 'Pendiente')) {
@@ -178,6 +187,7 @@ class EvaluationResultResource extends Resource
 
                 Tables\Filters\Filter::make('fully_evaluated')
                     ->label('Completamente evaluados')
+                    ->visible(fn (): bool => BusinessPlanEvaluationQuestion::managerApplies(YearContext::effectiveYear()))
                     ->query(function ($query) {
                         return $query->whereHas('evaluatorEvaluations')
                             ->whereHas('managerEvaluations');
@@ -185,9 +195,31 @@ class EvaluationResultResource extends Resource
 
                 Tables\Filters\Filter::make('pending_managers')
                     ->label('Pendientes de gestores')
+                    ->visible(fn (): bool => BusinessPlanEvaluationQuestion::managerApplies(YearContext::effectiveYear()))
                     ->query(function ($query) {
                         return $query->whereHas('evaluatorEvaluations')
                             ->whereDoesntHave('managerEvaluations');
+                    }),
+            ])
+            ->headerActions([
+                Tables\Actions\Action::make('export_results')
+                    ->label('Exportar resultados')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->visible(fn () => static::userCanExport())
+                    ->action(function ($livewire) {
+                        // Respeta los filtros, la búsqueda y el orden del listado.
+                        $plans    = $livewire->getFilteredSortedTableQuery()->get();
+                        $fileName = 'Consolidado_evaluaciones_' . now()->format('Y-m-d-His') . '.xlsx';
+
+                        \App\Support\ExportLogger::log('Consolidado de evaluaciones del plan de negocio', [
+                            'file'    => $fileName,
+                            'records' => $plans->count(),
+                            'filters' => \App\Support\ExportLogger::activeFilters($livewire->tableFilters ?? null),
+                            'search'  => $livewire->tableSearch ?? null,
+                        ]);
+
+                        return Excel::download(new EvaluationResultsExport($plans), $fileName);
                     }),
             ])
             ->actions([
@@ -447,24 +479,29 @@ class EvaluationResultResource extends Resource
         $sheet->setCellValue('A' . $row, 'Evaluadores');
         $sheet->setCellValue('B' . $row, $evaluatorsCount);
         $sheet->setCellValue('C' . $row, $evaluatorsAvg);
-        $sheet->setCellValue('D' . $row, 0.90);
+        $managerApplies = BusinessPlanEvaluation::managerAppliesToPlan($businessPlan->id);
+        $sheet->setCellValue('D' . $row, $managerApplies ? 0.90 : 1);
         $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('0.00');
         $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('0%');
         static::styleTableRow($sheet, 'A' . $row . ':D' . $row);
         $row++;
 
-        // Gestores
-        $managersCount = BusinessPlanEvaluation::getManagersCount($businessPlan->id);
-        $managersAvg = BusinessPlanEvaluation::getAllManagersAverage($businessPlan->id);
+        // Gestores (solo formato 2025: desde 2026 el gestor ya no califica)
+        if ($managerApplies) {
+            $managersCount = BusinessPlanEvaluation::getManagersCount($businessPlan->id);
+            $managersAvg = BusinessPlanEvaluation::getAllManagersAverage($businessPlan->id);
 
-        $sheet->setCellValue('A' . $row, 'Gestores');
-        $sheet->setCellValue('B' . $row, $managersCount);
-        $sheet->setCellValue('C' . $row, $managersAvg);
-        $sheet->setCellValue('D' . $row, 0.10);
-        $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('0.00');
-        $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('0%');
-        static::styleTableRow($sheet, 'A' . $row . ':D' . $row);
-        $row += 2;
+            $sheet->setCellValue('A' . $row, 'Gestores');
+            $sheet->setCellValue('B' . $row, $managersCount);
+            $sheet->setCellValue('C' . $row, $managersAvg);
+            $sheet->setCellValue('D' . $row, 0.10);
+            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('0.00');
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('0%');
+            static::styleTableRow($sheet, 'A' . $row . ':D' . $row);
+            $row++;
+        }
+
+        $row++;
 
         // Calificación final
         $finalScore = BusinessPlanEvaluation::getFinalScore($businessPlan->id);
@@ -571,9 +608,12 @@ class EvaluationResultResource extends Resource
     public static function getNavigationBadge(): ?string
     {
         // Contar planes completamente evaluados
+        // Desde 2026 basta con los evaluadores: el gestor ya no califica.
         $count = BusinessPlan::where('is_prioritized', true)
             ->whereHas('evaluatorEvaluations')
-            ->whereHas('managerEvaluations')
+            ->where(fn ($query) => $query
+                ->whereYear('business_plans.created_at', '>=', BusinessPlanEvaluationQuestion::EVALUATORS_ONLY_FROM)
+                ->orWhereHas('managerEvaluations'))
             ->count();
 
         return $count > 0 ? (string) $count : null;

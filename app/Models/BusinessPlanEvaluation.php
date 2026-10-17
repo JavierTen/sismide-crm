@@ -156,12 +156,68 @@ class BusinessPlanEvaluation extends Model
     public static function getFinalScore(int $businessPlanId): float
     {
         $evaluatorsAvg = self::getAllEvaluatorsAverage($businessPlanId);
+
+        // Desde 2026 la nota final es solo el promedio de los evaluadores.
+        if (! self::managerAppliesToPlan($businessPlanId)) {
+            return round($evaluatorsAvg, 2);
+        }
+
         $managersAvg = self::getAllManagersAverage($businessPlanId);
 
-        // Ponderación: 90% evaluadores + 10% gestores
+        // Formato 2025: 90% evaluadores + 10% gestores
         $finalScore = ($evaluatorsAvg * 0.90) + ($managersAvg * 0.10);
 
         return round($finalScore, 2);
+    }
+
+    /**
+     * La misma nota final como expresión SQL, para ordenar y filtrar el
+     * consolidado en la consulta. Cada evaluador califica todas las preguntas
+     * de su formato, así que el promedio ponderado de todas sus calificaciones
+     * equivale al promedio de los promedios de cada evaluador.
+     */
+    public static function finalScoreSql(string $plans = 'business_plans'): string
+    {
+        $evaluators = "(SELECT SUM(e.score * q.weight) / NULLIF(SUM(q.weight), 0)
+            FROM business_plan_evaluations e
+            JOIN business_plan_evaluation_questions q ON q.id = e.question_id
+            WHERE e.business_plan_id = {$plans}.id AND e.evaluator_type = 'evaluator' AND e.deleted_at IS NULL)";
+
+        $managers = "(SELECT AVG(m.score)
+            FROM business_plan_evaluations m
+            WHERE m.business_plan_id = {$plans}.id AND m.evaluator_type = 'manager' AND m.deleted_at IS NULL)";
+
+        $from = BusinessPlanEvaluationQuestion::EVALUATORS_ONLY_FROM;
+
+        return "(CASE
+            WHEN {$evaluators} IS NULL AND (YEAR({$plans}.created_at) >= {$from} OR {$managers} IS NULL) THEN NULL
+            WHEN YEAR({$plans}.created_at) >= {$from} THEN ROUND({$evaluators}, 2)
+            ELSE ROUND(COALESCE({$evaluators}, 0) * 0.90 + COALESCE({$managers}, 0) * 0.10, 2)
+        END)";
+    }
+
+    /** @var array<int, ?int> */
+    private static array $planYears = [];
+
+    /** Año del plan de negocio: define su formato de evaluación. */
+    public static function planYear(int $businessPlanId): ?int
+    {
+        if (! array_key_exists($businessPlanId, self::$planYears)) {
+            $createdAt = BusinessPlan::withoutGlobalScope(YearColumnScope::class)
+                ->withTrashed()
+                ->whereKey($businessPlanId)
+                ->value('created_at');
+
+            self::$planYears[$businessPlanId] = $createdAt ? (int) substr((string) $createdAt, 0, 4) : null;
+        }
+
+        return self::$planYears[$businessPlanId];
+    }
+
+    /** ¿La calificación del gestor cuenta para la nota final de este plan? */
+    public static function managerAppliesToPlan(int $businessPlanId): bool
+    {
+        return BusinessPlanEvaluationQuestion::managerApplies(self::planYear($businessPlanId) ?? now()->year);
     }
 
     /**
@@ -206,9 +262,15 @@ class BusinessPlanEvaluation extends Model
      */
     public static function hasCompletedEvaluation(int $businessPlanId, int $evaluatorId, string $evaluatorType): bool
     {
-        $expectedQuestions = BusinessPlanEvaluationQuestion::where('target_role', $evaluatorType)
-            ->where('is_active', true)
-            ->count();
+        $year = self::planYear($businessPlanId);
+
+        $expectedQuestions = $evaluatorType === 'manager'
+            ? BusinessPlanEvaluationQuestion::forManagers($year)->count()
+            : BusinessPlanEvaluationQuestion::forEvaluators($year)->count();
+
+        if ($expectedQuestions === 0) {
+            return false;
+        }
 
         $completedQuestions = self::where('business_plan_id', $businessPlanId)
             ->where('evaluator_id', $evaluatorId)

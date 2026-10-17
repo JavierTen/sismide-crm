@@ -112,7 +112,27 @@ class BusinessPlanEvaluationQuestionSeeder extends Seeder
         ];
 
         foreach ($questions as $question) {
-            BusinessPlanEvaluationQuestion::create($question);
+            BusinessPlanEvaluationQuestion::create(['format_year' => 2025, ...$question]);
+        }
+
+        // Formato 2026: nuevas ponderaciones, "Ubicación física del
+        // emprendimiento" como primer factor del criterio global y sin el
+        // criterio técnico del gestor (la nota final es solo de los evaluadores).
+        $weights2026 = [1 => 0.10, 2 => 0.05, 3 => 0.10, 4 => 0.05, 5 => 0.10, 6 => 0.05, 7 => 0.05, 8 => 0.10, 9 => 0.10, 10 => 0.10, 11 => 0.20];
+
+        foreach ($questions as $question) {
+            if ($question['target_role'] !== 'evaluator') {
+                continue;
+            }
+
+            BusinessPlanEvaluationQuestion::create([
+                ...$question,
+                'format_year' => 2026,
+                'weight'      => $weights2026[$question['question_number']],
+                'description' => $question['question_number'] === 11
+                    ? 'Herramienta utilizada por los jurados para evaluar de manera integral las oportunidades de negocio. Esta evaluación se centra en entender la viabilidad y el potencial de crecimiento futuro de una empresa, más allá de las características inmediatas o específicas que se revisan bajo otros criterios. Esencialmente, permite que el jurado obtenga una comprensión holística y a largo plazo de la empresa, considerando varios factores clave.'
+                    : $question['description'],
+            ]);
         }
     }
 }

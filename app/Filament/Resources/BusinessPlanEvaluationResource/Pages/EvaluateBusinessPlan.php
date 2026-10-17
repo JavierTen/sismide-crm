@@ -47,7 +47,7 @@ class EvaluateBusinessPlan extends Page implements HasForms
 
     public function form(Form $form): Form
     {
-        $questions = BusinessPlanEvaluationQuestion::forEvaluators()->get();
+        $questions = BusinessPlanEvaluationQuestion::forEvaluators(BusinessPlanEvaluation::planYear($this->record->id))->get();
 
         $schema = [
             Forms\Components\Section::make('Información del Emprendedor')
@@ -95,6 +95,7 @@ class EvaluateBusinessPlan extends Page implements HasForms
                                     ->required()
                                     ->minValue(1)
                                     ->maxValue(10)
+                                    ->extraInputAttributes(\App\Support\ScoreInput::attributes())
                                     ->step(0.1)
                                     ->suffix('/ 10')
                                     ->helperText('Ponderación: ' . ($question->weight * 100) . '%')
@@ -126,7 +127,7 @@ class EvaluateBusinessPlan extends Page implements HasForms
     public function submit(): void
     {
         $data = $this->form->getState();
-        $questions = BusinessPlanEvaluationQuestion::forEvaluators()->get();
+        $questions = BusinessPlanEvaluationQuestion::forEvaluators(BusinessPlanEvaluation::planYear($this->record->id))->get();
 
         try {
             DB::beginTransaction();

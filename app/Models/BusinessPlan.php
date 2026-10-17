@@ -323,7 +323,7 @@ class BusinessPlan extends Model
     /**
      * Obtener el puntaje final del plan
      */
-    public function getFinalScoreAttribute(): array
+    public function getFinalScoreAttribute(): float
     {
         return BusinessPlanEvaluation::getFinalScore($this->id);
     }
@@ -334,8 +334,12 @@ class BusinessPlan extends Model
     public function isFullyEvaluated(): bool
     {
         $hasEvaluators = $this->evaluatorEvaluations()->exists();
-        $hasManagers = $this->managerEvaluations()->exists();
 
-        return $hasEvaluators && $hasManagers;
+        // Desde 2026 el gestor ya no califica.
+        if (! BusinessPlanEvaluation::managerAppliesToPlan($this->id)) {
+            return $hasEvaluators;
+        }
+
+        return $hasEvaluators && $this->managerEvaluations()->exists();
     }
 }

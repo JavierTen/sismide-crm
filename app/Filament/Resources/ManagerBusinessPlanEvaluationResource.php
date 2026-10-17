@@ -37,6 +37,8 @@ class ManagerBusinessPlanEvaluationResource extends Resource
         // 2. NO son de sus propios emprendedores (no puede evaluar a su gente)
         return parent::getEloquentQuery()
             ->where('is_prioritized', true) // Ya tiene evaluaciones de evaluadores
+            // Desde 2026 el gestor ya no califica: solo planes de años anteriores.
+            ->whereYear('business_plans.created_at', '<', BusinessPlanEvaluationQuestion::EVALUATORS_ONLY_FROM)
             ->whereHas('entrepreneur', function ($query) use ($user) {
                 $query->where('manager_id', '!=', $user->id); // NO es su emprendedor
             })
@@ -79,7 +81,8 @@ class ManagerBusinessPlanEvaluationResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return static::canViewAny();
+        return static::canViewAny()
+            && BusinessPlanEvaluationQuestion::managerApplies(\App\Support\YearContext::effectiveYear());
     }
 
     public static function canCreate(): bool
@@ -184,7 +187,7 @@ class ManagerBusinessPlanEvaluationResource extends Resource
                     ->modalHeading('Evaluación Gestor - Criterio Técnico')
                     ->modalWidth('5xl')
                     ->form(function (BusinessPlan $record) {
-                        $question = BusinessPlanEvaluationQuestion::forManagers()->first();
+                        $question = BusinessPlanEvaluationQuestion::forManagers(BusinessPlanEvaluation::planYear($record->id))->first();
 
                         return [
                             Forms\Components\Section::make('Información del Emprendedor')
@@ -244,6 +247,7 @@ class ManagerBusinessPlanEvaluationResource extends Resource
                                         ->required()
                                         ->minValue(1)
                                         ->maxValue(10)
+                                        ->extraInputAttributes(\App\Support\ScoreInput::attributes())
                                         ->step(0.1)
                                         ->suffix('/ 10')
                                         ->helperText('Ingrese una calificación de 1 a 10')
@@ -263,7 +267,7 @@ class ManagerBusinessPlanEvaluationResource extends Resource
                         ];
                     })
                     ->action(function (BusinessPlan $record, array $data) {
-                        $question = BusinessPlanEvaluationQuestion::forManagers()->first();
+                        $question = BusinessPlanEvaluationQuestion::forManagers(BusinessPlanEvaluation::planYear($record->id))->first();
 
                         if (!$question) {
                             Notification::make()
@@ -337,7 +341,7 @@ class ManagerBusinessPlanEvaluationResource extends Resource
                         ];
                     })
                     ->form(function (BusinessPlan $record) {
-                        $question = BusinessPlanEvaluationQuestion::forManagers()->first();
+                        $question = BusinessPlanEvaluationQuestion::forManagers(BusinessPlanEvaluation::planYear($record->id))->first();
 
                         return [
                             Forms\Components\Section::make('Información del Emprendedor')
@@ -383,6 +387,7 @@ class ManagerBusinessPlanEvaluationResource extends Resource
                                         ->required()
                                         ->minValue(1)
                                         ->maxValue(10)
+                                        ->extraInputAttributes(\App\Support\ScoreInput::attributes())
                                         ->step(0.1)
                                         ->suffix('/ 10')
                                         ->helperText('Ingrese una calificación de 1 a 10')
@@ -577,6 +582,7 @@ class ManagerBusinessPlanEvaluationResource extends Resource
         $user = auth()->user();
 
         $pending = BusinessPlan::where('is_prioritized', true)
+            ->whereYear('business_plans.created_at', '<', BusinessPlanEvaluationQuestion::EVALUATORS_ONLY_FROM)
             ->whereHas('evaluatorEvaluations')
             ->whereHas('entrepreneur', function ($query) use ($user) {
                 $query->where('manager_id', '!=', $user->id);

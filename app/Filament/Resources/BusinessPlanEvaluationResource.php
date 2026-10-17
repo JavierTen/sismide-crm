@@ -306,7 +306,7 @@ class BusinessPlanEvaluationResource extends Resource
                     })
                     ->requiresConfirmation()
                     ->modalHeading('Eliminar Evaluación')
-                    ->modalDescription('¿Está seguro de que desea eliminar su evaluación completa? Esta acción no se puede deshacer y eliminará todas las calificaciones de las 11 preguntas.')
+                    ->modalDescription('¿Está seguro de que desea eliminar su evaluación completa? Esta acción no se puede deshacer y eliminará todas sus calificaciones de este plan.')
                     ->modalSubmitActionLabel('Sí, eliminar')
                     ->action(function (BusinessPlan $record) {
                         try {
@@ -356,7 +356,7 @@ class BusinessPlanEvaluationResource extends Resource
      */
     private static function getEvaluationForm(BusinessPlan $record): array
     {
-        $questions = BusinessPlanEvaluationQuestion::forEvaluators()->get();
+        $questions = BusinessPlanEvaluationQuestion::forEvaluators(BusinessPlanEvaluation::planYear($record->id))->get();
 
         $formFields = [
             Forms\Components\Section::make('Datos básicos del emprendedor')
@@ -476,36 +476,9 @@ class BusinessPlanEvaluationResource extends Resource
                 nl2br(e($question->description)) .
                 '</div>';
 
-            // Si es la pregunta 11 (Criterio global), agregar subcriterios
-            if ($question->question_number == 11 && $question->target_role == 'evaluator') {
-                $descriptionContent .= '
-    <div class="mt-4 grid grid-cols-6 gap-2">
-        <div class="border border-gray-300 dark:border-gray-600 p-2 text-center">
-            <strong class="text-xs">Escalabilidad</strong>
-            <p class="text-xs mt-1">El negocio tiene la capacidad de crecer exponencialmente. Enfoque hacia la formalización y fortalecimiento de la economía formal.</p>
-        </div>
-        <div class="border border-gray-300 dark:border-gray-600 p-2 text-center">
-            <strong class="text-xs">Tendencias y disrupciones del mercado</strong>
-            <p class="text-xs mt-1">Los cambios disruptivos en la industria, pueden afectar a la empresa.</p>
-        </div>
-        <div class="border border-gray-300 dark:border-gray-600 p-2 text-center">
-            <strong class="text-xs">Adaptabilidad del equipo emprendedor</strong>
-            <p class="text-xs mt-1">El equipo de liderazgo de la empresa puede adaptarse y manejar cambios en el entorno.</p>
-        </div>
-        <div class="border border-gray-300 dark:border-gray-600 p-2 text-center">
-            <strong class="text-xs">Barreras de entrada y competencia</strong>
-            <p class="text-xs mt-1">Dificultad para entrar al mercado y enfrentar a la competencia existente en el largo plazo.</p>
-        </div>
-        <div class="border border-gray-300 dark:border-gray-600 p-2 text-center">
-            <strong class="text-xs">Expansión de mercados y productos</strong>
-            <p class="text-xs mt-1">Capacidad para introducir nuevos productos o servicios y expandirse a nuevos mercados.</p>
-        </div>
-        <div class="border border-gray-300 dark:border-gray-600 p-2 text-center">
-            <strong class="text-xs">Retorno de la inversión</strong>
-            <p class="text-xs mt-1">Expectativas de beneficios económicos que la empresa podría generar tanto a corto como a largo plazo.</p>
-        </div>
-    </div>
-';
+            // Criterio global: los factores que el jurado considera en su nota.
+            if ($question->isGlobalCriterion()) {
+                $descriptionContent .= static::globalFactorsHtml($question->format_year);
             }
 
             $formFields[] = Forms\Components\Section::make($question->question_number . '. ' . $question->question_text)
@@ -521,6 +494,7 @@ class BusinessPlanEvaluationResource extends Resource
                         ->required()
                         ->minValue(1)
                         ->maxValue(10)
+                        ->extraInputAttributes(\App\Support\ScoreInput::attributes())
                         ->step(0.1)
                         ->suffix('/ 10')
                         ->helperText('Ponderación: ' . ($question->weight * 100) . '%')
@@ -543,11 +517,26 @@ class BusinessPlanEvaluationResource extends Resource
     }
 
     /**
+     * Factores del criterio global en tarjetas, en el orden del formato.
+     */
+    public static function globalFactorsHtml(int $formatYear): string
+    {
+        $cards = collect(BusinessPlanEvaluationQuestion::globalFactors($formatYear))
+            ->map(fn (string $text, string $title) => '<div style="border:1px solid rgba(var(--gray-400),0.5);border-radius:.5rem;padding:.6rem;">'
+                . '<strong style="display:block;font-size:.75rem;">' . e($title) . '</strong>'
+                . '<p style="font-size:.75rem;margin-top:.25rem;">' . e($text) . '</p>'
+                . '</div>')
+            ->implode('');
+
+        return '<div style="margin-top:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.5rem;">' . $cards . '</div>';
+    }
+
+    /**
      * Guarda una nueva evaluación
      */
     private static function saveEvaluation(BusinessPlan $record, array $data): void
     {
-        $questions = BusinessPlanEvaluationQuestion::forEvaluators()->get();
+        $questions = BusinessPlanEvaluationQuestion::forEvaluators(BusinessPlanEvaluation::planYear($record->id))->get();
 
         try {
             DB::beginTransaction();
@@ -594,7 +583,7 @@ class BusinessPlanEvaluationResource extends Resource
      */
     private static function updateEvaluation(BusinessPlan $record, array $data): void
     {
-        $questions = BusinessPlanEvaluationQuestion::forEvaluators()->get();
+        $questions = BusinessPlanEvaluationQuestion::forEvaluators(BusinessPlanEvaluation::planYear($record->id))->get();
 
         try {
             DB::beginTransaction();

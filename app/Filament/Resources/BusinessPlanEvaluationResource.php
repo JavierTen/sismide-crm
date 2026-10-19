@@ -380,7 +380,10 @@ class BusinessPlanEvaluationResource extends Resource
 
                             Forms\Components\Placeholder::make('economic_activity')
                                 ->label('Actividad Económica')
-                                ->content($record->entrepreneur->characterizations->first()?->economicActivity?->name ?? 'N/A'),
+                                // Se registra en el emprendimiento; la caracterización casi nunca la trae.
+                                ->content($record->entrepreneur->business?->economicActivity?->name
+                                    ?? $record->entrepreneur->characterizations->first()?->economicActivity?->name
+                                    ?? 'N/A'),
                         ]),
                 ])
                 ->collapsible(),

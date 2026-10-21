@@ -110,20 +110,10 @@ class EvaluationResultResource extends Resource
                     ->wrap()
                     ->placeholder('Sin emprendimiento'),
 
+                // Solo cuántos evaluadores calificaron: la nota está en "Calificación Final".
                 Tables\Columns\TextColumn::make('evaluators_score')
-                    ->label('Evaluadores')
-                    ->getStateUsing(function (BusinessPlan $record): string {
-                        $average = BusinessPlanEvaluation::getAllEvaluatorsAverage($record->id);
-                        $count = BusinessPlanEvaluation::getEvaluatorsCount($record->id);
-
-                        if ($count === 0) {
-                            return 'Sin evaluar';
-                        }
-
-                        return number_format($average, 2) . ' (' . $count . ' evaluador' . ($count > 1 ? 'es' : '') . ')';
-                    })
-                    ->badge()
-                    ->color(fn (string $state) => str_contains($state, 'Sin') ? 'gray' : 'info')
+                    ->label('N.º de evaluadores')
+                    ->getStateUsing(fn (BusinessPlan $record): int => BusinessPlanEvaluation::getEvaluatorsCount($record->id))
                     ->alignCenter(),
 
                 Tables\Columns\TextColumn::make('managers_score')
@@ -493,44 +483,47 @@ class EvaluationResultResource extends Resource
         $sheet->mergeCells('B' . $row . ':D' . $row);
         $row += 2;
 
-        // Tabla de resultados
-        $sheet->setCellValue('A' . $row, 'Tipo');
-        $sheet->setCellValue('B' . $row, 'Cantidad');
-        $sheet->setCellValue('C' . $row, 'Promedio');
-        $sheet->setCellValue('D' . $row, 'Ponderación');
+        // Calificación de cada evaluador, sin su nombre: "Evaluador 1", "Evaluador 2"…
+        // en el mismo orden de sus hojas (Evaluador_1, Evaluador_2…).
+        $sheet->setCellValue('A' . $row, 'Evaluador');
+        $sheet->mergeCells('A' . $row . ':C' . $row);
+        $sheet->setCellValue('D' . $row, 'Calificación');
         static::styleTableHeader($sheet, 'A' . $row . ':D' . $row);
         $row++;
 
-        // Evaluadores
-        $evaluatorsCount = BusinessPlanEvaluation::getEvaluatorsCount($businessPlan->id);
-        $evaluatorsAvg = BusinessPlanEvaluation::getAllEvaluatorsAverage($businessPlan->id);
+        $scores = $businessPlan->evaluatorEvaluations()
+            ->get()
+            ->groupBy('evaluator_id')
+            ->keys()
+            ->values()
+            ->map(fn ($evaluatorId, $i) => [
+                'name'  => 'Evaluador ' . ($i + 1),
+                'score' => BusinessPlanEvaluation::getEvaluatorAverage($businessPlan->id, $evaluatorId),
+            ]);
 
-        $sheet->setCellValue('A' . $row, 'Evaluadores');
-        $sheet->setCellValue('B' . $row, $evaluatorsCount);
-        $sheet->setCellValue('C' . $row, $evaluatorsAvg);
-        $managerApplies = BusinessPlanEvaluation::managerAppliesToPlan($businessPlan->id);
-        $sheet->setCellValue('D' . $row, $managerApplies ? 0.90 : 1);
-        $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('0.00');
-        $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('0%');
-        static::styleTableRow($sheet, 'A' . $row . ':D' . $row);
-        $row++;
+        // Formato 2025: el gestor también califica (10 % de la nota final).
+        if (BusinessPlanEvaluation::managerAppliesToPlan($businessPlan->id)) {
+            $managerScores = $businessPlan->managerEvaluations()
+                ->get()
+                ->values()
+                ->map(fn ($rating, $i) => [
+                    'name'  => 'Gestor ' . ($i + 1),
+                    'score' => (float) $rating->score,
+                ]);
 
-        // Gestores (solo formato 2025: desde 2026 el gestor ya no califica)
-        if ($managerApplies) {
-            $managersCount = BusinessPlanEvaluation::getManagersCount($businessPlan->id);
-            $managersAvg = BusinessPlanEvaluation::getAllManagersAverage($businessPlan->id);
+            $scores = $scores->concat($managerScores);
+        }
 
-            $sheet->setCellValue('A' . $row, 'Gestores');
-            $sheet->setCellValue('B' . $row, $managersCount);
-            $sheet->setCellValue('C' . $row, $managersAvg);
-            $sheet->setCellValue('D' . $row, 0.10);
-            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('0.00');
-            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('0%');
-            static::styleTableRow($sheet, 'A' . $row . ':D' . $row);
+        foreach ($scores as $score) {
+            $sheet->setCellValue('A' . $row, $score['name']);
+            $sheet->mergeCells('A' . $row . ':C' . $row);
+            $sheet->setCellValue('D' . $row, $score['score']);
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('0.00');
+            $sheet->getStyle('A' . $row . ':D' . $row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
             $row++;
         }
 
-        $row++;
+        $row += 2;
 
         // Calificación final
         $finalScore = BusinessPlanEvaluation::getFinalScore($businessPlan->id);

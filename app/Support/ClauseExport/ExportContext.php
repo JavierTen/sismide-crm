@@ -2,6 +2,7 @@
 
 namespace App\Support\ClauseExport;
 
+use App\Models\BusinessPlanEvaluation;
 use App\Models\Entrepreneur;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,9 @@ class ExportContext
 
     /** @var array<int, array{count: int, names: string, contacts: bool}> */
     private array $fairs = [];
+
+    /** @var array<int, array{evaluators: int, final: ?float}> */
+    private array $evaluations = [];
 
     /** @var array<string, array{registered: bool, characterized: bool, diagnosed: bool, years: string}> */
     private array $previous = [];
@@ -57,6 +61,10 @@ class ExportContext
             $this->loadFairs($ids);
         }
 
+        if ($needs('evaluation_')) {
+            $this->loadEvaluations($ids);
+        }
+
         if ($needs('prev_')) {
             $this->loadPrevious($entrepreneurs);
         }
@@ -75,6 +83,11 @@ class ExportContext
     public function fairs(Entrepreneur $e): array
     {
         return $this->fairs[$e->id] ?? ['count' => 0, 'names' => '', 'contacts' => false];
+    }
+
+    public function evaluation(Entrepreneur $e): array
+    {
+        return $this->evaluations[$e->id] ?? ['evaluators' => 0, 'final' => null];
     }
 
     public function previous(Entrepreneur $e): array
@@ -151,6 +164,30 @@ class ExportContext
                 'count'    => (int) $row->total,
                 'names'    => (string) $row->names,
                 'contacts' => (bool) $row->contacts,
+            ];
+        }
+    }
+
+    /**
+     * Evaluación del plan de negocio: cuántos evaluadores lo calificaron y la
+     * nota final, con la misma regla del Consolidado (desde 2026 solo
+     * evaluadores; antes, 90 % evaluadores + 10 % gestor).
+     */
+    private function loadEvaluations(array $ids): void
+    {
+        $rows = DB::table('business_plans as bp')
+            ->whereNull('bp.deleted_at')
+            ->whereIn('bp.entrepreneur_id', $ids)
+            ->selectRaw('bp.entrepreneur_id')
+            ->selectRaw("(SELECT COUNT(DISTINCT ev.evaluator_id) FROM business_plan_evaluations ev
+                WHERE ev.business_plan_id = bp.id AND ev.evaluator_type = 'evaluator' AND ev.deleted_at IS NULL) AS evaluators")
+            ->selectRaw(BusinessPlanEvaluation::finalScoreSql('bp') . ' AS final_score')
+            ->get();
+
+        foreach ($rows as $row) {
+            $this->evaluations[$row->entrepreneur_id] = [
+                'evaluators' => (int) $row->evaluators,
+                'final'      => $row->final_score === null ? null : (float) $row->final_score,
             ];
         }
     }

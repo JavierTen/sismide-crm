@@ -5,6 +5,7 @@ namespace App\Exports;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -13,9 +14,10 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 /**
  * Excel de la exportación por cláusulas, con el mismo formato que los demás
- * listados del sistema: encabezado fijo, filtro y columnas ajustadas.
+ * listados del sistema: encabezado fijo, filtro y columnas ajustadas. Los
+ * ceros se escriben como 0 (sin WithStrictNullComparison quedarían vacíos).
  */
-class ClauseExcelExport implements FromArray, WithEvents, WithHeadings, WithTitle
+class ClauseExcelExport implements FromArray, WithEvents, WithHeadings, WithStrictNullComparison, WithTitle
 {
     /**
      * @param  array<int, string>  $headings

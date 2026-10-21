@@ -62,7 +62,10 @@ class ClauseExport extends Page implements HasActions, HasForms
 
     public ?string $templateId = null;
 
-    /** Año y condiciones opcionales (formulario de Filament). */
+    /** Año de la exportación; se escoge junto a la plantilla. */
+    public int $year;
+
+    /** Condiciones opcionales (formulario de Filament). */
     public ?array $filters = [];
 
     public static function canAccess(): bool
@@ -77,7 +80,21 @@ class ClauseExport extends Page implements HasActions, HasForms
 
     public function mount(): void
     {
-        $this->form->fill(['year' => YearContext::effectiveYear() ?? now()->year, 'conditions' => []]);
+        $this->year = YearContext::effectiveYear() ?? now()->year;
+        $this->form->fill(['conditions' => []]);
+    }
+
+    /** @return array<int, int> años con datos, del más reciente al más antiguo */
+    public function yearOptions(): array
+    {
+        return collect(YearContext::availableYears('dashboard'))->map(fn ($y) => (int) $y)->sortDesc()->values()->all();
+    }
+
+    public function updatedYear(): void
+    {
+        if (! in_array((int) $this->year, $this->yearOptions(), true)) {
+            $this->year = now()->year;
+        }
     }
 
     // ── Paso 1: cláusula y municipios ─────────────────────────────────────
@@ -142,12 +159,6 @@ class ClauseExport extends Page implements HasActions, HasForms
         return $form
             ->statePath('filters')
             ->schema([
-                Forms\Components\Select::make('year')
-                    ->label('Año')
-                    ->options(fn () => collect(YearContext::availableYears('dashboard'))->sortDesc()->mapWithKeys(fn ($y) => [$y => (string) $y]))
-                    ->selectablePlaceholder(false)
-                    ->live(),
-
                 Forms\Components\Section::make('Condiciones opcionales')
                     ->description('Para afinar el resultado. Sin condiciones salen todos los emprendedores de la cláusula.')
                     ->collapsible()
@@ -212,7 +223,7 @@ class ClauseExport extends Page implements HasActions, HasForms
         return [
             'clause'          => $this->clause,
             'excluded_cities' => $this->excludedCities,
-            'year'            => (int) ($this->filters['year'] ?? now()->year),
+            'year'            => (int) $this->year,
             'columns'         => $this->columns,
             'conditions'      => $this->filters['conditions'] ?? [],
         ];
@@ -286,10 +297,7 @@ class ClauseExport extends Page implements HasActions, HasForms
 
         // El año no se guarda en la plantilla: un informe mensual se reusa el
         // año siguiente sin tener que editarlo.
-        $this->form->fill([
-            'year'       => $this->filters['year'] ?? now()->year,
-            'conditions' => $config['conditions'] ?? [],
-        ]);
+        $this->form->fill(['conditions' => $config['conditions'] ?? []]);
 
         Notification::make()->title("Plantilla \"{$template->name}\" cargada")->success()->send();
     }

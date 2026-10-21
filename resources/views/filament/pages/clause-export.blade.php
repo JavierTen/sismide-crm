@@ -17,7 +17,6 @@
     $soft      = 'rgba(var(--gray-400), 0.08)';
     $muted     = 'opacity:.7;';
 
-    $step = fn (int $n) => '<span style="display:inline-flex;align-items:center;justify-content:center;width:1.75rem;height:1.75rem;border-radius:9999px;background:'.$primary.';color:#fff;font-weight:700;font-size:.875rem;margin-right:.6rem;flex:none;">'.$n.'</span>';
 @endphp
 
 <x-filament-panels::page>
@@ -64,11 +63,21 @@
     @endif
 
     {{-- 1. Cláusula --}}
-    <x-filament::section>
-        <x-slot name="heading">
-            <span style="display:inline-flex;align-items:center;">{!! $step(1) !!}Escoja la cláusula</span>
-        </x-slot>
+    <x-filament::section icon="heroicon-o-map-pin" icon-color="primary">
+        <x-slot name="heading">Escoja la cláusula</x-slot>
         <x-slot name="description">Se traen todos los emprendedores de los municipios marcados.</x-slot>
+        <x-slot name="headerEnd">
+            <div style="display:flex;align-items:center;gap:.5rem;">
+                <label for="clause-year" style="font-size:.875rem;{{ $muted }}">Año</label>
+                <x-filament::input.wrapper>
+                    <x-filament::input.select id="clause-year" wire:model.live="year">
+                        @foreach ($this->yearOptions() as $yearOption)
+                            <option value="{{ $yearOption }}">{{ $yearOption }}</option>
+                        @endforeach
+                    </x-filament::input.select>
+                </x-filament::input.wrapper>
+            </div>
+        </x-slot>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:.75rem;">
             @foreach (Clauses::options() as $key => $label)
@@ -108,99 +117,111 @@
         </div>
     </x-filament::section>
 
-    {{-- 2. Columnas --}}
-    <x-filament::section>
-        <x-slot name="heading">
-            <span style="display:inline-flex;align-items:center;">{!! $step(2) !!}Escoja los datos del Excel</span>
-        </x-slot>
+    {{-- 2. Datos --}}
+    <x-filament::section icon="heroicon-o-squares-plus" icon-color="primary">
+        <x-slot name="heading">Escoja los datos del Excel</x-slot>
         <x-slot name="description">Marque los campos de cualquier módulo. Cada campo marcado es una columna.</x-slot>
 
-        <div style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-start;">
-            {{-- Catálogo --}}
-            <div style="flex:2 1 28rem;min-width:0;display:flex;flex-direction:column;gap:.9rem;">
-                <x-filament::input.wrapper prefix-icon="heroicon-m-magnifying-glass">
-                    <x-filament::input
-                        type="search"
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Buscar campo (ej.: puntaje, plan, género)"
-                        aria-label="Buscar campo"
-                    />
-                </x-filament::input.wrapper>
+        {{-- Tres columnas de grupos; menos en pantallas angostas. --}}
+        <style>
+            .clause-export-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; align-items: stretch; }
+            @media (max-width: 1100px) { .clause-export-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+            @media (max-width: 640px) { .clause-export-groups { grid-template-columns: minmax(0, 1fr); } }
+            .clause-export-groups [x-cloak] { display: none !important; }
+        </style>
 
-                @php $groups = $this->visibleGroups(); @endphp
+        <div style="display:flex;flex-direction:column;gap:.9rem;">
+            <x-filament::input.wrapper prefix-icon="heroicon-m-magnifying-glass">
+                <x-filament::input
+                    type="search"
+                    wire:model.live.debounce.300ms="search"
+                    placeholder="Buscar campo (ej.: puntaje, plan, género)"
+                    aria-label="Buscar campo"
+                />
+            </x-filament::input.wrapper>
 
-                @if ($groups === [])
-                    <p style="font-size:.875rem;{{ $muted }}padding:.75rem;">No hay campos que coincidan con la búsqueda.</p>
-                @else
-                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:.75rem;">
-                        @foreach ($groups as $group => $fields)
-                            @php
-                                $groupKeys = array_column(FieldCatalog::groups()[$group], 'key');
-                                $marked    = count(array_intersect($groupKeys, $this->columns));
-                            @endphp
-                            <div wire:key="group-{{ md5($group) }}" style="border:1px solid {{ $border }};border-radius:.75rem;padding:.85rem;display:flex;flex-direction:column;gap:.4rem;background:{{ $soft }};">
-                                <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
-                                    <span style="font-size:.875rem;font-weight:700;">
-                                        {{ $group }}
-                                        <span style="font-weight:500;{{ $muted }}">{{ $marked }}/{{ count($groupKeys) }}</span>
-                                    </span>
-                                    <button type="button" wire:click="toggleGroup(@js($group))" style="font-size:.75rem;font-weight:600;color:{{ $primary }};background:none;border:none;cursor:pointer;padding:.35rem .2rem;">
-                                        {{ $marked === count($groupKeys) ? 'Quitar todo' : 'Seleccionar todo' }}
-                                    </button>
-                                </div>
+            @php
+                $groups        = $this->visibleGroups();
+                $visibleFields = 8; // campos visibles por grupo antes de "Ver más"
+            @endphp
 
-                                @foreach ($fields as $field)
-                                    <label wire:key="field-{{ $field['key'] }}-{{ in_array($field['key'], $this->columns, true) ? 'on' : 'off' }}" style="display:flex;align-items:center;gap:.6rem;font-size:.875rem;cursor:pointer;padding:.15rem 0;">
-                                        <x-filament::input.checkbox
-                                            wire:click="toggleColumn('{{ $field['key'] }}')"
-                                            :checked="in_array($field['key'], $this->columns, true)"
-                                        />
-                                        <span>{{ $field['label'] }}</span>
-                                    </label>
-                                @endforeach
+            @if ($groups === [])
+                <p style="font-size:.875rem;{{ $muted }}padding:.75rem;">No hay campos que coincidan con la búsqueda.</p>
+            @else
+                <div class="clause-export-groups">
+                    @foreach ($groups as $group => $fields)
+                        @php
+                            $groupKeys = array_column(FieldCatalog::groups()[$group], 'key');
+                            $marked    = count(array_intersect($groupKeys, $this->columns));
+                            // Al buscar se muestran todas las coincidencias.
+                            $hidden    = $this->search === '' ? max(0, count($fields) - $visibleFields) : 0;
+                        @endphp
+                        <div wire:key="group-{{ md5($group) }}" x-data="{ expanded: false }" style="border:1px solid {{ $border }};border-radius:.75rem;padding:.85rem;display:flex;flex-direction:column;gap:.4rem;background:{{ $soft }};">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+                                <span style="font-size:.875rem;font-weight:700;">
+                                    {{ $group }}
+                                    <span style="font-weight:500;{{ $muted }}">{{ $marked }}/{{ count($groupKeys) }}</span>
+                                </span>
+                                <button type="button" wire:click="toggleGroup(@js($group))" style="font-size:.75rem;font-weight:600;color:{{ $primary }};background:none;border:none;cursor:pointer;padding:.35rem .2rem;">
+                                    {{ $marked === count($groupKeys) ? 'Quitar todo' : 'Seleccionar todo' }}
+                                </button>
                             </div>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
 
-            {{-- Columnas del Excel --}}
-            <aside style="flex:1 1 17rem;min-width:0;border:1px solid {{ $border }};border-radius:.75rem;padding:1rem;display:flex;flex-direction:column;gap:.6rem;background:{{ $soft }};">
-                <div style="display:flex;justify-content:space-between;align-items:baseline;">
-                    <strong style="font-size:.9375rem;">Columnas del Excel</strong>
-                    <span style="font-size:.8125rem;{{ $muted }}">{{ count($this->columns) + 1 }} columnas</span>
+                            @foreach ($fields as $field)
+                                <label wire:key="field-{{ $field['key'] }}-{{ in_array($field['key'], $this->columns, true) ? 'on' : 'off' }}" @if ($hidden && $loop->index >= $visibleFields) x-show="expanded" x-cloak @endif style="display:flex;align-items:center;gap:.6rem;font-size:.875rem;cursor:pointer;padding:.15rem 0;">
+                                    <x-filament::input.checkbox
+                                        wire:click="toggleColumn('{{ $field['key'] }}')"
+                                        :checked="in_array($field['key'], $this->columns, true)"
+                                    />
+                                    <span>{{ $field['label'] }}</span>
+                                </label>
+                            @endforeach
+
+                            @if ($hidden)
+                                <button type="button" x-on:click="expanded = ! expanded" style="margin-top:auto;align-self:flex-start;font-size:.75rem;font-weight:600;color:{{ $primary }};background:none;border:none;cursor:pointer;padding:.35rem 0 0;">
+                                    <span x-show="! expanded">Ver más ({{ $hidden }})</span>
+                                    <span x-show="expanded" x-cloak>Ver menos</span>
+                                </button>
+                            @endif
+                        </div>
+                    @endforeach
                 </div>
-                <span style="font-size:.75rem;{{ $muted }}">En este orden salen en el Excel.</span>
-
-                <div style="display:flex;align-items:center;gap:.4rem;font-size:.875rem;padding:.5rem .6rem;border:1px dashed {{ $border }};border-radius:.5rem;{{ $muted }}">
-                    <span style="width:1.4rem;text-align:right;">0</span>
-                    <span>Cláusula (siempre incluida)</span>
-                </div>
-
-                @forelse ($this->columns as $index => $key)
-                    @php $field = FieldCatalog::get($key); @endphp
-                    <div wire:key="col-{{ $key }}" style="display:flex;align-items:center;gap:.25rem;font-size:.875rem;padding:.2rem .2rem .2rem .6rem;border:1px solid {{ $border }};border-radius:.5rem;">
-                        <span style="width:1.4rem;text-align:right;{{ $muted }}">{{ $index + 1 }}</span>
-                        <span style="flex:1;padding-left:.35rem;min-width:0;">
-                            {{ $field['label'] }}
-                            <span style="font-size:.75rem;{{ $muted }}">({{ $field['group'] }})</span>
-                        </span>
-                        <x-filament::icon-button icon="heroicon-m-chevron-up" color="gray" size="sm" :disabled="$index === 0" wire:click="moveColumn({{ $index }}, -1)" :label="'Subir '.$field['label']" />
-                        <x-filament::icon-button icon="heroicon-m-chevron-down" color="gray" size="sm" :disabled="$index === count($this->columns) - 1" wire:click="moveColumn({{ $index }}, 1)" :label="'Bajar '.$field['label']" />
-                        <x-filament::icon-button icon="heroicon-m-x-mark" color="danger" size="sm" wire:click="toggleColumn('{{ $key }}')" :label="'Quitar '.$field['label']" />
-                    </div>
-                @empty
-                    <p style="font-size:.875rem;{{ $muted }}">Marque al menos un campo.</p>
-                @endforelse
-            </aside>
+            @endif
         </div>
     </x-filament::section>
 
-    {{-- 3. Vista previa y descarga --}}
-    <x-filament::section>
-        <x-slot name="heading">
-            <span style="display:inline-flex;align-items:center;">{!! $step(3) !!}Vista previa y descarga</span>
-        </x-slot>
+    {{-- 3. Orden de las columnas --}}
+    <x-filament::section icon="heroicon-o-arrows-up-down" icon-color="primary">
+        <x-slot name="heading">Columnas del Excel</x-slot>
+        <x-slot name="description">En este orden salen en el Excel · {{ count($this->columns) + 1 }} columnas</x-slot>
+
+        <div style="display:flex;flex-direction:column;gap:.6rem;">
+            <div style="display:flex;align-items:center;gap:.4rem;font-size:.875rem;padding:.5rem .6rem;border:1px dashed {{ $border }};border-radius:.5rem;{{ $muted }}">
+                <span style="width:1.4rem;text-align:right;">0</span>
+                <span>Cláusula (siempre incluida)</span>
+            </div>
+
+            @forelse ($this->columns as $index => $key)
+                @php $field = FieldCatalog::get($key); @endphp
+                <div wire:key="col-{{ $key }}" style="display:flex;align-items:center;gap:.25rem;font-size:.875rem;padding:.2rem .2rem .2rem .6rem;border:1px solid {{ $border }};border-radius:.5rem;">
+                    <span style="width:1.4rem;text-align:right;{{ $muted }}">{{ $index + 1 }}</span>
+                    <span style="flex:1;padding-left:.35rem;min-width:0;">
+                        {{ $field['label'] }}
+                        <span style="font-size:.75rem;{{ $muted }}">({{ $field['group'] }})</span>
+                    </span>
+                    <x-filament::icon-button icon="heroicon-m-chevron-up" color="gray" size="sm" :disabled="$index === 0" wire:click="moveColumn({{ $index }}, -1)" :label="'Subir '.$field['label']" />
+                    <x-filament::icon-button icon="heroicon-m-chevron-down" color="gray" size="sm" :disabled="$index === count($this->columns) - 1" wire:click="moveColumn({{ $index }}, 1)" :label="'Bajar '.$field['label']" />
+                    <x-filament::icon-button icon="heroicon-m-x-mark" color="danger" size="sm" wire:click="toggleColumn('{{ $key }}')" :label="'Quitar '.$field['label']" />
+                </div>
+            @empty
+                <p style="font-size:.875rem;{{ $muted }}">Marque al menos un campo.</p>
+            @endforelse
+        </div>
+    </x-filament::section>
+
+    {{-- 4. Vista previa y descarga --}}
+    <x-filament::section icon="heroicon-o-document-arrow-down" icon-color="primary">
+        <x-slot name="heading">Vista previa y descarga</x-slot>
         <x-slot name="description">
             <strong>{{ number_format($total) }}</strong> emprendedores encontrados en {{ $builder->year }}
             @if ($total > count($preview) && count($preview))

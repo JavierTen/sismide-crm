@@ -203,6 +203,12 @@ class FieldCatalog
                 'canvas_prioritized' => ['Canvas priorizado', ['businessCanvas'], $from($canvas, fn ($c) => static::yesNo($c->is_prioritized))],
             ],
 
+            // Mismo cálculo que el Consolidado de Evaluaciones.
+            'Consolidado de evaluación' => [
+                'evaluation_evaluators' => ['N.º de evaluadores', [], fn ($e, $ctx) => $ctx->evaluation($e)['evaluators']],
+                'evaluation_final'      => ['Calificación final', [], fn ($e, $ctx) => $ctx->evaluation($e)['final'] ?? self::NO_RECORD],
+            ],
+
             'Visitas' => [
                 'visits_count'       => ['N.º de visitas', [], fn ($e, $ctx) => $ctx->visits($e)['total']],
                 'visits_accepted'    => ['Visitas aceptadas', [], fn ($e, $ctx) => $ctx->visits($e)['accepted']],

@@ -5,6 +5,7 @@ namespace App\Exports;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithStrictNullComparison;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -15,7 +16,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
  * Una hoja del Excel de resultados, con el formato de los demás listados:
  * encabezado fijo, filtro y columnas ajustadas.
  */
-class EvaluationResultsSheet implements FromArray, WithEvents, WithHeadings, WithTitle
+class EvaluationResultsSheet implements FromArray, WithEvents, WithHeadings, WithStrictNullComparison, WithTitle
 {
     /**
      * @param  array<int, string>  $headings

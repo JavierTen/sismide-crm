@@ -49,7 +49,9 @@ class BusinessPlanEvaluation extends Model
      */
     public function evaluator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'evaluator_id');
+        // Incluye usuarios eliminados: su calificación sigue contando y el
+        // historial debe mostrar quién la hizo.
+        return $this->belongsTo(User::class, 'evaluator_id')->withTrashed();
     }
 
     /**

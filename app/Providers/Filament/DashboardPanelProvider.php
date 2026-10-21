@@ -91,6 +91,9 @@ class DashboardPanelProvider extends PanelProvider
                     ->label('Evaluaciones')
                     ->collapsible(),
                 NavigationGroup::make()
+                    ->label('Reportes')
+                    ->collapsible(),
+                NavigationGroup::make()
                     ->label('Gestión Tipos')
                     ->collapsible(),
                 NavigationGroup::make()

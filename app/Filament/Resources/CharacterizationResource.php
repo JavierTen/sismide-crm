@@ -1588,11 +1588,13 @@ class CharacterizationResource extends Resource
                 ->getStateUsing(fn ($record) => in_array('otro', (array) $record->strengthening_needs) ? 'Sí' : 'No'),
 
             // === BLOQUE 13: EVIDENCIAS ===
+            // Los registros antiguos guardan un solo archivo como texto; los
+            // nuevos, una lista. (array) acepta los dos formatos.
             Column::make('commerce_evidence_names')
                 ->heading('Evidencia del Comercio')
                 ->getStateUsing(fn ($record) => empty($record->commerce_evidence_path)
                     ? 'Sin evidencia'
-                    : implode(', ', array_map(fn ($p) => basename($p), $record->commerce_evidence_path))),
+                    : implode(', ', array_map(fn ($p) => basename($p), (array) $record->commerce_evidence_path))),
 
             Column::make('commerce_evidence_links')
                 ->heading('Enlace Evidencia del Comercio')
@@ -1600,14 +1602,14 @@ class CharacterizationResource extends Resource
                     ? 'Sin evidencia'
                     : implode(', ', array_map(
                         fn ($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
-                        $record->commerce_evidence_path
+                        (array) $record->commerce_evidence_path
                     ))),
 
             Column::make('population_evidence_names')
                 ->heading('Evidencia de Población Vulnerable')
                 ->getStateUsing(fn ($record) => empty($record->population_evidence_path)
                     ? 'Sin evidencia'
-                    : implode(', ', array_map(fn ($p) => basename($p), $record->population_evidence_path))),
+                    : implode(', ', array_map(fn ($p) => basename($p), (array) $record->population_evidence_path))),
 
             Column::make('population_evidence_links')
                 ->heading('Enlace Evidencia de Población Vulnerable')
@@ -1615,14 +1617,14 @@ class CharacterizationResource extends Resource
                     ? 'Sin evidencia'
                     : implode(', ', array_map(
                         fn ($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
-                        $record->population_evidence_path
+                        (array) $record->population_evidence_path
                     ))),
 
             Column::make('photo_evidence_names')
                 ->heading('Fotografía de Georreferenciación')
                 ->getStateUsing(fn ($record) => empty($record->photo_evidence_path)
                     ? 'Sin evidencia'
-                    : implode(', ', array_map(fn ($p) => basename($p), $record->photo_evidence_path))),
+                    : implode(', ', array_map(fn ($p) => basename($p), (array) $record->photo_evidence_path))),
 
             Column::make('photo_evidence_links')
                 ->heading('Enlace Fotografía de Georreferenciación')
@@ -1630,7 +1632,7 @@ class CharacterizationResource extends Resource
                     ? 'Sin evidencia'
                     : implode(', ', array_map(
                         fn ($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
-                        $record->photo_evidence_path
+                        (array) $record->photo_evidence_path
                     ))),
 
             // === BLOQUE 14: HABEAS DATA ===

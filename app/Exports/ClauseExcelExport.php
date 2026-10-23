@@ -64,6 +64,18 @@ class ClauseExcelExport implements FromArray, WithEvents, WithHeadings, WithStri
                         ->setVertical(Alignment::VERTICAL_TOP);
                 }
 
+                // Los enlaces de los adjuntos se abren con un clic. Una celda con
+                // varios archivos (uno por línea) no admite hipervínculo y queda como texto.
+                foreach ($this->rows as $r => $row) {
+                    foreach (array_values($row) as $c => $value) {
+                        if (is_string($value) && preg_match('#^https?://\S+$#i', $value)) {
+                            $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($c + 1).($r + 2));
+                            $cell->getHyperlink()->setUrl($value);
+                            $cell->getStyle()->getFont()->setUnderline(true)->getColor()->setARGB('FF1D4ED8');
+                        }
+                    }
+                }
+
                 for ($i = 1; $i <= count($this->headings); $i++) {
                     $sheet->getColumnDimensionByColumn($i)->setAutoSize(true);
                 }

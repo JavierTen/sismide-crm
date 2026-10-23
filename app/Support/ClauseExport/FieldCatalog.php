@@ -9,6 +9,7 @@ use App\Models\Entrepreneur;
 use App\Support\MaturityScale;
 use Closure;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Catálogo de datos que se pueden escoger en la exportación por cláusulas.
@@ -20,7 +21,7 @@ use Illuminate\Support\Carbon;
  * Reglas del documento:
  *  - Si el emprendedor aún no tiene el registro (sin plan, sin diagnóstico…),
  *    sus campos dicen "Sin registro".
- *  - Los documentos adjuntos salen como Sí / No.
+ *  - Los documentos adjuntos salen como Sí / No, y aparte su enlace.
  *  - Visitas, capacitaciones y ferias salen resumidas.
  */
 class FieldCatalog
@@ -166,9 +167,12 @@ class FieldCatalog
                 'tech_level'        => ['Capacidad tecnológica', ['characterizations'], $from($char, fn ($c) => FormOptions::label($charOptions('tech_capacity_level'), $c->tech_capacity_level))],
                 'digital_tools'     => ['Herramientas digitales', ['characterizations'], $from($char, fn ($c) => FormOptions::label($charOptions('digital_tools'), $c->digital_tools))],
                 'needs'             => ['Necesidades de fortalecimiento', ['characterizations'], $from($char, fn ($c) => FormOptions::label($charOptions('strengthening_needs'), $c->strengthening_needs))],
-                'commerce_evidence' => ['Evidencia comercial adjunta', ['characterizations'], $from($char, fn ($c) => static::hasFile($c->commerce_evidence_path))],
-                'population_evid'   => ['Evidencia poblacional adjunta', ['characterizations'], $from($char, fn ($c) => static::hasFile($c->population_evidence_path))],
-                'photo_evidence'    => ['Evidencia fotográfica adjunta', ['characterizations'], $from($char, fn ($c) => static::hasFile($c->photo_evidence_path))],
+                'commerce_evidence'     => ['Evidencia comercial adjunta', ['characterizations'], $from($char, fn ($c) => static::hasFile($c->commerce_evidence_path))],
+                'commerce_evidence_url' => ['URL evidencia comercial', ['characterizations'], $from($char, fn ($c) => static::fileUrls($c->commerce_evidence_path))],
+                'population_evid'       => ['Evidencia poblacional adjunta', ['characterizations'], $from($char, fn ($c) => static::hasFile($c->population_evidence_path))],
+                'population_evid_url'   => ['URL evidencia poblacional', ['characterizations'], $from($char, fn ($c) => static::fileUrls($c->population_evidence_path))],
+                'photo_evidence'        => ['Evidencia fotográfica adjunta', ['characterizations'], $from($char, fn ($c) => static::hasFile($c->photo_evidence_path))],
+                'photo_evidence_url'    => ['URL evidencia fotográfica', ['characterizations'], $from($char, fn ($c) => static::fileUrls($c->photo_evidence_path))],
                 'habeas_data'       => ['Habeas Data aceptado', ['characterizations'], $from($char, fn ($c) => static::yesNo($c->habeas_data_accepted))],
             ],
 
@@ -187,18 +191,26 @@ class FieldCatalog
                 'plan_jobs'          => ['Empleos generados', ['businessPlan'], $from($plan, fn ($p) => $p->jobs_generated)],
                 'plan_capitalized'   => ['Capitalizado', ['businessPlan'], $from($plan, fn ($p) => static::yesNo($p->is_capitalized))],
                 'plan_prioritized'   => ['Priorizado', ['businessPlan'], $from($plan, fn ($p) => static::yesNo($p->is_prioritized))],
-                'plan_pdf'           => ['Adjuntó PDF del plan', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->business_plan_path))],
-                'plan_matrix'        => ['Adjuntó matriz de adquisiciones', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->acquisition_matrix_path))],
-                'plan_model'         => ['Adjuntó modelo de negocio', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->business_model_path))],
-                'plan_pitch'         => ['Video Fire Pitch', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->fire_pitch_video_url))],
-                'plan_cycle_video'   => ['Video ciclo productivo', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->production_cycle_video_url))],
-                'plan_logo'          => ['Adjuntó logo', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->logo_path))],
+                'plan_pdf'             => ['Adjuntó PDF del plan', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->business_plan_path))],
+                'plan_pdf_url'         => ['URL PDF del plan', ['businessPlan'], $from($plan, fn ($p) => static::fileUrls($p->business_plan_path))],
+                'plan_matrix'          => ['Adjuntó matriz de adquisiciones', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->acquisition_matrix_path))],
+                'plan_matrix_url'      => ['URL matriz de adquisiciones', ['businessPlan'], $from($plan, fn ($p) => static::fileUrls($p->acquisition_matrix_path))],
+                'plan_model'           => ['Adjuntó modelo de negocio', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->business_model_path))],
+                'plan_model_url'       => ['URL modelo de negocio', ['businessPlan'], $from($plan, fn ($p) => static::fileUrls($p->business_model_path))],
+                'plan_pitch'           => ['Video Fire Pitch', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->fire_pitch_video_url))],
+                'plan_pitch_url'       => ['URL video Fire Pitch', ['businessPlan'], $from($plan, fn ($p) => static::fileUrls($p->fire_pitch_video_url))],
+                'plan_cycle_video'     => ['Video ciclo productivo', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->production_cycle_video_url))],
+                'plan_cycle_video_url' => ['URL video ciclo productivo', ['businessPlan'], $from($plan, fn ($p) => static::fileUrls($p->production_cycle_video_url))],
+                'plan_logo'            => ['Adjuntó logo', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->logo_path))],
+                'plan_logo_url'        => ['URL logo', ['businessPlan'], $from($plan, fn ($p) => static::fileUrls($p->logo_path))],
             ],
 
             'Canvas' => [
                 'has_canvas'         => ['¿Tiene Modelo Canvas?', ['businessCanvas'], fn ($e) => static::yesNo((bool) $e->businessCanvas)],
                 'canvas_file'        => ['Adjuntó archivo del Canvas', ['businessCanvas'], $from($canvas, fn ($c) => static::hasFile($c->canvas_file_path))],
+                'canvas_file_url'    => ['URL archivo del Canvas', ['businessCanvas'], $from($canvas, fn ($c) => static::fileUrls($c->canvas_file_path))],
                 'canvas_pitch'       => ['Video Fire Pitch (Canvas)', ['businessCanvas'], $from($canvas, fn ($c) => static::hasFile($c->fire_pitch_video_url))],
+                'canvas_pitch_url'   => ['URL video Fire Pitch (Canvas)', ['businessCanvas'], $from($canvas, fn ($c) => static::fileUrls($c->fire_pitch_video_url))],
                 'canvas_potential'   => ['Canvas con potencial', ['businessCanvas'], $from($canvas, fn ($c) => static::yesNo($c->is_potential))],
                 'canvas_prioritized' => ['Canvas priorizado', ['businessCanvas'], $from($canvas, fn ($c) => static::yesNo($c->is_prioritized))],
             ],
@@ -213,8 +225,7 @@ class FieldCatalog
                 'visits_count'       => ['N.º de visitas', [], fn ($e, $ctx) => $ctx->visits($e)['total']],
                 'visits_accepted'    => ['Visitas aceptadas', [], fn ($e, $ctx) => $ctx->visits($e)['accepted']],
                 'visits_rescheduled' => ['Visitas reagendadas', [], fn ($e, $ctx) => $ctx->visits($e)['rescheduled']],
-                'visits_last'        => ['Fecha de la última visita', [], fn ($e, $ctx) => static::date($ctx->visits($e)['last']) ?? self::NO_RECORD],
-            ],
+                'visits_last'        => ['Fecha de la última visita', [], fn ($e, $ctx) => static::date($ctx->visits($e)['last']) ?? self::NO_RECORD],            ],
 
             'Capacitaciones' => [
                 'trainings_attended' => ['Capacitaciones asistidas', [], fn ($e, $ctx) => $ctx->trainings($e)['attended']],
@@ -230,8 +241,7 @@ class FieldCatalog
                 'fairs_names'    => ['Nombres de las ferias', [], fn ($e, $ctx) => $ctx->fairs($e)['names'] ?: self::NO_RECORD],
                 'fairs_contacts' => ['Generó contactos o alianzas', [], fn ($e, $ctx) => $ctx->fairs($e)['count'] > 0
                     ? static::yesNo($ctx->fairs($e)['contacts'])
-                    : self::NO_RECORD],
-            ],
+                    : self::NO_RECORD],            ],
 
             'Años anteriores' => [
                 'prev_registered'    => ['Registrado en un año anterior', [], fn ($e, $ctx) => static::yesNo($ctx->previous($e)['registered'])],
@@ -283,12 +293,41 @@ class FieldCatalog
     /** Un adjunto existe si la ruta (o la lista de rutas) no está vacía. */
     public static function hasFile(mixed $value): string
     {
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            $value   = is_array($decoded) ? $decoded : trim($value);
+        return static::yesNo(static::files($value) !== []);
+    }
+
+    /**
+     * Enlace de cada adjunto, uno por línea. Los archivos están en el disco
+     * público; los videos ya se guardan como enlace y salen tal cual.
+     */
+    public static function fileUrls(mixed $value): string
+    {
+        $files = static::files($value);
+
+        if ($files === []) {
+            return 'Sin archivo';
         }
 
-        return static::yesNo(filled($value));
+        return implode("\n", array_map(
+            fn (string $path) => preg_match('#^https?://#i', $path) ? $path : url(Storage::disk('public')->url($path)),
+            $files,
+        ));
+    }
+
+    /**
+     * Rutas de un adjunto. Los registros antiguos guardan un solo archivo como
+     * texto; los nuevos, una lista (a veces como JSON).
+     *
+     * @return array<int, string>
+     */
+    private static function files(mixed $value): array
+    {
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            $value   = is_array($decoded) ? $decoded : [$value];
+        }
+
+        return array_values(array_filter(array_map(fn ($path) => trim((string) $path), (array) $value), 'filled'));
     }
 
     public static function date(mixed $value): ?string

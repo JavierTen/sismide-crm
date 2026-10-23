@@ -75,6 +75,17 @@
                 <pre class="overflow-x-auto rounded-lg bg-gray-50 p-3 text-xs dark:bg-white/5">{{ json_encode($properties['filters'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
             @endif
         </div>
+    @elseif ($activity->event === 'visited')
+        <div class="text-sm">
+            <p class="mb-2 font-semibold text-gray-950 dark:text-white">{{ $activity->description }}</p>
+
+            @if (filled($properties['url'] ?? null))
+                <dl>
+                    <dt class="text-gray-500 dark:text-gray-400">Dirección</dt>
+                    <dd class="font-medium break-all text-gray-950 dark:text-white">{{ $properties['url'] }}</dd>
+                </dl>
+            @endif
+        </div>
     @elseif ($activity->event === 'attendance_updated')
         <div class="space-y-4 text-sm">
             <p class="font-semibold text-gray-950 dark:text-white">{{ $activity->description }}</p>

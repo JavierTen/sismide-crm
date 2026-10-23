@@ -57,6 +57,7 @@ class EjePanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\TrackPageVisits::class,
             ])
             // Persistente para que también cuenten las interacciones Livewire,
             // no solo las cargas de página completas.

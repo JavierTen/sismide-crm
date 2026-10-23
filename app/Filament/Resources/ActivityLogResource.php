@@ -278,6 +278,11 @@ class ActivityLogResource extends Resource
             return 'Exportación';
         }
 
+        // La página visitada, aunque se haya abierto un registro concreto.
+        if ($record->event === 'visited') {
+            return $record->properties['page'] ?? '—';
+        }
+
         if (! $record->subject_type) {
             return '—';
         }

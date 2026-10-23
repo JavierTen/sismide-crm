@@ -28,6 +28,7 @@ class Activity extends SpatieActivity
         'password_changed'   => 'Cambió la contraseña',
         'access_granted'     => 'Creó acceso',
         'access_revoked'     => 'Eliminó acceso',
+        'visited'            => 'Ingresó a',
     ];
 
     public const EVENT_COLORS = [
@@ -45,6 +46,7 @@ class Activity extends SpatieActivity
         'password_changed'   => 'warning',
         'access_granted'     => 'success',
         'access_revoked'     => 'danger',
+        'visited'            => 'gray',
     ];
 
     protected static function booted(): void

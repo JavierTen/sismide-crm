@@ -59,6 +59,7 @@ class DashboardPanelProvider extends PanelProvider
             //->plugin(FilamentSpatieRolesPermissionsPlugin::make())
             ->authMiddleware([
                 Authenticate::class,
+                \App\Http\Middleware\TrackPageVisits::class,
             ])
             // Persistente para que también cuenten las interacciones Livewire,
             // no solo las cargas de página completas.

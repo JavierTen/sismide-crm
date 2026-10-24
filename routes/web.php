@@ -21,6 +21,15 @@ Route::get('/institutional-documents/download-excel', [\App\Http\Controllers\Evi
     ->name('institutional-documents.download-excel')
     ->middleware('auth');
 
+// Archivos subidos: solo con sesión iniciada y sin mostrar dónde están.
+Route::get('/archivos/{token}', [\App\Http\Controllers\ProtectedFileController::class, 'show'])
+    ->name('files.show');
+
+// Enlaces anteriores al cambio (Excel ya descargados).
+Route::get('/storage/{path}', [\App\Http\Controllers\ProtectedFileController::class, 'legacy'])
+    ->where('path', '.*')
+    ->name('storage.protected');
+
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect('/dashboard'); // Va al dashboard si ya está logueado

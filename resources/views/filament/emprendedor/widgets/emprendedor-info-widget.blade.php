@@ -635,7 +635,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <a href="{{ Storage::url($file) }}" target="_blank"
+                                            <a href="{{ Storage::disk('public')->url($file) }}" target="_blank"
                                                 class="ml-2 flex-shrink-0 rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 transition hover:bg-primary-100 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-900/50">
                                                 Ver
                                             </a>
@@ -663,7 +663,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <a href="{{ Storage::url($file) }}" target="_blank"
+                                            <a href="{{ Storage::disk('public')->url($file) }}" target="_blank"
                                                 class="ml-2 flex-shrink-0 rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 transition hover:bg-primary-100 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-900/50">
                                                 Ver
                                             </a>
@@ -691,7 +691,7 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            <a href="{{ Storage::url($file) }}" target="_blank"
+                                            <a href="{{ Storage::disk('public')->url($file) }}" target="_blank"
                                                 class="ml-2 flex-shrink-0 rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700 transition hover:bg-primary-100 dark:bg-primary-900/30 dark:text-primary-300 dark:hover:bg-primary-900/50">
                                                 Ver
                                             </a>

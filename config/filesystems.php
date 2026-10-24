@@ -36,8 +36,10 @@ return [
             'throw' => false,
         ],
 
+        // Las URLs no muestran la ruta del archivo y exigen sesión iniciada
+        // (App\Support\ProtectedPublicDisk y ProtectedFileController).
         'public' => [
-            'driver' => 'local',
+            'driver' => 'protected-local',
             'root' => storage_path('app/public'),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',

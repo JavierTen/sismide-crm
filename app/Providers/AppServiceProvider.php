@@ -23,6 +23,13 @@ class AppServiceProvider extends ServiceProvider
     {
         Entrepreneur::observe(EntrepreneurObserver::class);
 
+        // Disco local cuyas URLs llevan la ruta cifrada (ver ProtectedPublicDisk).
+        \Illuminate\Support\Facades\Storage::extend('protected-local', function ($app, array $config) {
+            $local = $app['filesystem']->createLocalDriver($config);
+
+            return new \App\Support\ProtectedPublicDisk($local->getDriver(), $local->getAdapter(), $config);
+        });
+
         // El registro de actividad toma el autor del guard del panel en curso;
         // por defecto usaría siempre `web` y las acciones de los emprendedores
         // quedarían sin autor.

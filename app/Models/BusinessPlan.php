@@ -175,7 +175,7 @@ class BusinessPlan extends Model
             return null;
         }
 
-        return Storage::url($this->business_plan_path);
+        return Storage::disk('public')->url($this->business_plan_path);
     }
 
     /**
@@ -187,7 +187,7 @@ class BusinessPlan extends Model
             return null;
         }
 
-        return Storage::url($this->acquisition_matrix_path);
+        return Storage::disk('public')->url($this->acquisition_matrix_path);
     }
 
     /**
@@ -199,7 +199,7 @@ class BusinessPlan extends Model
             return null;
         }
 
-        return Storage::url($this->business_model_path);
+        return Storage::disk('public')->url($this->business_model_path);
     }
 
     /**
@@ -211,7 +211,7 @@ class BusinessPlan extends Model
             return null;
         }
 
-        return Storage::url($this->logo_path);
+        return Storage::disk('public')->url($this->logo_path);
     }
 
     /**

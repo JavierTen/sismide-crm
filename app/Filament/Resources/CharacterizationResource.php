@@ -1601,7 +1601,7 @@ class CharacterizationResource extends Resource
                 ->getStateUsing(fn ($record) => empty($record->commerce_evidence_path)
                     ? 'Sin evidencia'
                     : implode(', ', array_map(
-                        fn ($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
+                        fn ($p) => url(\Illuminate\Support\Facades\Storage::disk('public')->url($p)),
                         (array) $record->commerce_evidence_path
                     ))),
 
@@ -1616,7 +1616,7 @@ class CharacterizationResource extends Resource
                 ->getStateUsing(fn ($record) => empty($record->population_evidence_path)
                     ? 'Sin evidencia'
                     : implode(', ', array_map(
-                        fn ($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
+                        fn ($p) => url(\Illuminate\Support\Facades\Storage::disk('public')->url($p)),
                         (array) $record->population_evidence_path
                     ))),
 
@@ -1631,7 +1631,7 @@ class CharacterizationResource extends Resource
                 ->getStateUsing(fn ($record) => empty($record->photo_evidence_path)
                     ? 'Sin evidencia'
                     : implode(', ', array_map(
-                        fn ($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
+                        fn ($p) => url(\Illuminate\Support\Facades\Storage::disk('public')->url($p)),
                         (array) $record->photo_evidence_path
                     ))),
 

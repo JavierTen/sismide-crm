@@ -711,7 +711,7 @@ class VisitResource extends Resource
                 ->getStateUsing(fn($record) => empty($record->evidence_path)
                     ? 'Sin evidencia'
                     : implode(', ', array_map(
-                        fn($p) => url(\Illuminate\Support\Facades\Storage::url($p)),
+                        fn($p) => url(\Illuminate\Support\Facades\Storage::disk('public')->url($p)),
                         $record->evidence_path
                     ))),
 

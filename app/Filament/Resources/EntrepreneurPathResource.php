@@ -651,7 +651,7 @@ class EntrepreneurPathResource extends Resource
                                                         : (json_decode($char->commerce_evidence_path, true) ?? [$char->commerce_evidence_path]);
 
                                                     return collect($files)->map(function ($file, $i) {
-                                                        return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver archivo ' . ($i + 1) . '</a>';
+                                                        return '📄 <a href="' . Storage::disk('public')->url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver archivo ' . ($i + 1) . '</a>';
                                                     })->join('<br>');
                                                 })
                                                 ->html()
@@ -672,7 +672,7 @@ class EntrepreneurPathResource extends Resource
                                                         : (json_decode($char->population_evidence_path, true) ?? [$char->population_evidence_path]);
 
                                                     return collect($files)->map(function ($file, $i) {
-                                                        return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver archivo ' . ($i + 1) . '</a>';
+                                                        return '📄 <a href="' . Storage::disk('public')->url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver archivo ' . ($i + 1) . '</a>';
                                                     })->join('<br>');
                                                 })
                                                 ->html()
@@ -693,7 +693,7 @@ class EntrepreneurPathResource extends Resource
                                                         : (json_decode($char->photo_evidence_path, true) ?? [$char->photo_evidence_path]);
 
                                                     return collect($files)->map(function ($file, $i) {
-                                                        return '🖼️ <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver foto ' . ($i + 1) . '</a>';
+                                                        return '🖼️ <a href="' . Storage::disk('public')->url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver foto ' . ($i + 1) . '</a>';
                                                     })->join('<br>');
                                                 })
                                                 ->html()
@@ -739,7 +739,7 @@ class EntrepreneurPathResource extends Resource
                                                 ->formatStateUsing(fn() => 'Ver plan de negocio')
                                                 ->url(function ($record) {
                                                     $bp = $record->businessPlan;
-                                                    return $bp && $bp->business_plan_path ? Storage::url($bp->business_plan_path) : null;
+                                                    return $bp && $bp->business_plan_path ? Storage::disk('public')->url($bp->business_plan_path) : null;
                                                 }, shouldOpenInNewTab: true)
                                                 ->color('primary')
                                                 ->icon('heroicon-o-document-text')
@@ -753,7 +753,7 @@ class EntrepreneurPathResource extends Resource
                                                 ->formatStateUsing(fn() => 'Ver matriz')
                                                 ->url(function ($record) {
                                                     $bp = $record->businessPlan;
-                                                    return $bp && $bp->acquisition_matrix_path ? Storage::url($bp->acquisition_matrix_path) : null;
+                                                    return $bp && $bp->acquisition_matrix_path ? Storage::disk('public')->url($bp->acquisition_matrix_path) : null;
                                                 }, shouldOpenInNewTab: true)
                                                 ->color('primary')
                                                 ->icon('heroicon-o-table-cells')
@@ -767,7 +767,7 @@ class EntrepreneurPathResource extends Resource
                                                 ->formatStateUsing(fn() => 'Ver modelo')
                                                 ->url(function ($record) {
                                                     $bp = $record->businessPlan;
-                                                    return $bp && $bp->business_model_path ? Storage::url($bp->business_model_path) : null;
+                                                    return $bp && $bp->business_model_path ? Storage::disk('public')->url($bp->business_model_path) : null;
                                                 }, shouldOpenInNewTab: true)
                                                 ->color('primary')
                                                 ->icon('heroicon-o-chart-bar')
@@ -781,7 +781,7 @@ class EntrepreneurPathResource extends Resource
                                                 ->formatStateUsing(fn() => 'Ver logo')
                                                 ->url(function ($record) {
                                                     $bp = $record->businessPlan;
-                                                    return $bp && $bp->logo_path ? Storage::url($bp->logo_path) : null;
+                                                    return $bp && $bp->logo_path ? Storage::disk('public')->url($bp->logo_path) : null;
                                                 }, shouldOpenInNewTab: true)
                                                 ->color('primary')
                                                 ->icon('heroicon-o-photo')
@@ -860,7 +860,7 @@ class EntrepreneurPathResource extends Resource
                                             \Filament\Infolists\Components\TextEntry::make('fair_photo')
                                                 ->label('Foto de Participación')
                                                 ->formatStateUsing(fn() => 'Ver foto')
-                                                ->url(fn($record) => $record->participation_photo_path ? Storage::url($record->participation_photo_path) : null, shouldOpenInNewTab: true)
+                                                ->url(fn($record) => $record->participation_photo_path ? Storage::disk('public')->url($record->participation_photo_path) : null, shouldOpenInNewTab: true)
                                                 ->color('primary')
                                                 ->icon('heroicon-o-photo')
                                                 ->visible(fn($record) => $record->participation_photo_path),
@@ -911,7 +911,7 @@ class EntrepreneurPathResource extends Resource
                                                             if (empty($files)) return null;
 
                                                             return collect($files)->map(function ($file, $i) {
-                                                                return '📄 <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver evidencia ' . ($i + 1) . '</a>';
+                                                                return '📄 <a href="' . Storage::disk('public')->url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver evidencia ' . ($i + 1) . '</a>';
                                                             })->join('<br>');
                                                         })
                                                         ->html()
@@ -929,7 +929,7 @@ class EntrepreneurPathResource extends Resource
                                                             if (empty($files)) return null;
 
                                                             return collect($files)->map(function ($file, $i) {
-                                                                return '✅ <a href="' . Storage::url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver respuesta ' . ($i + 1) . '</a>';
+                                                                return '✅ <a href="' . Storage::disk('public')->url($file) . '" target="_blank" class="text-primary-600 hover:underline">Ver respuesta ' . ($i + 1) . '</a>';
                                                             })->join('<br>');
                                                         })
                                                         ->html()

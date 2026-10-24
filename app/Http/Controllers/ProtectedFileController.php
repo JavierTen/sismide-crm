@@ -10,8 +10,8 @@ use Symfony\Component\HttpFoundation\Response;
  * Entrega los archivos subidos (disco público) solo a quien tiene sesión
  * iniciada, en cualquier panel: usuarios del sistema o emprendedores.
  *
- * Los enlaces llevan la ruta cifrada (ver ProtectedFiles). Sin sesión se envía
- * al inicio de sesión y, al entrar, se vuelve al archivo.
+ * Los enlaces llevan la ruta cifrada (ver ProtectedFiles). Sin sesión responde
+ * "No autorizado" (403), sin enviar al inicio de sesión.
  */
 class ProtectedFileController extends Controller
 {
@@ -35,7 +35,7 @@ class ProtectedFileController extends Controller
     private function serve(?string $path): Response
     {
         if (! collect(self::GUARDS)->contains(fn (string $guard) => auth()->guard($guard)->check())) {
-            return redirect()->guest('/dashboard/login');
+            return response()->view('errors.file-unauthorized', status: 403);
         }
 
         $disk = Storage::disk('public');

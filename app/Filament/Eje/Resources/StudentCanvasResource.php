@@ -145,11 +145,9 @@ class StudentCanvasResource extends Resource
                         ->helperText('Obligatorio — PDF, JPG o PNG (máx. 10 MB)'),
 
                     Forms\Components\TextInput::make('fire_pitch_video_url')
-                        ->label('Video Fire Pitch (URL) *')
+                        ->label('Video Fire Pitch (URL)')
                         ->url()
-                        ->required()
-                        ->placeholder('https://youtube.com/...')
-                        ->helperText('Obligatorio para estudiantes EJE'),
+                        ->placeholder('https://youtube.com/...'),
                 ]),
 
         ]);
@@ -185,7 +183,8 @@ class StudentCanvasResource extends Resource
                     ->label('Fire Pitch')
                     ->getStateUsing(fn ($record) => ! empty($record->fire_pitch_video_url) ? 'Sí' : 'No')
                     ->badge()
-                    ->color(fn ($state) => $state === 'Sí' ? 'success' : 'danger'),
+                    // Es opcional: no tenerlo no es un error.
+                    ->color(fn ($state) => $state === 'Sí' ? 'success' : 'gray'),
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),

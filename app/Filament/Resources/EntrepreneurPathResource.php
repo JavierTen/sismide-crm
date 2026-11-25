@@ -735,7 +735,7 @@ class EntrepreneurPathResource extends Resource
                                         ->schema([
                                             \Filament\Infolists\Components\TextEntry::make('bp_matrix')
                                                 ->label('Matriz de Adquisición')
-                                                ->formatStateUsing(fn() => 'Ver matriz')
+                                                ->state('Ver matriz')
                                                 ->url(function ($record) {
                                                     $bp = $record->businessPlan;
                                                     return $bp && $bp->acquisition_matrix_path ? Storage::disk('public')->url($bp->acquisition_matrix_path) : null;
@@ -749,7 +749,7 @@ class EntrepreneurPathResource extends Resource
 
                                             \Filament\Infolists\Components\TextEntry::make('bp_model')
                                                 ->label('Modelo de Negocio')
-                                                ->formatStateUsing(fn() => 'Ver modelo')
+                                                ->state('Ver modelo')
                                                 ->url(function ($record) {
                                                     $bp = $record->businessPlan;
                                                     return $bp && $bp->business_model_path ? Storage::disk('public')->url($bp->business_model_path) : null;
@@ -763,7 +763,7 @@ class EntrepreneurPathResource extends Resource
 
                                             \Filament\Infolists\Components\TextEntry::make('bp_logo')
                                                 ->label('Logo')
-                                                ->formatStateUsing(fn() => 'Ver logo')
+                                                ->state('Ver logo')
                                                 ->url(function ($record) {
                                                     $bp = $record->businessPlan;
                                                     return $bp && $bp->logo_path ? Storage::disk('public')->url($bp->logo_path) : null;
@@ -777,7 +777,7 @@ class EntrepreneurPathResource extends Resource
 
                                             \Filament\Infolists\Components\TextEntry::make('bp_fire_pitch')
                                                 ->label('Fire Pitch Video')
-                                                ->formatStateUsing(fn() => 'Ver video')
+                                                ->state('Ver video')
                                                 ->url(function ($record) {
                                                     $bp = $record->businessPlan;
                                                     return $bp && $bp->fire_pitch_video_url ? $bp->fire_pitch_video_url : null;
@@ -791,7 +791,7 @@ class EntrepreneurPathResource extends Resource
 
                                             \Filament\Infolists\Components\TextEntry::make('bp_production_cycle')
                                                 ->label('Ciclo de Producción Video')
-                                                ->formatStateUsing(fn() => 'Ver video')
+                                                ->state('Ver video')
                                                 ->url(function ($record) {
                                                     $bp = $record->businessPlan;
                                                     return $bp && $bp->production_cycle_video_url ? $bp->production_cycle_video_url : null;
@@ -843,7 +843,7 @@ class EntrepreneurPathResource extends Resource
 
                                             \Filament\Infolists\Components\TextEntry::make('fair_photo')
                                                 ->label('Foto de Participación')
-                                                ->formatStateUsing(fn() => 'Ver foto')
+                                                ->state('Ver foto')
                                                 ->url(fn($record) => $record->participation_photo_path ? Storage::disk('public')->url($record->participation_photo_path) : null, shouldOpenInNewTab: true)
                                                 ->color('primary')
                                                 ->icon('heroicon-o-photo')

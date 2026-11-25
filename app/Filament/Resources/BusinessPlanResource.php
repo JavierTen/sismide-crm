@@ -707,7 +707,7 @@ class BusinessPlanResource extends Resource
                     ->color('success')
                     ->icon('heroicon-o-arrow-down-tray'),
 
-                \App\Support\PlanEvidences::action(\App\Support\PlanEvidences::PLANS),
+                \App\Support\EvidenceZips::action(\App\Support\EvidenceZips::PLANS),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

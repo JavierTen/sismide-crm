@@ -21,9 +21,9 @@ Route::get('/institutional-documents/download-excel', [\App\Http\Controllers\Evi
     ->name('institutional-documents.download-excel')
     ->middleware('auth');
 
-// "Descargar Evidencias" de Planes de negocio y Canvas.
-Route::get('/business-plans/download-evidences', [\App\Http\Controllers\PlanEvidencesDownloadController::class, 'download'])
-    ->name('business-plans.download-evidences')
+// "Descargar Evidencias" de Caracterización, Planes de negocio y Canvas.
+Route::get('/evidences/download', [\App\Http\Controllers\EvidenceZipController::class, 'download'])
+    ->name('evidences.download')
     ->middleware('auth');
 
 // Archivos subidos: solo con sesión iniciada y sin mostrar dónde están.

@@ -722,7 +722,6 @@ class EntrepreneurPathResource extends Resource
                                         ->visible(function ($record) {
                                             $bp = $record->businessPlan;
                                             return $bp && (
-                                                $bp->business_plan_path ||
                                                 $bp->acquisition_matrix_path ||
                                                 $bp->business_model_path ||
                                                 $bp->logo_path ||
@@ -734,20 +733,6 @@ class EntrepreneurPathResource extends Resource
 
                                     \Filament\Infolists\Components\Grid::make(3)
                                         ->schema([
-                                            \Filament\Infolists\Components\TextEntry::make('bp_file')
-                                                ->label('Plan de Negocio')
-                                                ->formatStateUsing(fn() => 'Ver plan de negocio')
-                                                ->url(function ($record) {
-                                                    $bp = $record->businessPlan;
-                                                    return $bp && $bp->business_plan_path ? Storage::disk('public')->url($bp->business_plan_path) : null;
-                                                }, shouldOpenInNewTab: true)
-                                                ->color('primary')
-                                                ->icon('heroicon-o-document-text')
-                                                ->visible(function ($record) {
-                                                    $bp = $record->businessPlan;
-                                                    return $bp && $bp->business_plan_path;
-                                                }),
-
                                             \Filament\Infolists\Components\TextEntry::make('bp_matrix')
                                                 ->label('Matriz de Adquisición')
                                                 ->formatStateUsing(fn() => 'Ver matriz')
@@ -821,7 +806,6 @@ class EntrepreneurPathResource extends Resource
                                         ->visible(function ($record) {
                                             $bp = $record->businessPlan;
                                             return $bp && (
-                                                $bp->business_plan_path ||
                                                 $bp->acquisition_matrix_path ||
                                                 $bp->business_model_path ||
                                                 $bp->logo_path ||
@@ -956,7 +940,6 @@ class EntrepreneurPathResource extends Resource
 
                                     $bp = $record->businessPlan;
                                     $hasBP = $bp && (
-                                        $bp->business_plan_path ||
                                         $bp->acquisition_matrix_path ||
                                         $bp->business_model_path ||
                                         $bp->logo_path ||

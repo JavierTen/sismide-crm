@@ -297,7 +297,14 @@ class ClauseExport extends Page implements HasActions, HasForms
 
         // El año no se guarda en la plantilla: un informe mensual se reusa el
         // año siguiente sin tener que editarlo.
-        $this->form->fill(['conditions' => $config['conditions'] ?? []]);
+        // Un documento que ya no se puede escoger (por ejemplo, el PDF del plan) se descarta.
+        $conditions = $config['conditions'] ?? [];
+
+        if (! isset(ClauseExportBuilder::PLAN_DOCUMENTS[$conditions['plan_document'] ?? ''])) {
+            unset($conditions['plan_document'], $conditions['plan_document_attached']);
+        }
+
+        $this->form->fill(['conditions' => $conditions]);
 
         Notification::make()->title("Plantilla \"{$template->name}\" cargada")->success()->send();
     }

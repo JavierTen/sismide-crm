@@ -191,8 +191,6 @@ class FieldCatalog
                 'plan_jobs'          => ['Empleos generados', ['businessPlan'], $from($plan, fn ($p) => $p->jobs_generated)],
                 'plan_capitalized'   => ['Capitalizado', ['businessPlan'], $from($plan, fn ($p) => static::yesNo($p->is_capitalized))],
                 'plan_prioritized'   => ['Priorizado', ['businessPlan'], $from($plan, fn ($p) => static::yesNo($p->is_prioritized))],
-                'plan_pdf'             => ['Adjuntó PDF del plan', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->business_plan_path))],
-                'plan_pdf_url'         => ['URL PDF del plan', ['businessPlan'], $from($plan, fn ($p) => static::fileUrls($p->business_plan_path))],
                 'plan_matrix'          => ['Adjuntó matriz de adquisiciones', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->acquisition_matrix_path))],
                 'plan_matrix_url'      => ['URL matriz de adquisiciones', ['businessPlan'], $from($plan, fn ($p) => static::fileUrls($p->acquisition_matrix_path))],
                 'plan_model'           => ['Adjuntó modelo de negocio', ['businessPlan'], $from($plan, fn ($p) => static::hasFile($p->business_model_path))],

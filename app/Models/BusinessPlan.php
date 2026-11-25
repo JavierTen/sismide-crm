@@ -40,7 +40,6 @@ class BusinessPlan extends Model
         'direct_competitors',
         'target_market',
         'observations',
-        'business_plan_path',
         'acquisition_matrix_path',
         'fire_pitch_video_url',
         'production_cycle_video_url',
@@ -78,7 +77,6 @@ class BusinessPlan extends Model
             $original = $plan->getOriginal();
 
             $fileFields = [
-                'business_plan_path',
                 'acquisition_matrix_path',
                 'business_model_path',
                 'logo_path',
@@ -105,7 +103,6 @@ class BusinessPlan extends Model
     protected function deleteAllFiles(): void
     {
         $fileFields = [
-            'business_plan_path',
             'acquisition_matrix_path',
             'business_model_path',
             'logo_path',
@@ -135,14 +132,6 @@ class BusinessPlan extends Model
     }
 
     /**
-     * Verificar si tiene plan de negocio adjunto
-     */
-    public function hasBusinessPlanFile(): bool
-    {
-        return !empty($this->business_plan_path);
-    }
-
-    /**
      * Verificar si tiene matriz de adquisición
      */
     public function hasAcquisitionMatrix(): bool
@@ -164,18 +153,6 @@ class BusinessPlan extends Model
     public function hasLogo(): bool
     {
         return !empty($this->logo_path);
-    }
-
-    /**
-     * Obtener URL completa del plan de negocio
-     */
-    public function getBusinessPlanUrlAttribute(): ?string
-    {
-        if (!$this->business_plan_path) {
-            return null;
-        }
-
-        return Storage::disk('public')->url($this->business_plan_path);
     }
 
     /**

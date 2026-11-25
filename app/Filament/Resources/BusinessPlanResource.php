@@ -646,10 +646,6 @@ class BusinessPlanResource extends Resource
                     })
                     ->searchable()
                     ->preload(),
-
-                Tables\Filters\Filter::make('has_business_plan')
-                    ->label('Con Plan Adjunto')
-                    ->query(fn ($query) => $query->whereNotNull('business_plan_path')),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
@@ -829,8 +825,6 @@ class BusinessPlanResource extends Resource
             Column::make('direct_competitors')->heading('Competidores Directos'),
             Column::make('target_market')->heading('Mercado Objetivo'),
             Column::make('observations')->heading('Observaciones'),
-            Column::make('business_plan_path')->heading('Plan de Negocio')
-                ->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
             Column::make('acquisition_matrix_path')->heading('Matriz de Adquisición')
                 ->formatStateUsing(fn ($state) => ! empty($state) ? 'Sí' : 'No'),
             Column::make('business_model_path')->heading('Modelo de Negocio')

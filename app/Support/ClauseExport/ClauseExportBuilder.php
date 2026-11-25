@@ -18,7 +18,6 @@ class ClauseExportBuilder
 {
     /** Documentos del plan que se pueden usar como condición. */
     public const PLAN_DOCUMENTS = [
-        'business_plan_path'         => 'PDF del plan de negocio',
         'acquisition_matrix_path'    => 'Matriz de adquisiciones',
         'business_model_path'        => 'Modelo de negocio',
         'fire_pitch_video_url'       => 'Video Fire Pitch',

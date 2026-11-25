@@ -17,8 +17,6 @@ class ListBusinessCanvases extends ListRecords
     {
         return [
             Actions\CreateAction::make()
-                ->label('Registrar Canvas')
-                ->icon('heroicon-o-plus')
                 ->visible(fn () => auth()->user()->can('createBusinessCanvas')),
         ];
     }

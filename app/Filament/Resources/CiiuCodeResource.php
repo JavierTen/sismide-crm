@@ -20,8 +20,8 @@ class CiiuCodeResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-hashtag';
     protected static ?string $navigationGroup = 'Gestión Tipos';
 
-    protected static ?string $modelLabel = 'Codigo CIUU';
-    protected static ?string $pluralModelLabel = 'Codigos CIUU';
+    protected static ?string $modelLabel = 'Código CIIU';
+    protected static ?string $pluralModelLabel = 'Códigos CIIU';
 
     protected static ?int $navigationSort = 10;
 

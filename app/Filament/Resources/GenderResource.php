@@ -20,8 +20,8 @@ class GenderResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
     protected static ?string $navigationGroup = 'Gestión Tipos';
 
-    protected static ?string $modelLabel = 'Genero';
-    protected static ?string $pluralModelLabel = 'Generos';
+    protected static ?string $modelLabel = 'Género';
+    protected static ?string $pluralModelLabel = 'Géneros';
 
     protected static ?int $navigationSort = 3;
 

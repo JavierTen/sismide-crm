@@ -13,7 +13,7 @@ class ListStudentTrainingSessions extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()->label('Registrar Sesión'),
+            Actions\CreateAction::make(),
         ];
     }
 }

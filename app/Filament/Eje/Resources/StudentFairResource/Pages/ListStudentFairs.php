@@ -13,9 +13,7 @@ class ListStudentFairs extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
-                ->label('Registrar Feria')
-                ->icon('heroicon-o-plus'),
+            Actions\CreateAction::make(),
         ];
     }
 }

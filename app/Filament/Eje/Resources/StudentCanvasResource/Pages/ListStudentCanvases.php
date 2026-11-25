@@ -13,9 +13,7 @@ class ListStudentCanvases extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
-                ->label('Registrar Canvas')
-                ->icon('heroicon-o-plus'),
+            Actions\CreateAction::make(),
         ];
     }
 }

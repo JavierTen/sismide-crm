@@ -28,7 +28,7 @@ class FairEvaluationResource extends Resource
 
     protected static ?string $navigationGroup = 'Ferias';
 
-    protected static ?string $modelLabel = 'Participacion';
+    protected static ?string $modelLabel = 'Participación';
     protected static ?string $pluralModelLabel = 'Participaciones';
 
     protected static ?int $navigationSort = 3;

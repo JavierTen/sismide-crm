@@ -20,8 +20,8 @@ class ProductiveLineResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-arrow-trending-up';
     protected static ?string $navigationGroup = 'Gestión Tipos';
 
-    protected static ?string $modelLabel = 'Linea productiva';
-    protected static ?string $pluralModelLabel = 'Lineas productivas';
+    protected static ?string $modelLabel = 'Línea productiva';
+    protected static ?string $pluralModelLabel = 'Líneas productivas';
 
     protected static ?int $navigationSort = 9;
 

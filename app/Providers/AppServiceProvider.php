@@ -41,5 +41,17 @@ class AppServiceProvider extends ServiceProvider
                 ? $subject
                 : \App\Support\ActivityContext::causer()
         );
+
+        // Botones de crear de todos los paneles: "+" y solo el nombre del
+        // registro (por ejemplo, "+ Canvas"). Va como configuración importante
+        // porque Filament pone su "Crear …" después de las configuraciones normales.
+        foreach ([\Filament\Actions\CreateAction::class, \Filament\Tables\Actions\CreateAction::class] as $createAction) {
+            $createAction::configureUsing(
+                fn ($action) => $action
+                    ->icon('heroicon-o-plus')
+                    ->label(fn () => \Illuminate\Support\Str::ucfirst($action->getModelLabel())),
+                isImportant: true,
+            );
+        }
     }
 }

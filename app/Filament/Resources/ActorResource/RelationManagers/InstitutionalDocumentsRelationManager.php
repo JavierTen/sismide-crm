@@ -15,6 +15,7 @@ class InstitutionalDocumentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'documents';
     protected static ?string $title       = 'Expediente Documental';
+    protected static ?string $modelLabel  = 'Documento';
     protected static ?string $icon        = 'heroicon-o-document-text';
 
     public function form(Form $form): Form
@@ -141,7 +142,6 @@ class InstitutionalDocumentsRelationManager extends RelationManager
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()
-                    ->label('Agregar documento')
                     ->mutateFormDataUsing(fn(array $data) => array_merge($data, [
                         'manager_id' => auth()->id(),
                     ])),

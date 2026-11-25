@@ -398,6 +398,8 @@ class BusinessCanvasResource extends Resource
                     ])
                     ->color('success')
                     ->icon('heroicon-o-arrow-down-tray'),
+
+                \App\Support\PlanEvidences::action(\App\Support\PlanEvidences::CANVASES),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

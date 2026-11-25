@@ -25,13 +25,21 @@ class ListBusinessCanvases extends ListRecords
 
     public function getTabs(): array
     {
+        // Mismo orden que en Planes de negocio, para que las pestañas no cambien de lugar.
         return [
-            'canvas' => Tab::make('Canvas (Ruta 1)')
-                ->icon('heroicon-o-squares-2x2'),
-
             'plan' => Tab::make('Plan de Negocio')
                 ->icon('heroicon-o-document-chart-bar')
                 ->badge(fn () => BusinessPlan::query()
+                    ->when(
+                        ! auth()->user()->hasRole(['Admin', 'Viewer']),
+                        fn ($q) => $q->where('manager_id', auth()->id())
+                    )
+                    ->count()
+                ),
+
+            'canvas' => Tab::make('Canvas (Ruta 1)')
+                ->icon('heroicon-o-squares-2x2')
+                ->badge(fn () => \App\Models\BusinessCanvas::query()
                     ->when(
                         ! auth()->user()->hasRole(['Admin', 'Viewer']),
                         fn ($q) => $q->where('manager_id', auth()->id())

@@ -95,19 +95,36 @@ class EntrepreneurPath
     /** Ruta 1, 2 o 3 según el último diagnóstico y los rangos de su año (igual que Entrepreneur::getRoute). */
     private static function route(Entrepreneur $e): ?int
     {
-        $diagnosis = $e->businessDiagnoses->first();
+        return static::placement($e)['route'];
+    }
+
+    /**
+     * Ruta y nivel de madurez según el último diagnóstico (por puntaje y con
+     * los rangos de su año). La usan la ficha y el mapa, para que coincidan.
+     * Si los diagnósticos ya están cargados, no consulta la base.
+     *
+     * @return array{route: ?int, level: ?array{level: int, name: string, label: string, color: string}}
+     */
+    public static function placement(Entrepreneur $e): array
+    {
+        $diagnosis = $e->businessDiagnoses->sortByDesc('id')->first();
 
         if (! $diagnosis || $diagnosis->total_score === null) {
-            return null;
+            return ['route' => null, 'level' => null];
         }
 
-        foreach (MaturityScale::getPhaseRanges($diagnosis->created_at?->year ?? now()->year) as $phase => $range) {
-            if ($diagnosis->total_score >= $range['min'] && $diagnosis->total_score <= $range['max']) {
-                return (int) $phase;
+        $year  = $diagnosis->created_at?->year ?? now()->year;
+        $score = (int) $diagnosis->total_score;
+        $route = null;
+
+        foreach (MaturityScale::getPhaseRanges($year) as $phase => $range) {
+            if ($score >= $range['min'] && $score <= $range['max']) {
+                $route = (int) $phase;
+                break;
             }
         }
 
-        return null;
+        return ['route' => $route, 'level' => MaturityScale::getLevelForScore($score, $year)];
     }
 
     private static function diagnosis(?BusinessDiagnosis $d): ?array

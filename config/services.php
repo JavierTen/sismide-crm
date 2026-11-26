@@ -2,6 +2,12 @@
 
 return [
 
+    // Mapa (Dashboard → Mapa). Token público de Mapbox; se lee de aquí y no con
+    // env() en la vista, porque con la configuración en caché env() queda vacío.
+    'mapbox' => [
+        'token' => env('MAPBOX_ACCESS_TOKEN'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

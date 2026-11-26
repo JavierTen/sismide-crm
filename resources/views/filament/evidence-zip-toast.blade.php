@@ -1,8 +1,10 @@
 {{--
-    Aviso de "Descargar Evidencias": muestra el avance mientras el servidor arma
-    el ZIP y luego lo descarga. Lo inicia EvidenceZips::action() con
-    window.evidenceZip.start({ token, label }). Mismo aspecto que las
-    notificaciones de Filament (arriba a la derecha).
+    Aviso de "Descargar Evidencias", arriba a la derecha como las notificaciones
+    de Filament. Muestra el avance mientras el servidor arma el ZIP y lo retoma
+    en cualquier página del panel: al cargar pregunta por las descargas del
+    usuario. La que se empezó en esta página se baja sola al terminar; las que
+    se retoman en otra página muestran el botón "Descargar ZIP".
+    Lo inicia EvidenceZips::action() con window.evidenceZip.start({ token, label }).
 --}}
 <style>
     .ez-stack { position: fixed; top: 1rem; right: 1rem; z-index: 60; display: flex; flex-direction: column; gap: .75rem; width: 24rem; max-width: calc(100vw - 2rem); pointer-events: none; }
@@ -22,12 +24,16 @@
     .ez-body { margin-top: .25rem; color: rgb(var(--gray-500)); overflow-wrap: anywhere; }
     .dark .ez-body { color: rgb(var(--gray-400)); }
     .ez-progress { display: flex; align-items: center; gap: .6rem; margin-top: .6rem; }
-    .ez-progress[hidden] { display: none; }
     .ez-bar { flex: 1; height: .375rem; border-radius: 9999px; background: rgb(var(--gray-200)); overflow: hidden; }
     .dark .ez-bar { background: rgba(255, 255, 255, .1); }
     .ez-fill { height: 100%; width: 0; border-radius: 9999px; background: rgb(var(--primary-600)); transition: width .4s ease; }
     .ez-percent { font-size: .75rem; font-weight: 600; color: rgb(var(--gray-700)); font-variant-numeric: tabular-nums; min-width: 2.6rem; text-align: right; }
     .dark .ez-percent { color: rgb(var(--gray-200)); }
+    .ez-action { display: inline-flex; align-items: center; gap: .35rem; margin-top: .7rem; padding: .4rem .75rem; border-radius: .5rem; font-size: .8rem; font-weight: 600;
+        color: #fff; background: rgb(var(--primary-600)); text-decoration: none; }
+    .ez-action:hover { background: rgb(var(--primary-500)); }
+    .ez-action:focus-visible { outline: 2px solid rgb(var(--primary-500)); outline-offset: 2px; }
+    .ez-action svg { width: 1rem; height: 1rem; }
     .ez-close { flex: none; align-self: flex-start; width: 1.25rem; height: 1.25rem; color: rgb(var(--gray-400)); background: none; border: 0; padding: 0; cursor: pointer; border-radius: .25rem; }
     .ez-close:hover { color: rgb(var(--gray-500)); }
     .ez-close:focus-visible { outline: 2px solid rgb(var(--primary-500)); outline-offset: 2px; }
@@ -48,6 +54,7 @@
                 <div class="ez-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="ez-fill"></div></div>
                 <span class="ez-percent">0 %</span>
             </div>
+            <a class="ez-action" hidden><x-filament::icon icon="heroicon-m-arrow-down-tray" />Descargar ZIP</a>
         </div>
         <button type="button" class="ez-close" aria-label="Cerrar"><x-filament::icon icon="heroicon-m-x-mark" /></button>
     </div>
@@ -59,111 +66,133 @@
 
 <script>
     window.evidenceZip = (() => {
-        const urls = { prepare: @js(route('evidences.prepare')), progress: @js(route('evidences.progress')) };
+        const urls = { prepare: @js(route('evidences.prepare')), status: @js(route('evidences.status')), dismiss: @js(route('evidences.dismiss')) };
         const number = (n) => new Intl.NumberFormat('es-CO').format(n);
+        const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+        const post = (url, body) => fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf() },
+            body: JSON.stringify(body),
+        });
 
-        function toast(label) {
+        /** Avisos en pantalla, por token: { el, set(job), autoDownload, done } */
+        const toasts = new Map();
+        let polling = null;
+
+        function toast(token, label, autoDownload) {
             const el = document.getElementById('ez-toast-template').content.firstElementChild.cloneNode(true);
             const $ = (selector) => el.querySelector(selector);
-            let timer = null;
+            const item = { el, autoDownload, done: false, timer: null };
 
-            const close = () => {
+            const remove = () => {
                 el.classList.add('ez-leaving');
                 setTimeout(() => el.remove(), 300);
+                toasts.delete(token);
             };
 
-            $('.ez-close').addEventListener('click', close);
-            document.getElementById('ez-stack').appendChild(el);
+            const icon = (tone) => {
+                $('.ez-icon').dataset.tone = tone;
+                $('.ez-icon').replaceChildren(document.getElementById(`ez-icon-${tone}`).content.cloneNode(true));
+            };
 
-            return {
-                // Mientras se arma el ZIP: barra con el porcentaje.
-                progress(percent, step) {
+            const finish = (tone, title, body, { autoClose = true, link = null } = {}) => {
+                item.done = true;
+                icon(tone);
+                $('.ez-title').textContent = title;
+                $('.ez-body').textContent = body;
+                $('.ez-progress').hidden = tone !== 'success';
+                $('.ez-fill').style.width = '100%';
+                $('.ez-percent').textContent = '100 %';
+                if (link) {
+                    $('.ez-action').href = link;
+                    $('.ez-action').hidden = false;
+                }
+                clearTimeout(item.timer);
+                if (autoClose) item.timer = setTimeout(remove, 8000);
+            };
+
+            // Cerrar: si la descarga ya terminó, se descarta en el servidor; si sigue, solo se oculta aquí
+            // (vuelve a aparecer en la siguiente página mientras se arma).
+            $('.ez-close').addEventListener('click', () => {
+                if (item.done) post(urls.dismiss, { token }).catch(() => {});
+                remove();
+            });
+            // Al bajar el ZIP con el botón, el aviso se cierra (el servidor ya lo da por descargado).
+            $('.ez-action').addEventListener('click', () => setTimeout(remove, 300));
+
+            item.set = (job) => {
+                if (job.status === 'working') {
+                    icon('working');
                     $('.ez-title').textContent = 'Preparando la descarga';
-                    $('.ez-body').textContent = `${label} · ${step}`;
-                    $('.ez-fill').style.width = `${percent}%`;
-                    $('.ez-percent').textContent = `${percent} %`;
-                    $('.ez-bar').setAttribute('aria-valuenow', percent);
-                },
-                // Resultado: cambia el ícono y el texto; si no es un error, se cierra solo.
-                finish(tone, title, body) {
-                    const icon = $('.ez-icon');
-                    icon.dataset.tone = tone;
-                    icon.replaceChildren(document.getElementById(`ez-icon-${tone}`).content.cloneNode(true));
-                    $('.ez-title').textContent = title;
-                    $('.ez-body').textContent = body;
-
-                    if (tone === 'success') {
-                        $('.ez-fill').style.width = '100%';
-                        $('.ez-percent').textContent = '100 %';
+                    $('.ez-body').textContent = `${label} · ${job.percent < 5 ? 'revisando los archivos…' : 'empacando los archivos…'}`;
+                    $('.ez-fill').style.width = `${job.percent}%`;
+                    $('.ez-percent').textContent = `${job.percent} %`;
+                    $('.ez-bar').setAttribute('aria-valuenow', job.percent);
+                } else if (job.status === 'ready') {
+                    const files = `${number(job.files)} archivos de ${number(job.records)} registros`;
+                    if (item.autoDownload) {
+                        finish('success', 'Descarga lista', `${label}: ${files}. El navegador está descargando el ZIP.`);
+                        window.location.href = job.url;
                     } else {
-                        $('.ez-progress').hidden = true;
+                        finish('success', 'Descarga lista', `${label}: ${files}.`, { autoClose: false, link: job.url });
                     }
-
-                    clearTimeout(timer);
-                    if (tone !== 'danger') timer = setTimeout(close, 8000);
-                },
-                init() {
-                    $('.ez-icon').replaceChildren(document.getElementById('ez-icon-working').content.cloneNode(true));
-                    this.progress(0, 'revisando los archivos…');
-                },
+                } else if (job.status === 'empty') {
+                    finish('warning', 'Sin evidencias', `${label}: los registros no tienen archivos ni videos para descargar.`, { autoClose: item.autoDownload });
+                    // Visto en la misma página donde se pidió: no hace falta mostrarlo de nuevo en la siguiente.
+                    if (item.autoDownload) post(urls.dismiss, { token }).catch(() => {});
+                } else if (job.status === 'failed') {
+                    finish('danger', 'No se pudo preparar la descarga', job.message || 'Intenta de nuevo.', { autoClose: false });
+                }
             };
+
+            document.getElementById('ez-stack').appendChild(el);
+            toasts.set(token, item);
+
+            return item;
+        }
+
+        // Pregunta por las descargas del usuario y actualiza (o crea) cada aviso.
+        async function refresh() {
+            let jobs = [];
+            try {
+                const response = await fetch(urls.status, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+                if (! response.ok) return;
+                jobs = await response.json();
+            } catch (e) {
+                return; // Sin conexión por un momento: se reintenta en la siguiente consulta.
+            }
+
+            jobs.forEach((job) => {
+                const item = toasts.get(job.token) ?? toast(job.token, job.label, false);
+                if (! item.done) item.set(job);
+            });
+
+            const pending = [...toasts.values()].some((item) => ! item.done);
+            if (pending && ! polling) polling = setInterval(refresh, 1000);
+            if (! pending && polling) { clearInterval(polling); polling = null; }
         }
 
         async function start({ token, label }) {
-            const t = toast(label);
-            t.init();
-
-            let finished = false;
-            const poll = setInterval(async () => {
-                try {
-                    const response = await fetch(`${urls.progress}?token=${encodeURIComponent(token)}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
-                    const { percent } = response.ok ? await response.json() : {};
-
-                    if (! finished && typeof percent === 'number') {
-                        t.progress(percent, percent < 5 ? 'revisando los archivos…' : 'empacando los archivos…');
-                    }
-                } catch (e) {
-                    // Un sondeo fallido no detiene la descarga: se reintenta en el siguiente.
-                }
-            }, 1000);
+            const item = toast(token, label, true);
+            item.set({ status: 'working', percent: 0 });
 
             try {
-                const response = await fetch(urls.prepare, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Accept: 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
-                    },
-                    body: JSON.stringify({ token }),
-                });
-
-                finished = true;
-                clearInterval(poll);
-
+                const response = await post(urls.prepare, { token });
                 if (! response.ok) {
                     throw new Error(response.status === 419
                         ? 'La sesión expiró. Recarga la página e intenta de nuevo.'
                         : `El servidor respondió con el error ${response.status}. Intenta de nuevo; si se repite, avisa al administrador.`);
                 }
-
-                const data = await response.json();
-
-                if (data.status === 'empty') {
-                    t.finish('warning', 'Sin evidencias', `${label}: los registros no tienen archivos ni videos para descargar.`);
-                    return;
-                }
-
-                t.finish('success', 'Descarga lista', `${label}: ${number(data.files)} archivos de ${number(data.records)} registros. El navegador está descargando el ZIP.`);
-                window.location.href = data.url;
+                refresh();
             } catch (error) {
-                finished = true;
-                clearInterval(poll);
-                t.finish('danger', 'No se pudo preparar la descarga', error.message || 'Intenta de nuevo.');
+                item.set({ status: 'failed', message: error.message });
             }
         }
+
+        // Al abrir cualquier página del panel, retoma las descargas que estén en curso o listas.
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh);
+        else refresh();
 
         return { start };
     })();

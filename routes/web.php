@@ -22,11 +22,12 @@ Route::get('/institutional-documents/download-excel', [\App\Http\Controllers\Evi
     ->middleware('auth');
 
 // "Descargar Evidencias" de Caracterización, Planes de negocio y Canvas:
-// armar el ZIP, consultar el avance y descargarlo.
+// empezar a armar el ZIP, consultar las descargas del usuario, bajar el ZIP y descartar un aviso.
 Route::middleware('auth')->prefix('evidences')->name('evidences.')->group(function () {
     Route::post('/prepare', [\App\Http\Controllers\EvidenceZipController::class, 'prepare'])->name('prepare');
-    Route::get('/progress', [\App\Http\Controllers\EvidenceZipController::class, 'progress'])->name('progress');
+    Route::get('/status', [\App\Http\Controllers\EvidenceZipController::class, 'status'])->name('status');
     Route::get('/file', [\App\Http\Controllers\EvidenceZipController::class, 'file'])->name('file');
+    Route::post('/dismiss', [\App\Http\Controllers\EvidenceZipController::class, 'dismiss'])->name('dismiss');
 });
 
 // Archivos subidos: solo con sesión iniciada y sin mostrar dónde están.

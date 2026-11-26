@@ -82,10 +82,54 @@ class EvidenceZips
         return 'Evidencias de ' . self::CONTENTS[$type]['label'] . ' (ZIP)';
     }
 
-    /** Clave en caché de una descarga: "request" (registros escogidos), "progress" (avance) o "ready" (ZIP armado). */
+    public static function title(string $type): string
+    {
+        return 'Evidencias de ' . self::CONTENTS[$type]['label'];
+    }
+
+    /** Clave en caché de una descarga: "request" (registros escogidos) o "job" (estado y avance). */
     public static function cacheKey(string $what, string $token): string
     {
         return "evidence_zip_{$what}_{$token}";
+    }
+
+    // ── Descargas en curso de cada usuario ───────────────────────────────
+    // Se guardan un día para que el aviso las retome en cualquier página del
+    // panel, aunque el usuario cambie de página o cierre el navegador.
+
+    /** Crea o actualiza el estado de una descarga (working, ready, empty o failed). */
+    public static function saveJob(string $token, array $changes): void
+    {
+        $key = static::cacheKey('job', $token);
+        Cache::put($key, array_merge(Cache::get($key, []), $changes), now()->addDay());
+    }
+
+    public static function job(string $token): ?array
+    {
+        return Cache::get(static::cacheKey('job', $token));
+    }
+
+    /** @return array<int, array<string, mixed>> descargas del usuario, con su token */
+    public static function userJobs(int $userId): array
+    {
+        return collect(Cache::get("evidence_zip_jobs_{$userId}", []))
+            ->map(fn (string $token) => ($job = static::job($token)) ? ['token' => $token] + $job : null)
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    public static function trackJob(int $userId, string $token): void
+    {
+        $tokens = Cache::get("evidence_zip_jobs_{$userId}", []);
+        Cache::put("evidence_zip_jobs_{$userId}", array_values(array_unique([...$tokens, $token])), now()->addDay());
+    }
+
+    /** Quita una descarga del usuario (ya se bajó o el usuario cerró su aviso). */
+    public static function forgetJob(int $userId, string $token): void
+    {
+        Cache::put("evidence_zip_jobs_{$userId}", array_values(array_diff(Cache::get("evidence_zip_jobs_{$userId}", []), [$token])), now()->addDay());
+        Cache::forget(static::cacheKey('job', $token));
     }
 
     /**
@@ -118,12 +162,12 @@ class EvidenceZips
                     return;
                 }
 
-                // El ZIP se arma en otra petición mientras la pantalla muestra el avance
+                // El ZIP se arma aparte mientras el aviso muestra el avance
                 // (ver evidence-zip-toast.blade.php); los registros esperan en caché.
                 $token = Str::random(32);
                 Cache::put(static::cacheKey('request', $token), ['user' => auth()->id(), 'type' => $type, 'ids' => $ids], now()->addMinutes(30));
 
-                $livewire->js('window.evidenceZip.start(' . json_encode(['token' => $token, 'label' => 'Evidencias de ' . $c['label']]) . ')');
+                $livewire->js('window.evidenceZip.start(' . json_encode(['token' => $token, 'label' => static::title($type)]) . ')');
             })
             ->visible(fn () => static::exists($type) && static::canDownload());
     }

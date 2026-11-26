@@ -23,27 +23,21 @@
     .ep-business { margin-top: .15rem; font-weight: 600; color: rgb(var(--gray-700)); }
     .dark .ep-business { color: rgb(var(--gray-200)); }
     .ep-meta { margin-top: .35rem; display: flex; flex-wrap: wrap; gap: .2rem .9rem; font-size: .8rem; }
-    .ep-side { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; text-align: right; }
-    .ep-level { font-size: .75rem; }
-    .ep-contact { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .25rem .9rem; }
+    .ep-contact { margin-top: .4rem; display: flex; flex-wrap: wrap; gap: .25rem 1.1rem; font-size: .8rem; }
+    .ep-contact a { display: inline-flex; align-items: center; gap: .35rem; color: rgb(var(--gray-600)); text-decoration: none; overflow-wrap: anywhere; }
+    .dark .ep-contact a { color: rgb(var(--gray-300)); }
+    .ep-contact a:hover { color: rgb(var(--primary-600)); text-decoration: underline; }
+    .ep-contact a:focus-visible { outline: 2px solid rgb(var(--primary-500)); outline-offset: 2px; border-radius: .25rem; }
+    .ep-contact svg { flex: none; width: .95rem; height: .95rem; color: rgb(var(--gray-400)); }
 
-    .ep-journey { border: 1px solid var(--ep-line); border-radius: .75rem; padding: .9rem 1rem; }
-    .ep-journey-head { display: flex; align-items: center; gap: .75rem; margin-bottom: .8rem; }
-    .ep-journey-title { font-weight: 600; color: rgb(var(--gray-950)); }
-    .dark .ep-journey-title { color: #fff; }
-    .ep-meter { flex: 1; height: .375rem; border-radius: 9999px; background: var(--ep-line); overflow: hidden; }
-    .ep-meter > div { height: 100%; border-radius: 9999px; background: rgb(var(--success-500)); }
-    .ep-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.75rem, 1fr)); gap: .6rem; }
-    .ep-step { display: flex; gap: .55rem; align-items: flex-start; padding: .55rem .6rem; border-radius: .6rem; background: var(--ep-soft); }
-    .ep-step-icon { flex: none; width: 1.75rem; height: 1.75rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center;
-        border: 1.5px dashed rgb(var(--gray-300)); color: rgb(var(--gray-400)); }
-    .dark .ep-step-icon { border-color: rgb(var(--gray-600)); }
-    .ep-step-icon svg { width: 1rem; height: 1rem; }
-    .ep-step.is-done .ep-step-icon { border: 0; background: rgba(var(--success-500), .15); color: rgb(var(--success-600)); }
-    .dark .ep-step.is-done .ep-step-icon { color: rgb(var(--success-400)); }
-    .ep-step-title { font-size: .75rem; font-weight: 600; line-height: 1rem; color: rgb(var(--gray-700)); }
-    .dark .ep-step-title { color: rgb(var(--gray-200)); }
-    .ep-step-detail { font-size: .75rem; line-height: 1rem; margin-top: .1rem; }
+    /* Ruta: recuadro con el color de la ruta (--rc) y el nivel de madurez debajo. */
+    .ep-route { flex: 0 1 15rem; min-width: 12rem; padding: .7rem .9rem; border-radius: .75rem; background: rgba(var(--rc), .1); border: 1px solid rgba(var(--rc), .28); }
+    .ep-route-kicker { font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: rgb(var(--gray-500)); }
+    .ep-route-value { margin-top: .1rem; font-size: 1.35rem; font-weight: 700; line-height: 1.6rem; color: rgb(var(--rc-text)); }
+    .dark .ep-route-value { color: rgb(var(--rc-text-dark)); }
+    .ep-route-level { margin-top: .3rem; display: flex; align-items: flex-start; gap: .4rem; font-size: .75rem; line-height: 1rem; color: rgb(var(--gray-600)); }
+    .dark .ep-route-level { color: rgb(var(--gray-300)); }
+    .ep-route-level i { flex: none; width: .5rem; height: .5rem; margin-top: .25rem; border-radius: 9999px; }
 
     .ep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem 1.5rem; }
     .ep-label { font-size: .75rem; font-weight: 500; color: rgb(var(--gray-500)); }
@@ -91,23 +85,27 @@
                 <span>Gestor: {{ $p['manager'] ?? 'sin asignar' }}</span>
                 @if ($p['registered']) <span>Registrado el {{ $p['registered'] }}{{ $p['project'] ? ' · ' . $p['project'] : '' }}</span> @endif
             </div>
+            @if ($p['phone'] || $p['email'])
+                <div class="ep-contact">
+                    @if ($p['phone'])
+                        <a href="tel:{{ preg_replace('/\s+/', '', $p['phone']) }}" title="Llamar"><x-filament::icon icon="heroicon-m-phone" />{{ $p['phone'] }}</a>
+                    @endif
+                    @if ($p['email'])
+                        <a href="mailto:{{ $p['email'] }}" title="Escribir un correo"><x-filament::icon icon="heroicon-m-envelope" />{{ $p['email'] }}</a>
+                    @endif
+                </div>
+            @endif
         </div>
 
-        <div class="ep-side">
-            @if ($p['route'])
-                <x-filament::badge :color="$routeColors[$p['route']] ?? 'gray'" size="lg">Ruta {{ $p['route'] }}</x-filament::badge>
-            @else
-                <x-filament::badge color="gray" size="lg">Sin ruta</x-filament::badge>
-            @endif
-            @if ($level)
-                <span class="ep-level ep-muted">{{ $level['label'] }}</span>
-            @endif
-            <div class="ep-contact">
-                @if ($p['phone'])
-                    <x-filament::link :href="'tel:' . preg_replace('/\s+/', '', $p['phone'])" icon="heroicon-m-phone" size="sm">{{ $p['phone'] }}</x-filament::link>
-                @endif
-                @if ($p['email'])
-                    <x-filament::link :href="'mailto:' . $p['email']" icon="heroicon-m-envelope" size="sm">{{ $p['email'] }}</x-filament::link>
+        @php $rc = $routeColors[$p['route']] ?? 'gray'; @endphp
+        <div class="ep-route" style="--rc: var(--{{ $rc }}-500); --rc-text: var(--{{ $rc }}-700); --rc-text-dark: var(--{{ $rc }}-400);">
+            <div class="ep-route-kicker">Ruta de atención</div>
+            <div class="ep-route-value">{{ $p['route'] ? 'Ruta ' . $p['route'] : 'Sin ruta' }}</div>
+            <div class="ep-route-level">
+                @if ($level)
+                    <i aria-hidden="true" style="background: {{ $level['color'] }};"></i><span>{{ $level['label'] }}</span>
+                @else
+                    <span>Se asigna con el diagnóstico de entrada.</span>
                 @endif
             </div>
         </div>

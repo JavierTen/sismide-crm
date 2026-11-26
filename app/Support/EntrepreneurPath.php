@@ -289,7 +289,7 @@ class EntrepreneurPath
     /**
      * Etapas del recorrido, en el orden del programa.
      *
-     * @return array<int, array{title: string, done: bool, detail: string, icon: string}>
+     * @return array<int, array{title: string, done: bool, detail: string, icon: string, optional?: bool}>
      */
     private static function steps(Entrepreneur $e, array $data, Collection $trainings): array
     {
@@ -319,7 +319,8 @@ class EntrepreneurPath
             ['title' => 'Capacitaciones', 'done' => $trainings->isNotEmpty(), 'icon' => 'heroicon-o-academic-cap',
              'detail' => $trainings->isNotEmpty() ? $plural($trainings->count(), 'capacitación', 'capacitaciones') . ($hours > 0 ? ' · ' . static::decimal($hours) . ' h' : '') : 'Ninguna'],
             $planStep,
-            ['title' => 'Ferias', 'done' => $data['fairs'] !== [], 'icon' => 'heroicon-o-building-storefront',
+            // Opcional: no todos participan en ferias, así que sin ferias no se marca como pendiente.
+            ['title' => 'Ferias', 'done' => $data['fairs'] !== [], 'icon' => 'heroicon-o-building-storefront', 'optional' => true,
              'detail' => $data['fairs'] !== [] ? $plural(count($data['fairs']), 'feria', 'ferias') : 'Ninguna'],
             ['title' => 'Diagnóstico de salida', 'done' => (bool) $exit, 'icon' => 'heroicon-o-flag',
              'detail' => $exit && $exit['score'] !== null

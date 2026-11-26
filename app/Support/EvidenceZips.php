@@ -29,11 +29,8 @@ class EvidenceZips
 
     public const CANVASES = 'canvases';
 
-    /**
-     * Descargas que se muestran. Planes y Canvas quedan ocultos por ahora
-     * (decisión del usuario, 2026-11-25): para mostrarlos, agregarlos aquí.
-     */
-    private const ENABLED = [self::CHARACTERIZATIONS];
+    /** Descargas que se muestran; para ocultar una, quitarla de aquí. */
+    private const ENABLED = [self::CHARACTERIZATIONS, self::PLANS, self::CANVASES];
 
     /**
      * Qué lleva cada carpeta: archivos (nombre en el ZIP => campo) y enlaces

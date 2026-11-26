@@ -72,6 +72,13 @@ class DashboardPanelProvider extends PanelProvider
                     ? Blade::render('@livewire(\'year-switcher\')')
                     : '',
             )
+            // Aviso con el avance de "Descargar Evidencias".
+            ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): string => \App\Support\EvidenceZips::canDownload()
+                    ? view('filament.evidence-zip-toast')->render()
+                    : '',
+            )
             ->navigationGroups([
                 NavigationGroup::make()
                     ->label('Parametros')

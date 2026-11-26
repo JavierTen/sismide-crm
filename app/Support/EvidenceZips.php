@@ -10,15 +10,16 @@ use Filament\Notifications\Notification;
 use Filament\Tables;
 use Filament\Tables\Contracts\HasTable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use ZipArchive;
 
 /**
  * "Descargar Evidencias" de Caracterización, Planes de negocio y Canvas: un
- * ZIP con carpetas Municipio/Emprendimiento. Se entrega por una ruta normal (como
- * Gestión Documental), no por Livewire, para que el archivo no tenga que caber
- * completo en memoria.
+ * ZIP con carpetas Municipio/Emprendimiento. Se arma y se entrega por rutas
+ * normales (EvidenceZipController), no por Livewire, para que el archivo no
+ * tenga que caber completo en memoria; la pantalla muestra el avance.
  */
 class EvidenceZips
 {
@@ -84,6 +85,12 @@ class EvidenceZips
         return 'Evidencias de ' . self::CONTENTS[$type]['label'] . ' (ZIP)';
     }
 
+    /** Clave en caché de una descarga: "request" (registros escogidos), "progress" (avance) o "ready" (ZIP armado). */
+    public static function cacheKey(string $what, string $token): string
+    {
+        return "evidence_zip_{$what}_{$token}";
+    }
+
     /**
      * Botón del encabezado de la tabla. Baja todo; si la tabla tiene filtros o
      * búsqueda que cambian lo que se ve, pregunta si todo o solo lo filtrado.
@@ -114,10 +121,12 @@ class EvidenceZips
                     return;
                 }
 
+                // El ZIP se arma en otra petición mientras la pantalla muestra el avance
+                // (ver evidence-zip-toast.blade.php); los registros esperan en caché.
                 $token = Str::random(32);
-                session(["evidence_zip_{$token}" => ['type' => $type, 'ids' => $ids]]);
+                Cache::put(static::cacheKey('request', $token), ['user' => auth()->id(), 'type' => $type, 'ids' => $ids], now()->addMinutes(30));
 
-                $livewire->js('window.location.href = ' . json_encode(route('evidences.download', ['token' => $token])));
+                $livewire->js('window.evidenceZip.start(' . json_encode(['token' => $token, 'label' => 'Evidencias de ' . $c['label']]) . ')');
             })
             ->visible(fn () => static::exists($type) && static::canDownload());
     }
@@ -183,10 +192,14 @@ class EvidenceZips
      * Arma el ZIP. Devuelve null si ningún registro tiene archivos ni videos.
      *
      * @param  array<int>  $ids
+     * @param  (\Closure(int): void)|null  $progress  recibe el avance de 0 a 100
      * @return array{path: string, name: string, records: int, files: int}|null
      */
-    public static function zip(string $type, array $ids): ?array
+    public static function zip(string $type, array $ids, ?\Closure $progress = null): ?array
     {
+        $progress ??= fn (int $percent) => null;
+        $progress(0);
+
         $contents = self::CONTENTS[$type];
         $records  = $contents['model']::query()
             ->withoutGlobalScopes()
@@ -249,7 +262,16 @@ class EvidenceZips
             }
         }
 
+        // Los archivos se copian al ZIP al cerrarlo: ahí está casi todo el tiempo.
+        // Revisar la lista es el primer 5 %; copiarlos, el resto.
+        $progress(5);
+
+        if (method_exists($zip, 'registerProgressCallback')) {
+            $zip->registerProgressCallback(0.01, fn (float $rate) => $progress(5 + (int) floor($rate * 95)));
+        }
+
         $zip->close();
+        $progress(100);
 
         if ($files === 0) {
             @unlink($path);

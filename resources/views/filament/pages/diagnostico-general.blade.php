@@ -1,203 +1,198 @@
 <x-filament-panels::page>
-    <div class="space-y-8">
-        @php
-            $citiesDataEntry = $this->getEntrepreneursDataByCitiesEntry();
-            $citiesDataExit = $this->getEntrepreneursDataByCitiesExit();
+    @php
+        // Datos y gráficos de siempre (métodos de DiagnosticoGeneral y radares de Chart.js); aquí solo cambia la presentación.
+        $citiesDataEntry = $this->getEntrepreneursDataByCitiesEntry();
+        $citiesDataExit = $this->getEntrepreneursDataByCitiesExit();
 
-            // Calcular totales ENTRADA (usa 'route' ya asignado por año en PHP)
-            $ruta1TotalEntry = 0;
-            $ruta2TotalEntry = 0;
-            $ruta3TotalEntry = 0;
+        // Calcular totales ENTRADA (usa 'route' ya asignado por año en PHP)
+        $ruta1TotalEntry = 0;
+        $ruta2TotalEntry = 0;
+        $ruta3TotalEntry = 0;
 
-            foreach ($citiesDataEntry as $entrepreneursData) {
-                foreach ($entrepreneursData as $e) {
-                    if (str_contains($e['route'], 'Fase 1'))      $ruta1TotalEntry++;
-                    elseif (str_contains($e['route'], 'Fase 2'))  $ruta2TotalEntry++;
-                    elseif (str_contains($e['route'], 'Fase 3'))  $ruta3TotalEntry++;
-                }
+        foreach ($citiesDataEntry as $entrepreneursData) {
+            foreach ($entrepreneursData as $e) {
+                if (str_contains($e['route'], 'Fase 1'))      $ruta1TotalEntry++;
+                elseif (str_contains($e['route'], 'Fase 2'))  $ruta2TotalEntry++;
+                elseif (str_contains($e['route'], 'Fase 3'))  $ruta3TotalEntry++;
             }
+        }
 
-            // Calcular totales SALIDA
-            $ruta1TotalExit = 0;
-            $ruta2TotalExit = 0;
-            $ruta3TotalExit = 0;
+        // Calcular totales SALIDA
+        $ruta1TotalExit = 0;
+        $ruta2TotalExit = 0;
+        $ruta3TotalExit = 0;
 
-            foreach ($citiesDataExit as $entrepreneursData) {
-                foreach ($entrepreneursData as $e) {
-                    if (str_contains($e['route'], 'Fase 1'))      $ruta1TotalExit++;
-                    elseif (str_contains($e['route'], 'Fase 2'))  $ruta2TotalExit++;
-                    elseif (str_contains($e['route'], 'Fase 3'))  $ruta3TotalExit++;
-                }
+        foreach ($citiesDataExit as $entrepreneursData) {
+            foreach ($entrepreneursData as $e) {
+                if (str_contains($e['route'], 'Fase 1'))      $ruta1TotalExit++;
+                elseif (str_contains($e['route'], 'Fase 2'))  $ruta2TotalExit++;
+                elseif (str_contains($e['route'], 'Fase 3'))  $ruta3TotalExit++;
             }
-        @endphp
+        }
 
-        {{-- ========== RESUMEN GENERAL ENTRADA ========== --}}
+        $allCities = array_unique(array_merge(array_keys($citiesDataEntry), array_keys($citiesDataExit)));
+        sort($allCities);
+
+        $routes = [
+            ['number' => 1, 'name' => 'Pre-emprendimiento y validación temprana', 'levels' => 'Niveles 0 a 2', 'color' => '#F59E0B', 'entry' => $ruta1TotalEntry, 'exit' => $ruta1TotalExit],
+            ['number' => 2, 'name' => 'Consolidación', 'levels' => 'Niveles 3 y 4', 'color' => '#3B82F6', 'entry' => $ruta2TotalEntry, 'exit' => $ruta2TotalExit],
+            ['number' => 3, 'name' => 'Escalamiento', 'levels' => 'Nivel 5', 'color' => '#10B981', 'entry' => $ruta3TotalEntry, 'exit' => $ruta3TotalExit],
+        ];
+
+        $year     = \App\Support\YearContext::effectiveYear();
+        $yearText = $year ? "en {$year}" : 'en todos los años';
+        $num      = fn ($n) => number_format((float) $n, 0, ',', '.');
+        // "Fase 1: Nivel 0,1,2 - Pre-emprendimiento" → "Ruta 1" (la fase N es la ruta N).
+        $routeName = fn (string $route) => preg_match('/Fase (\d)/', $route, $m) ? 'Ruta ' . $m[1] : 'Sin ruta';
+    @endphp
+
+    <style>
+        .dg { --dg-line: rgba(var(--gray-950), .08); --dg-soft: rgba(var(--gray-400), .07); --dg-muted: rgb(var(--gray-500)); --dg-text: rgb(var(--gray-950));
+            display: flex; flex-direction: column; gap: 1.5rem; font-size: .875rem; }
+        .dark .dg { --dg-line: rgba(255, 255, 255, .1); --dg-muted: rgb(var(--gray-400)); --dg-text: #fff; }
+        .dg-dot { flex: none; width: .65rem; height: .65rem; border-radius: 9999px; }
+        .dg-muted { color: var(--dg-muted); }
+
+        /* Resumen: una tarjeta por ruta con entrada y salida */
+        .dg-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; }
+        .dg-card { border: 1px solid var(--dg-line); border-radius: .9rem; padding: 1rem 1.1rem; }
+        .dg-card-title { display: flex; align-items: flex-start; gap: .5rem; font-weight: 600; color: var(--dg-text); }
+        .dg-card-title .dg-dot { margin-top: .3rem; }
+        .dg-card-sub { margin-top: .15rem; padding-left: 1.15rem; font-size: .75rem; color: var(--dg-muted); }
+        .dg-figures { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-top: .9rem; }
+        .dg-figure { border-radius: .6rem; padding: .55rem .7rem; background: var(--dg-soft); }
+        .dg-figure small { display: block; font-size: .72rem; font-weight: 500; color: var(--dg-muted); }
+        .dg-figure b { display: block; margin-top: .1rem; font-size: 1.6rem; line-height: 2rem; font-weight: 700; color: var(--dg-text); font-variant-numeric: tabular-nums; }
+
+        /* Municipios */
+        .dg-cities { display: flex; flex-direction: column; gap: 1rem; }
+        .dg-city { border: 1px solid var(--dg-line); border-radius: .9rem; padding: 1.1rem 1.25rem 1.25rem; }
+        .dg-city-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .25rem .75rem; padding-bottom: .85rem; border-bottom: 1px solid var(--dg-line); }
+        .dg-city-name { font-size: 1.1rem; font-weight: 700; color: var(--dg-text); }
+        .dg-city-meta { font-size: .78rem; color: var(--dg-muted); }
+        .dg-side { padding-top: 1.1rem; }
+        .dg-side + .dg-side { margin-top: 1.1rem; border-top: 1px dashed var(--dg-line); }
+        .dg-side-head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; margin-bottom: .75rem; }
+        .dg-tag { display: inline-flex; padding: .2rem .7rem; border-radius: 9999px; font-size: .78rem; font-weight: 600; }
+        .dg-tag.is-entry { background: rgba(var(--primary-500), .12); color: rgb(var(--primary-700)); }
+        .dg-tag.is-exit { background: rgba(var(--success-500), .14); color: rgb(var(--success-700)); }
+        .dark .dg-tag.is-entry { color: rgb(var(--primary-300)); }
+        .dark .dg-tag.is-exit { color: rgb(var(--success-300)); }
+        .dg-chart { position: relative; height: 600px; }
+        .dg-none { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 7rem; border-radius: .75rem; background: var(--dg-soft); color: var(--dg-muted); }
+        .dg-none svg { width: 1.4rem; height: 1.4rem; }
+
+        /* Emprendimientos graficados */
+        .dg-list { margin-top: 1rem; }
+        .dg-list summary { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; font-size: .85rem; font-weight: 600; color: var(--dg-text); list-style: none; }
+        .dg-list summary::-webkit-details-marker { display: none; }
+        .dg-list summary::before { content: '▸'; color: var(--dg-muted); transition: transform .15s; }
+        .dg-list[open] summary::before { transform: rotate(90deg); }
+        .dg-list summary:focus-visible { outline: 2px solid rgb(var(--primary-500)); outline-offset: 2px; border-radius: .25rem; }
+        .dg-items { list-style: none; margin: .75rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); gap: .5rem; }
+        .dg-item { display: flex; align-items: flex-start; gap: .55rem; min-width: 0; padding: .55rem .65rem; border-radius: .6rem; background: var(--dg-soft); }
+        .dg-item .dg-dot { margin-top: .3rem; }
+        .dg-item-text { flex: 1; min-width: 0; }
+        .dg-item-name { font-weight: 600; color: var(--dg-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dg-item-business { font-size: .78rem; color: var(--dg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dg-item-score { flex: none; text-align: right; font-size: .75rem; color: var(--dg-muted); white-space: nowrap; }
+        .dg-item-score b { display: block; font-size: .95rem; color: var(--dg-text); font-variant-numeric: tabular-nums; }
+
+        @media (prefers-reduced-motion: reduce) { .dg-list summary::before { transition: none; } }
+    </style>
+
+    <div class="dg">
+        {{-- ===== Resumen general: entrada y salida por ruta ===== --}}
         <x-filament::section>
-            <x-slot name="heading">
-                Resumen General - Entrada
-            </x-slot>
+            <x-slot name="heading">Resumen general</x-slot>
+            <x-slot name="description">Emprendimientos en cada ruta según su diagnóstico de entrada y de salida, {{ $yearText }}.</x-slot>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Ruta 1: Pre-emprendimiento y validación temprana</p>
-                    <p class="text-3xl font-bold text-orange-500">{{ $ruta1TotalEntry }}</p>
-                    <p class="text-xs text-gray-500 mt-1">emprendimientos</p>
-                </div>
-
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Ruta 2: Consolidación</p>
-                    <p class="text-3xl font-bold text-blue-500">{{ $ruta2TotalEntry }}</p>
-                    <p class="text-xs text-gray-500 mt-1">emprendimientos</p>
-                </div>
-
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Ruta 3: Escalamiento</p>
-                    <p class="text-3xl font-bold text-green-500">{{ $ruta3TotalEntry }}</p>
-                    <p class="text-xs text-gray-500 mt-1">emprendimientos</p>
-                </div>
+            <div class="dg-summary">
+                @foreach ($routes as $route)
+                    <div class="dg-card">
+                        <div class="dg-card-title">
+                            <span class="dg-dot" style="background: {{ $route['color'] }};" aria-hidden="true"></span>
+                            <span>Ruta {{ $route['number'] }} · {{ $route['name'] }}</span>
+                        </div>
+                        <div class="dg-card-sub">{{ $route['levels'] }}</div>
+                        <div class="dg-figures">
+                            <div class="dg-figure"><small>Entrada</small><b>{{ $num($route['entry']) }}</b></div>
+                            <div class="dg-figure"><small>Salida</small><b>{{ $num($route['exit']) }}</b></div>
+                        </div>
+                    </div>
+                @endforeach
             </div>
         </x-filament::section>
-        <br>
 
-        {{-- ========== RESUMEN GENERAL SALIDA ========== --}}
+        {{-- ===== Comparativa por municipio: radar de cada emprendimiento por área ===== --}}
         <x-filament::section>
-            <x-slot name="heading">
-                Resumen General - Salida
-            </x-slot>
+            <x-slot name="heading">Comparativa por municipio</x-slot>
+            <x-slot name="description">Puntaje de cada emprendimiento por área (administrativa, financiera, producción, mercado y tecnología), en la entrada y en la salida.</x-slot>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Ruta 1: Pre-emprendimiento y validación temprana</p>
-                    <p class="text-3xl font-bold text-orange-500">{{ $ruta1TotalExit }}</p>
-                    <p class="text-xs text-gray-500 mt-1">emprendimientos</p>
-                </div>
-
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Ruta 2: Consolidación</p>
-                    <p class="text-3xl font-bold text-blue-500">{{ $ruta2TotalExit }}</p>
-                    <p class="text-xs text-gray-500 mt-1">emprendimientos</p>
-                </div>
-
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-center">
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Ruta 3: Escalamiento</p>
-                    <p class="text-3xl font-bold text-green-500">{{ $ruta3TotalExit }}</p>
-                    <p class="text-xs text-gray-500 mt-1">emprendimientos</p>
-                </div>
-            </div>
-        </x-filament::section>
-        <br>
-
-        {{-- ========== GRÁFICOS POR MUNICIPIO (ENTRADA Y SALIDA UNO DEBAJO DEL OTRO) ========== --}}
-        @php
-            $allCities = array_unique(array_merge(
-                array_keys($citiesDataEntry),
-                array_keys($citiesDataExit)
-            ));
-            sort($allCities);
-        @endphp
-
-        @if(count($allCities) > 0)
-            <x-filament::section>
-                <x-slot name="heading">
-                    Comparativa por Municipio - Entrada vs Salida
-                </x-slot>
-
-                <div class="space-y-8">
-                    @foreach($allCities as $cityName)
+            @if (count($allCities) > 0)
+                <div class="dg-cities">
+                    @foreach ($allCities as $cityName)
                         @php
                             $citySlug = Str::lower(Str::slug(Str::ascii($cityName)));
-                            $hasEntry = isset($citiesDataEntry[$cityName]);
-                            $hasExit = isset($citiesDataExit[$cityName]);
+                            $sides = [
+                                'entry' => ['label' => 'Entrada', 'data' => $citiesDataEntry[$cityName] ?? null],
+                                'exit'  => ['label' => 'Salida', 'data' => $citiesDataExit[$cityName] ?? null],
+                            ];
                         @endphp
 
-                        <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-gray-50 dark:bg-gray-800">
-                            <h3 class="text-xl font-bold mb-6 text-center text-gray-900 dark:text-white">
-                                {{ $cityName }}
-                            </h3>
-
-                            {{-- ENTRADA --}}
-                            <div class="space-y-4 mb-8">
-                                <div class="text-center">
-                                    <span class="inline-block px-4 py-2 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 rounded-lg font-semibold">
-                                        Entrada
-                                    </span>
-                                </div>
-
-                                @if($hasEntry)
-                                    <div style="height: 600px; position: relative;">
-                                        <canvas id="radar-entry-{{ $citySlug }}"></canvas>
-                                    </div>
-
-                                    <!-- Leyenda de emprendimientos ENTRADA -->
-                                    <div class="mt-6 space-y-2">
-                                        <h4 class="text-sm font-semibold mb-3">Emprendimientos Graficados (Entrada)</h4>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                                            @foreach($citiesDataEntry[$cityName] as $entrepreneur)
-                                                <div class="flex items-center space-x-2 p-2 bg-white dark:bg-gray-900 rounded">
-                                                    <div class="w-4 h-4 rounded flex-shrink-0" style="background-color: {{ $entrepreneur['borderColor'] }}"></div>
-                                                    <div class="flex-1 min-w-0">
-                                                        <p class="text-sm font-medium truncate">{{ $entrepreneur['name'] }}</p>
-                                                        <p class="text-xs dark:text-primary-400 truncate font-medium">{{ $entrepreneur['business_name'] }}</p>
-                                                        <p class="text-xs text-gray-500">{{ explode(' - ', $entrepreneur['route'])[0] }}</p>
-                                                        <p class="text-xs text-gray-600 font-semibold">Puntaje: {{ $entrepreneur['total_score'] }}</p>
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="flex items-center justify-center h-64 text-gray-500">
-                                        Sin datos de entrada
-                                    </div>
-                                @endif
+                        <article class="dg-city">
+                            <div class="dg-city-head">
+                                <span class="dg-city-name">{{ $cityName }}</span>
+                                <span class="dg-city-meta">{{ $num(count($sides['entry']['data'] ?? [])) }} con diagnóstico de entrada · {{ $num(count($sides['exit']['data'] ?? [])) }} de salida</span>
                             </div>
 
-                            {{-- SALIDA --}}
-                            <div class="space-y-4">
-                                <div class="text-center">
-                                    <span class="inline-block px-4 py-2 bg-success-100 dark:bg-success-900 text-success-800 dark:text-success-200 rounded-lg font-semibold">
-                                        Salida
-                                    </span>
-                                </div>
-
-                                @if($hasExit)
-                                    <div style="height: 600px; position: relative;">
-                                        <canvas id="radar-exit-{{ $citySlug }}"></canvas>
+                            @foreach ($sides as $side => $info)
+                                <div class="dg-side">
+                                    <div class="dg-side-head">
+                                        <span class="dg-tag is-{{ $side }}">{{ $info['label'] }}</span>
+                                        @if ($info['data'])
+                                            <span class="dg-muted" style="font-size:.8rem;">{{ $num(count($info['data'])) }} {{ count($info['data']) === 1 ? 'emprendimiento graficado' : 'emprendimientos graficados' }}</span>
+                                        @endif
                                     </div>
 
-                                    <!-- Leyenda de emprendimientos SALIDA -->
-                                    <div class="mt-6 space-y-2">
-                                        <h4 class="text-sm font-semibold mb-3">Emprendimientos Graficados (Salida)</h4>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                                            @foreach($citiesDataExit[$cityName] as $entrepreneur)
-                                                <div class="flex items-center space-x-2 p-2 bg-white dark:bg-gray-900 rounded">
-                                                    <div class="w-4 h-4 rounded flex-shrink-0" style="background-color: {{ $entrepreneur['borderColor'] }}"></div>
-                                                    <div class="flex-1 min-w-0">
-                                                        <p class="text-sm font-medium truncate">{{ $entrepreneur['name'] }}</p>
-                                                        <p class="text-xs dark:text-primary-400 truncate font-medium">{{ $entrepreneur['business_name'] }}</p>
-                                                        <p class="text-xs text-gray-500">{{ explode(' - ', $entrepreneur['route'])[0] }}</p>
-                                                        <p class="text-xs text-gray-600 font-semibold">Puntaje: {{ $entrepreneur['total_score'] }}</p>
-                                                    </div>
-                                                </div>
-                                            @endforeach
+                                    @if ($info['data'])
+                                        <div class="dg-chart">
+                                            <canvas id="radar-{{ $side }}-{{ $citySlug }}" role="img" aria-label="Radar de {{ mb_strtolower($info['label']) }} de {{ $cityName }}"></canvas>
                                         </div>
-                                    </div>
-                                @else
-                                    <div class="flex items-center justify-center h-64 text-gray-500">
-                                        Sin datos de salida
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                        <br>
+
+                                        <details class="dg-list" open>
+                                            <summary>Emprendimientos graficados ({{ $num(count($info['data'])) }})</summary>
+                                            <ul class="dg-items">
+                                                @foreach ($info['data'] as $entrepreneur)
+                                                    <li class="dg-item">
+                                                        <span class="dg-dot" style="background: {{ $entrepreneur['borderColor'] }};" aria-hidden="true"></span>
+                                                        <div class="dg-item-text">
+                                                            <div class="dg-item-name" title="{{ $entrepreneur['name'] }}">{{ $entrepreneur['name'] }}</div>
+                                                            <div class="dg-item-business" title="{{ $entrepreneur['business_name'] }}">{{ $entrepreneur['business_name'] }}</div>
+                                                        </div>
+                                                        <div class="dg-item-score" title="{{ $entrepreneur['route'] }}">
+                                                            <b>{{ $entrepreneur['total_score'] }} pts</b>
+                                                            {{ $routeName($entrepreneur['route']) }}
+                                                        </div>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+                                        </details>
+                                    @else
+                                        <div class="dg-none">
+                                            <x-filament::icon icon="heroicon-o-chart-bar" />
+                                            Sin diagnósticos de {{ mb_strtolower($info['label']) }}
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </article>
                     @endforeach
                 </div>
-            </x-filament::section>
-        @else
-            <x-filament::section>
-                <p class="text-center text-gray-500 py-8">No hay diagnósticos disponibles</p>
-            </x-filament::section>
-        @endif
+            @else
+                <p class="dg-muted" style="text-align:center; padding:2rem 0;">No hay diagnósticos {{ $yearText }}.</p>
+            @endif
+        </x-filament::section>
     </div>
 
     @push('scripts')
@@ -209,9 +204,19 @@
             return text
                 .toLowerCase()
                 .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[̀-ͯ]/g, "")
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/^-+|-+$/g, '');
+        }
+
+        // Colores de textos y líneas guía según el tema del panel (el radar en sí no cambia).
+        function chartTheme() {
+            const dark = document.documentElement.classList.contains('dark');
+            return {
+                text: dark ? '#a1a1aa' : '#52525b',
+                grid: dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+                font: getComputedStyle(document.body).fontFamily,
+            };
         }
 
         function renderRadarChart(canvasId, entrepreneursData) {
@@ -222,6 +227,8 @@
             if (radarCharts[canvasId]) {
                 radarCharts[canvasId].destroy();
             }
+
+            const theme = chartTheme();
 
             const datasets = entrepreneursData.map((entrepreneur) => {
                 return {
@@ -265,8 +272,10 @@
                             display: true,
                             position: 'right',
                             labels: {
+                                color: theme.text,
                                 font: {
-                                    size: 10
+                                    size: 10,
+                                    family: theme.font,
                                 },
                                 padding: 8,
                                 usePointStyle: true,
@@ -293,13 +302,19 @@
                             min: 0,
                             ticks: {
                                 stepSize: 5,
+                                color: theme.text,
+                                backdropColor: 'transparent',
                                 font: {
                                     size: 10
                                 }
                             },
+                            grid: { color: theme.grid },
+                            angleLines: { color: theme.grid },
                             pointLabels: {
+                                color: theme.text,
                                 font: {
-                                    size: 11
+                                    size: 11,
+                                    family: theme.font,
                                 }
                             }
                         }
@@ -331,6 +346,16 @@
         }
 
         document.addEventListener('DOMContentLoaded', renderAllRadarCharts);
+
+        // Si se cambia entre modo claro y oscuro, los radares se vuelven a dibujar con los colores del tema.
+        let wasDark = document.documentElement.classList.contains('dark');
+        new MutationObserver(() => {
+            const dark = document.documentElement.classList.contains('dark');
+            if (dark !== wasDark) {
+                wasDark = dark;
+                renderAllRadarCharts();
+            }
+        }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     </script>
     @endpush
 </x-filament-panels::page>

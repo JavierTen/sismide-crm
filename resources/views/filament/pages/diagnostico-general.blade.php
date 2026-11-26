@@ -160,7 +160,7 @@
                                             <canvas id="radar-{{ $side }}-{{ $citySlug }}" role="img" aria-label="Radar de {{ mb_strtolower($info['label']) }} de {{ $cityName }}"></canvas>
                                         </div>
 
-                                        <details class="dg-list" open>
+                                        <details class="dg-list">
                                             <summary>Emprendimientos graficados ({{ $num(count($info['data'])) }})</summary>
                                             <ul class="dg-items">
                                                 @foreach ($info['data'] as $entrepreneur)
